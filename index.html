@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Outlet 365 — Moda Masculina, Calçados e Acessórios</title>
+  <meta name="description" content="Outlet 365 — Moda masculina, calçados e acessórios com compra fácil, atendimento confiável e entrega para sua região. Madalena-CE." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ========= HEADER ========= -->
+  <header class="site-header" id="site-header">
+    <div class="header-top">
+      <p><i class="fas fa-truck"></i> Frete para todo o Ceará e Brasil · <strong>Seg–Sáb 08:30–17:30</strong></p>
+    </div>
+    <div class="header-main">
+      <button class="btn-menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
+      </button>
+      <a href="index.html" class="site-logo">
+        <span class="logo-text">OUTLET<span class="logo-accent">365</span></span>
+      </a>
+      <nav class="header-nav desktop-only">
+        <a href="categoria.html?cat=camisas">Camisas</a>
+        <a href="categoria.html?cat=shorts-calcas">Shorts e Calças</a>
+        <a href="categoria.html?cat=calcados-chinelos">Calçados</a>
+        <a href="categoria.html?cat=acessorios">Acessórios</a>
+        <a href="categoria.html?cat=perfumes">Perfumes</a>
+        <a href="categoria.html?cat=promocoes" style="color:#b45309;font-weight:700;">🔥 Promoções</a>
+      </nav>
+      <div class="header-actions">
+        <button class="btn-icon btn-search-toggle" id="searchToggle" aria-label="Buscar">
+          <i class="fas fa-search"></i>
+        </button>
+        <a href="https://www.instagram.com/outlet365__" target="_blank" class="btn-icon" aria-label="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <button class="btn-icon btn-cart-toggle" id="cartToggle" aria-label="Carrinho">
+          <i class="fas fa-shopping-bag"></i>
+          <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+      </div>
+    </div>
+    <!-- Search bar -->
+    <div class="search-bar-container" id="searchBar">
+      <div class="search-bar-inner">
+        <input type="text" id="searchInput" placeholder="O que você está buscando?" autocomplete="off" />
+        <button class="btn-search-exec" id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </header>
+
+  <!-- ========= MENU LATERAL MOBILE ========= -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <aside class="side-menu" id="sideMenu">
+    <div class="side-menu-header">
+      <span class="logo-text">OUTLET<span class="logo-accent">365</span></span>
+      <button class="btn-menu-close" id="menuClose" aria-label="Fechar menu"><i class="fas fa-times"></i></button>
+    </div>
+    <nav class="side-menu-nav">
+      <div class="menu-section">
+        <p class="menu-section-title">CATEGORIAS</p>
+        <a href="categoria.html?cat=camisas" class="menu-item">
+          <span>CAMISAS</span><i class="fas fa-chevron-right"></i>
+        </a>
+        <a href="categoria.html?cat=shorts-calcas" class="menu-item">
+          <span>SHORTS E CALÇAS</span><i class="fas fa-chevron-right"></i>
+        </a>
+        <a href="categoria.html?cat=calcados-chinelos" class="menu-item">
+          <span>CALÇADOS E CHINELOS</span><i class="fas fa-chevron-right"></i>
+        </a>
+        <a href="categoria.html?cat=acessorios" class="menu-item">
+          <span>ACESSÓRIOS</span><i class="fas fa-chevron-right"></i>
+        </a>
+        <a href="categoria.html?cat=perfumes" class="menu-item">
+          <span>PERFUMES</span><i class="fas fa-chevron-right"></i>
+        </a>
+        <a href="categoria.html?cat=promocoes" class="menu-item" style="color:#b45309;">
+          <span>🔥 PROMOÇÕES</span><i class="fas fa-chevron-right"></i>
+        </a>
+      </div>
+      <div class="menu-section">
+        <p class="menu-section-title">INFORMAÇÕES</p>
+        <a href="sobre.html" class="menu-item"><span>QUEM SOMOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="entrega.html" class="menu-item"><span>ENTREGA E FRETE</span><i class="fas fa-chevron-right"></i></a>
+        <a href="trocas.html" class="menu-item"><span>TROCAS E DEVOLUÇÕES</span><i class="fas fa-chevron-right"></i></a>
+        <a href="contato.html" class="menu-item"><span>CONTATO</span><i class="fas fa-chevron-right"></i></a>
+      </div>
+    </nav>
+    <div class="side-menu-footer">
+      <a href="https://www.instagram.com/outlet365__" target="_blank" class="menu-social">
+        <i class="fab fa-instagram"></i> @outlet365__
+      </a>
+    </div>
+  </aside>
+
+  <!-- ========= CARRINHO LATERAL ========= -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header">
+      <h2>Meu Carrinho</h2>
+      <button class="btn-cart-close" id="cartClose" aria-label="Fechar carrinho"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty" id="cartEmpty">
+        <i class="fas fa-shopping-bag"></i>
+        <p>Seu carrinho está vazio</p>
+        <a href="categoria.html?cat=camisas" class="btn-primary">Ver Produtos</a>
+      </div>
+    </div>
+    <div class="cart-footer" id="cartFooter" style="display:none;">
+      <div class="cart-subtotal">
+        <span>Subtotal</span>
+        <strong id="cartSubtotal">R$ 0,00</strong>
+      </div>
+      <a href="checkout.html" class="btn-primary btn-block">FINALIZAR COMPRA</a>
+      <button class="btn-outline btn-block" id="continueShopping">Continuar Comprando</button>
+    </div>
+  </aside>
+
+  <!-- ========= MAIN ========= -->
+  <main>
+
+    <!-- HERO -->
+    <section class="hero-section" id="hero-section">
+      <div class="hero-slider" id="heroSlider">
+        <div class="hero-slide active" style="background-image: url('https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=1400&q=80')">
+          <div class="hero-content">
+            <span class="hero-tag">Nova Coleção</span>
+            <h1>Moda Masculina<br/>com Estilo Próprio</h1>
+            <p>Camisas, calçados e acessórios para o seu dia a dia.</p>
+            <a href="categoria.html?cat=camisas" class="btn-hero">Ver Coleção</a>
+          </div>
+        </div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=80')">
+          <div class="hero-content">
+            <span class="hero-tag">Shorts e Calças</span>
+            <h1>Conforto e Estilo<br/>Para Toda Ocasião</h1>
+            <p>Peças de qualidade para lazer, trabalho e aventura.</p>
+            <a href="categoria.html?cat=shorts-calcas" class="btn-hero">Explorar</a>
+          </div>
+        </div>
+        <div class="hero-slide" style="background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1400&q=80')">
+          <div class="hero-content">
+            <span class="hero-tag">Calçados</span>
+            <h1>Passo Certo<br/>Todo Dia</h1>
+            <p>Chinelos, slides e tênis com conforto e durabilidade.</p>
+            <a href="categoria.html?cat=calcados-chinelos" class="btn-hero">Ver Calçados</a>
+          </div>
+        </div>
+      </div>
+      <div class="hero-dots" id="heroDots">
+        <button class="dot active" data-slide="0"></button>
+        <button class="dot" data-slide="1"></button>
+        <button class="dot" data-slide="2"></button>
+      </div>
+      <button class="hero-nav hero-prev" id="heroPrev"><i class="fas fa-chevron-left"></i></button>
+      <button class="hero-nav hero-next" id="heroNext"><i class="fas fa-chevron-right"></i></button>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section class="categories-section" id="categories-section">
+      <div class="container">
+        <h2 class="section-title">Nossas Categorias</h2>
+        <div class="categories-grid">
+          <a href="categoria.html?cat=camisas" class="category-card">
+            <div class="category-img" style="background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80')"></div>
+            <div class="category-info">
+              <h3>Camisas</h3>
+              <span>Ver todos <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+          <a href="categoria.html?cat=shorts-calcas" class="category-card">
+            <div class="category-img" style="background-image: url('https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=600&q=80')"></div>
+            <div class="category-info">
+              <h3>Shorts e Calças</h3>
+              <span>Ver todos <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+          <a href="categoria.html?cat=calcados-chinelos" class="category-card">
+            <div class="category-img" style="background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80')"></div>
+            <div class="category-info">
+              <h3>Calçados e Chinelos</h3>
+              <span>Ver todos <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+          <a href="categoria.html?cat=acessorios" class="category-card">
+            <div class="category-img" style="background-image: url('https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80')"></div>
+            <div class="category-info">
+              <h3>Acessórios</h3>
+              <span>Ver todos <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+          <a href="categoria.html?cat=perfumes" class="category-card">
+            <div class="category-img" style="background-image: url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80')"></div>
+            <div class="category-info">
+              <h3>Perfumes</h3>
+              <span>Ver todos <i class="fas fa-arrow-right"></i></span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CARD PRINCIPAL (dinâmico) -->
+    <section class="hero-card-section" id="heroCardSection" style="display:none;">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">⭐ Destaques da Loja</h2>
+          <a href="categoria.html" class="section-link">Ver todos <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="hero-card-grid" id="heroCardGrid"></div>
+      </div>
+    </section>
+
+    <!-- MAIS VENDIDOS -->
+    <section class="products-section" id="featured-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Mais Vendidos</h2>
+          <a href="categoria.html" class="section-link">Ver todos <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="products-grid" id="featuredGrid">
+          <!-- Preenchido via JS -->
+          <div class="products-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROMOÇÕES DA SEMANA (dinâmico) -->
+    <section class="promo-section" id="promoSection" style="display:none;">
+      <div class="container">
+        <div class="section-header">
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <h2 class="section-title" style="margin-bottom:0;">🔥 Promoções da Semana</h2>
+            <span class="promo-badge">Só essa semana</span>
+          </div>
+          <a href="categoria.html?cat=promocoes" class="section-link">Ver todas <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="products-grid" id="promoGrid"></div>
+      </div>
+    </section>
+
+    <!-- BANNER INTERMEDIÁRIO -->
+    <section class="mid-banner">
+      <div class="mid-banner-content">
+        <span class="hero-tag">Outlet 365</span>
+        <h2>Moda masculina acessível<br/>para toda região</h2>
+        <p>Loja física em Madalena-CE + envio para todo o Brasil</p>
+        <div class="mid-banner-btns">
+          <a href="categoria.html" class="btn-hero">Ver Catálogo</a>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="btn-hero btn-hero-outline"><i class="fab fa-instagram"></i> Instagram</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOVIDADES -->
+    <section class="products-section" id="new-arrivals-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Novidades</h2>
+          <a href="categoria.html" class="section-link">Ver todos <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="products-grid" id="newArrivalsGrid">
+          <div class="products-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BENEFÍCIOS -->
+    <section class="benefits-section" id="benefits-section">
+      <div class="container">
+        <div class="benefits-grid">
+          <div class="benefit-item">
+            <i class="fas fa-truck"></i>
+            <h4>Entrega Regional</h4>
+            <p>Enviamos para Madalena e toda a região do Ceará</p>
+          </div>
+          <div class="benefit-item">
+            <i class="fas fa-credit-card"></i>
+            <h4>Parcele em até 3x</h4>
+            <p>Compre agora e pague parcelado com facilidade</p>
+          </div>
+          <div class="benefit-item">
+            <i class="fas fa-shield-alt"></i>
+            <h4>Compra Segura</h4>
+            <p>Seus dados protegidos em todas as etapas</p>
+          </div>
+          <div class="benefit-item">
+            <i class="fas fa-sync-alt"></i>
+            <h4>Troca Garantida</h4>
+            <p>Política de trocas simples e sem burocracia</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTAGRAM FEED -->
+    <section class="instagram-section">
+      <div class="container">
+        <div class="instagram-header">
+          <h2 class="section-title">Siga no Instagram</h2>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-handle">
+            <i class="fab fa-instagram"></i> @outlet365__
+          </a>
+        </div>
+        <div class="instagram-grid">
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-cell">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80" alt="Instagram Outlet 365" loading="lazy"/>
+            <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
+          </a>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-cell">
+            <img src="https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&q=80" alt="Instagram Outlet 365" loading="lazy"/>
+            <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
+          </a>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-cell">
+            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80" alt="Instagram Outlet 365" loading="lazy"/>
+            <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
+          </a>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-cell">
+            <img src="https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&q=80" alt="Instagram Outlet 365" loading="lazy"/>
+            <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
+          </a>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-cell">
+            <img src="https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=400&q=80" alt="Instagram Outlet 365" loading="lazy"/>
+            <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
+          </a>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="insta-cell">
+            <img src="https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&q=80" alt="Instagram Outlet 365" loading="lazy"/>
+            <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
+          </a>
+        </div>
+        <div class="text-center" style="margin-top:1.5rem;">
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="btn-primary"><i class="fab fa-instagram"></i> Ver mais no Instagram</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========= FOOTER ========= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="logo-text footer-logo">OUTLET<span class="logo-accent">365</span></span>
+          <p>Moda masculina, calçados e acessórios com qualidade e preço acessível para você e sua região.</p>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="footer-social">
+            <i class="fab fa-instagram"></i>
+          </a>
+        </div>
+        <div class="footer-links">
+          <h4>Categorias</h4>
+          <ul>
+            <li><a href="categoria.html?cat=camisas">Camisas</a></li>
+            <li><a href="categoria.html?cat=shorts-calcas">Shorts e Calças</a></li>
+            <li><a href="categoria.html?cat=calcados-chinelos">Calçados e Chinelos</a></li>
+            <li><a href="categoria.html?cat=acessorios">Acessórios</a></li>
+            <li><a href="categoria.html?cat=perfumes">Perfumes</a></li>
+            <li><a href="categoria.html?cat=promocoes">🔥 Promoções</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Informações</h4>
+          <ul>
+            <li><a href="sobre.html">Quem somos</a></li>
+            <li><a href="entrega.html">Entrega e Frete</a></li>
+            <li><a href="trocas.html">Trocas e Devoluções</a></li>
+            <li><a href="contato.html">Contato</a></li>
+          </ul>
+        </div>
+        <div class="footer-contact">
+          <h4>Atendimento</h4>
+          <p><i class="fas fa-map-marker-alt"></i> Santa Terezinha, Rua José Patrício Nogueira, 220 — Madalena-CE</p>
+          <p><i class="fas fa-clock"></i> Seg–Sáb: 08:30 às 17:30</p>
+          <p><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/outlet365__" target="_blank">@outlet365__</a></p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Outlet 365. Todos os direitos reservados. · Madalena-CE · CEP 63860-000</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- WHATSAPP FLUTUANTE -->
+  <a href="https://wa.me/5588992757076?text=Olá!%20Vim%20pelo%20site%20da%20Outlet%20365%20e%20gostaria%20de%20mais%20informações." class="whatsapp-float" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/home-dynamic.js"></script>
+</body>
+</html>

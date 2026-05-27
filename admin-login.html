@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin — Outlet 365</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A0A0A;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .login-logo .logo-text {
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      color: #0A0A0A;
+    }
+    .login-logo .logo-accent { color: #2452C8; }
+    .login-logo p {
+      font-size: .78rem;
+      color: #9ca3af;
+      margin-top: .25rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 600;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #374151;
+      margin-bottom: .4rem;
+    }
+    .form-group input {
+      width: 100%;
+      padding: .8rem 1rem;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-group input:focus { border-color: #2452C8; }
+    .btn-login {
+      width: 100%;
+      padding: .9rem;
+      background: #0A0A0A;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: .5rem;
+      transition: background .2s;
+    }
+    .btn-login:hover { background: #1f2937; }
+    .btn-login:disabled { background: #9ca3af; cursor: not-allowed; }
+    .error-msg {
+      display: none;
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      font-size: .84rem;
+      margin-bottom: 1rem;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: .82rem;
+      color: #9ca3af;
+      text-decoration: none;
+    }
+    .back-link:hover { color: #374151; }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-text">OUTLET<span class="logo-accent">365</span></div>
+      <p>Painel Administrativo</p>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="loginEmail" placeholder="admin@outlet365.com.br" required autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="btn-login" id="btnLogin">Entrar</button>
+    </form>
+
+    <button type="button" onclick="handleForgotPassword()" style="display:block;width:100%;background:none;border:none;color:#9ca3af;font-size:.82rem;font-family:inherit;cursor:pointer;margin-top:1rem;padding:.25rem;">
+      Esqueci a senha — enviar link por e-mail
+    </button>
+    <a href="index.html" class="back-link">← Voltar para o site</a>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/db.js"></script>
+  <script>
+    // Se já logado, vai direto pro admin
+    DB.getUser().then(user => {
+      if (user) window.location.href = 'admin.html';
+    });
+
+    async function handleForgotPassword() {
+      const email = document.getElementById('loginEmail').value.trim();
+      if (!email) { alert('Digite seu e-mail no campo acima primeiro.'); return; }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname.replace('admin-login.html', 'admin-reset.html')
+      });
+      if (error) { alert('Erro ao enviar e-mail: ' + error.message); }
+      else { alert('Link de redefinição enviado para ' + email + '. Verifique sua caixa de entrada.'); }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn      = document.getElementById('btnLogin');
+      const errEl    = document.getElementById('errorMsg');
+
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
+
+      try {
+        await DB.signIn(email, password);
+        window.location.href = 'admin.html';
+      } catch (err) {
+        errEl.textContent = 'E-mail ou senha incorretos.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrega e Frete — Outlet 365</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header" id="site-header">
+    <div class="header-top"><p><i class="fas fa-truck"></i> Frete para todo o Ceará e Brasil · <strong>Seg–Sáb 08:30–17:30</strong></p></div>
+    <div class="header-main">
+      <button class="btn-menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+      <a href="index.html" class="site-logo"><span class="logo-text">OUTLET<span class="logo-accent">365</span></span></a>
+      <nav class="header-nav desktop-only">
+        <a href="categoria.html?cat=camisas">Camisas</a>
+        <a href="categoria.html?cat=shorts-calcas">Shorts e Calças</a>
+        <a href="categoria.html?cat=calcados-chinelos">Calçados</a>
+        <a href="categoria.html?cat=acessorios">Acessórios</a>
+        <a href="categoria.html?cat=perfumes">Perfumes</a>
+      </nav>
+      <div class="header-actions">
+        <a href="https://www.instagram.com/outlet365__" target="_blank" class="btn-icon"><i class="fab fa-instagram"></i></a>
+        <button class="btn-icon btn-cart-toggle" id="cartToggle">
+          <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <aside class="side-menu" id="sideMenu">
+    <div class="side-menu-header"><span class="logo-text">OUTLET<span class="logo-accent">365</span></span><button class="btn-menu-close" id="menuClose"><i class="fas fa-times"></i></button></div>
+    <nav class="side-menu-nav">
+      <div class="menu-section">
+        <p class="menu-section-title">CATEGORIAS</p>
+        <a href="categoria.html?cat=camisas" class="menu-item"><span>CAMISAS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=shorts-calcas" class="menu-item"><span>SHORTS E CALÇAS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=calcados-chinelos" class="menu-item"><span>CALÇADOS E CHINELOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=acessorios" class="menu-item"><span>ACESSÓRIOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=perfumes" class="menu-item"><span>PERFUMES</span><i class="fas fa-chevron-right"></i></a>
+      </div>
+      <div class="menu-section">
+        <p class="menu-section-title">INFORMAÇÕES</p>
+        <a href="sobre.html" class="menu-item"><span>QUEM SOMOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="entrega.html" class="menu-item"><span>ENTREGA E FRETE</span><i class="fas fa-chevron-right"></i></a>
+        <a href="trocas.html" class="menu-item"><span>TROCAS E DEVOLUÇÕES</span><i class="fas fa-chevron-right"></i></a>
+        <a href="contato.html" class="menu-item"><span>CONTATO</span><i class="fas fa-chevron-right"></i></a>
+      </div>
+    </nav>
+    <div class="side-menu-footer"><a href="https://www.instagram.com/outlet365__" target="_blank" class="menu-social"><i class="fab fa-instagram"></i> @outlet365__</a></div>
+  </aside>
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header"><h2>Meu Carrinho</h2><button class="btn-cart-close" id="cartClose"><i class="fas fa-times"></i></button></div>
+    <div class="cart-items" id="cartItems"><div class="cart-empty"><i class="fas fa-shopping-bag"></i><p>Seu carrinho está vazio</p><a href="categoria.html" class="btn-primary">Ver Produtos</a></div></div>
+    <div class="cart-footer" id="cartFooter" style="display:none;"><div class="cart-subtotal"><span>Subtotal</span><strong id="cartSubtotal">R$ 0,00</strong></div><a href="checkout.html" class="btn-primary btn-block">FINALIZAR COMPRA</a><button class="btn-outline btn-block" id="continueShopping">Continuar Comprando</button></div>
+  </aside>
+
+  <div class="page-header">
+    <div class="page-header-inner">
+      <nav class="breadcrumb"><a href="index.html">Início</a><i class="fas fa-chevron-right" style="font-size:.6rem"></i><span>Entrega e Frete</span></nav>
+      <h1>Entrega e Frete</h1>
+    </div>
+  </div>
+
+  <main>
+    <div class="institutional-layout">
+      <p class="lead">Entregamos para Madalena-CE, toda a região e para qualquer cidade do Brasil. Conheça as modalidades de envio disponíveis.</p>
+
+      <h2><i class="fas fa-store" style="color:var(--green);margin-right:.5rem"></i> Retirada na Loja (Grátis)</h2>
+      <p>Você pode retirar seu pedido gratuitamente em nossa loja física, sem custo de frete.</p>
+      <div class="info-card">
+        <p><i class="fas fa-map-marker-alt" style="color:var(--green);margin-right:.35rem"></i> Santa Terezinha, Rua José Patrício Nogueira, nº 220 — Madalena-CE</p>
+        <p><i class="fas fa-clock" style="color:var(--green);margin-right:.35rem"></i> Segunda a sábado: 08:30 às 17:30</p>
+      </div>
+
+      <h2><i class="fas fa-truck" style="color:var(--green);margin-right:.5rem"></i> Envio pelos Correios</h2>
+      <p>Para pedidos online, realizamos envio pelos Correios. As modalidades disponíveis são:</p>
+      <ul>
+        <li><strong>PAC</strong> — Entrega econômica: 3 a 12 dias úteis (varia conforme a região)</li>
+        <li><strong>SEDEX</strong> — Entrega expressa: 1 a 5 dias úteis</li>
+      </ul>
+      <p>O valor do frete é calculado automaticamente com base no CEP de destino na página do produto e no checkout.</p>
+
+      <h2>Prazo de Postagem</h2>
+      <p>Após a confirmação do pagamento, os pedidos são preparados e postados em até <strong>2 dias úteis</strong>. O prazo de entrega começa a contar a partir da postagem.</p>
+      <p style="color:#888;font-size:.85rem;">Os prazos informados não incluem feriados nacionais, estaduais ou municipais.</p>
+
+      <h2>Rastreamento</h2>
+      <p>Após a postagem do pedido, você receberá o código de rastreamento pelo WhatsApp para acompanhar a entrega pelo site dos Correios.</p>
+
+      <h2>Abrangência de Entrega</h2>
+      <p>Entregamos para:</p>
+      <ul>
+        <li>Madalena-CE e cidades vizinhas</li>
+        <li>Todo o estado do Ceará</li>
+        <li>Qualquer cidade do Brasil</li>
+      </ul>
+
+      <div style="margin-top:2rem;background:var(--gray-100);border-radius:var(--radius);padding:1.25rem;border-left:4px solid var(--green);">
+        <p style="font-size:.9rem;"><strong>Dúvidas sobre frete?</strong> Fale conosco pelo Instagram <a href="https://www.instagram.com/outlet365__" target="_blank" style="color:var(--green);font-weight:700;">@outlet365__</a> e te ajudamos!</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-bottom"><p>© 2025 Outlet 365. Todos os direitos reservados.</p></div></div></footer>
+  <!-- WHATSAPP FLUTUANTE -->
+  <a href="https://wa.me/5588992757076?text=Olá!%20Vim%20pelo%20site%20da%20Outlet%20365%20e%20gostaria%20de%20mais%20informações." class="whatsapp-float" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <div class="toast" id="toast"></div>
+  <script src="js/data.js"></script><script src="js/cart.js"></script><script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout — Outlet 365</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- HEADER SIMPLIFICADO -->
+  <header class="site-header" id="site-header">
+    <div class="header-main" style="justify-content:space-between;">
+      <a href="index.html" class="site-logo">
+        <span class="logo-text">OUTLET<span class="logo-accent">365</span></span>
+      </a>
+      <div style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--gray-400);">
+        <i class="fas fa-lock" style="color:var(--green);"></i> Compra segura
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="checkout-layout">
+      <nav class="breadcrumb" style="margin-bottom:2rem;">
+        <a href="index.html">Início</a>
+        <i class="fas fa-chevron-right" style="font-size:.6rem"></i>
+        <a href="categoria.html">Produtos</a>
+        <i class="fas fa-chevron-right" style="font-size:.6rem"></i>
+        <span>Checkout</span>
+      </nav>
+
+      <h1 style="font-size:1.75rem;font-weight:900;margin-bottom:2rem;">Finalizar Compra</h1>
+
+      <!-- Cart empty guard -->
+      <div id="checkoutEmpty" style="display:none;text-align:center;padding:4rem 1rem;">
+        <i class="fas fa-shopping-bag" style="font-size:3rem;color:#ccc;"></i>
+        <p style="margin:1rem 0;font-size:1rem;color:#888;">Seu carrinho está vazio.</p>
+        <a href="categoria.html" class="btn-primary">Ver Produtos</a>
+      </div>
+
+      <div class="checkout-grid" id="checkoutGrid">
+        <!-- FORM -->
+        <div class="checkout-form-section">
+          <!-- Identificação -->
+          <section>
+            <h2 class="checkout-section-title"><i class="fas fa-user" style="color:var(--green);margin-right:.5rem"></i> Identificação</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nome</label>
+                <input type="text" id="firstName" placeholder="Seu nome" />
+              </div>
+              <div class="form-group">
+                <label>Sobrenome</label>
+                <input type="text" id="lastName" placeholder="Seu sobrenome" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" id="email" placeholder="email@exemplo.com" />
+              </div>
+              <div class="form-group">
+                <label>WhatsApp</label>
+                <input type="tel" id="phone" placeholder="(00) 00000-0000" />
+              </div>
+            </div>
+          </section>
+
+          <!-- Endereço -->
+          <section style="margin-top:2rem;">
+            <h2 class="checkout-section-title"><i class="fas fa-map-marker-alt" style="color:var(--green);margin-right:.5rem"></i> Endereço de Entrega</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label>CEP</label>
+                <input type="text" id="cep" placeholder="00000-000" maxlength="9" />
+              </div>
+              <div class="form-group">
+                <label>Estado</label>
+                <input type="text" id="estado" placeholder="CE" maxlength="2" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Cidade</label>
+              <input type="text" id="cidade" placeholder="Sua cidade" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Endereço</label>
+                <input type="text" id="endereco" placeholder="Rua, Av..." />
+              </div>
+              <div class="form-group">
+                <label>Número</label>
+                <input type="text" id="numero" placeholder="123" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Complemento <span style="color:#aaa;font-weight:400;">(opcional)</span></label>
+              <input type="text" id="complemento" placeholder="Apto, bloco, etc." />
+            </div>
+          </section>
+
+          <!-- Pagamento -->
+          <section style="margin-top:2rem;">
+            <h2 class="checkout-section-title"><i class="fas fa-credit-card" style="color:var(--green);margin-right:.5rem"></i> Forma de Pagamento</h2>
+
+            <!-- Tabs -->
+            <div class="payment-tabs">
+              <button class="payment-tab-btn active" onclick="switchPayment('pix', this)">
+                <i class="fas fa-qrcode"></i> PIX
+              </button>
+              <button class="payment-tab-btn" onclick="switchPayment('cartao', this)">
+                <i class="fas fa-credit-card"></i> Cartão
+              </button>
+              <button class="payment-tab-btn" onclick="switchPayment('boleto', this)">
+                <i class="fas fa-barcode"></i> Boleto
+              </button>
+            </div>
+
+            <!-- PIX -->
+            <div class="payment-panel active" id="panel-pix">
+              <div class="pix-box">
+                <h4><i class="fas fa-check-circle" style="color:#059669;margin-right:.4rem;"></i>Pagamento instantâneo via PIX</h4>
+                <p style="font-size:.85rem;color:#065f46;margin-top:.25rem;">Aprovação imediata após confirmação do pagamento.</p>
+                <div>
+                  <p style="font-size:.78rem;color:var(--gray-600);margin-top:.75rem;">Chave PIX (CNPJ / Telefone):</p>
+                  <div class="pix-key" onclick="copyPix(this)" title="Clique para copiar">
+                    <i class="fas fa-copy"></i>
+                    <span id="pixKeyText">5588992757076</span>
+                  </div>
+                </div>
+                <p class="pix-note"><i class="fas fa-info-circle"></i> Após o pagamento, envie o comprovante pelo WhatsApp para confirmar seu pedido.</p>
+              </div>
+            </div>
+
+            <!-- CARTÃO -->
+            <div class="payment-panel" id="panel-cartao">
+              <div class="card-form-grid">
+                <div class="card-field">
+                  <label>Número do Cartão</label>
+                  <input type="tel" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" inputmode="numeric"/>
+                </div>
+                <div class="card-field">
+                  <label>Nome no Cartão</label>
+                  <input type="text" id="cardName" placeholder="NOME SOBRENOME" style="text-transform:uppercase;"/>
+                </div>
+                <div class="form-row">
+                  <div class="card-field">
+                    <label>Validade</label>
+                    <input type="tel" id="cardExpiry" placeholder="MM/AA" maxlength="5" inputmode="numeric"/>
+                  </div>
+                  <div class="card-field">
+                    <label>CVV</label>
+                    <input type="tel" id="cardCvv" placeholder="123" maxlength="4" inputmode="numeric"/>
+                  </div>
+                </div>
+                <div class="card-field">
+                  <label>Parcelas</label>
+                  <select id="cardInstallments" style="padding:.7rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:.92rem;outline:none;font-family:var(--font);">
+                    <option value="1">À vista</option>
+                    <option value="2">2x sem juros</option>
+                    <option value="3">3x sem juros</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mp-badge">
+                <i class="fas fa-lock"></i>
+                <span>Pagamento processado pelo <strong>Mercado Pago</strong> — ambiente seguro</span>
+              </div>
+            </div>
+
+            <!-- BOLETO -->
+            <div class="payment-panel" id="panel-boleto">
+              <div class="boleto-box">
+                <h4><i class="fas fa-barcode" style="margin-right:.4rem;color:var(--green);"></i>Boleto Bancário</h4>
+                <p style="font-size:.82rem;color:var(--gray-600);">Prazo de vencimento: <strong>2 dias úteis</strong> após a emissão.</p>
+                <div class="boleto-steps">
+                  <div class="boleto-step">
+                    <span class="boleto-step-num">1</span>
+                    <span>Confirme seu pedido — o boleto será gerado e enviado por WhatsApp.</span>
+                  </div>
+                  <div class="boleto-step">
+                    <span class="boleto-step-num">2</span>
+                    <span>Pague em qualquer banco, lotérica ou pelo app do seu banco.</span>
+                  </div>
+                  <div class="boleto-step">
+                    <span class="boleto-step-num">3</span>
+                    <span>Após a confirmação do pagamento, seu pedido será separado e enviado.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <button class="btn-primary btn-block" id="btnFinish" style="margin-top:2rem;padding:1.1rem;font-size:1rem;" onclick="finalizarPedido()">
+            <i class="fas fa-check"></i> CONFIRMAR PEDIDO
+          </button>
+        </div>
+
+        <!-- SUMMARY -->
+        <aside class="checkout-summary">
+          <div class="order-summary-card">
+            <h3 class="checkout-section-title">Resumo do Pedido</h3>
+            <div id="orderItems"></div>
+            <div class="order-totals" id="orderTotals"></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- SUCCESS MODAL -->
+  <div id="successModal" style="
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,.6); align-items:center; justify-content:center;
+  ">
+    <div style="
+      background:var(--white); border-radius:var(--radius-lg);
+      padding:2.5rem; max-width:440px; width:90%; text-align:center;
+    ">
+      <div style="
+        width:72px; height:72px; border-radius:50%;
+        background:var(--green); color:white;
+        display:flex; align-items:center; justify-content:center;
+        font-size:2rem; margin:0 auto 1.25rem;
+      ">
+        <i class="fas fa-check"></i>
+      </div>
+      <h2 style="font-size:1.5rem;font-weight:900;margin-bottom:.75rem;">Pedido Confirmado!</h2>
+      <p style="color:var(--gray-600);font-size:.95rem;line-height:1.6;margin-bottom:1rem;">
+        Recebemos seu pedido com sucesso! <span id="successPaymentMsg"></span>
+      </p>
+      <a id="successWaBtn" href="#" target="_blank" class="btn-primary btn-block" style="background:#25D366;margin-bottom:.75rem;">
+        <i class="fab fa-whatsapp"></i> Falar no WhatsApp
+      </a>
+      <a href="index.html" class="btn-outline btn-block">Continuar Comprando</a>
+    </div>
+  </div>
+
+  <!-- WHATSAPP FLUTUANTE -->
+  <a href="https://wa.me/5588992757076?text=Olá!%20Vim%20pelo%20site%20da%20Outlet%20365%20e%20gostaria%20de%20mais%20informações." class="whatsapp-float" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/cart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const items = Cart.getItems();
+      const checkoutEmpty = document.getElementById('checkoutEmpty');
+      const checkoutGrid = document.getElementById('checkoutGrid');
+
+      if (items.length === 0) {
+        checkoutEmpty.style.display = 'block';
+        checkoutGrid.style.display = 'none';
+        return;
+      }
+
+      // Render order items
+      const orderItems = document.getElementById('orderItems');
+      orderItems.innerHTML = items.map(item => `
+        <div class="order-item">
+          <img src="${item.image}" alt="${item.name}" class="order-item-img" loading="lazy"/>
+          <div class="order-item-info">
+            <p>${item.name}</p>
+            <span>Tam: ${item.size} · Qtd: ${item.qty}</span>
+            <p style="font-weight:700;color:var(--green);margin-top:.25rem;">${formatPrice(item.price * item.qty)}</p>
+          </div>
+        </div>
+      `).join('');
+
+      const subtotal = Cart.getTotal();
+      document.getElementById('orderTotals').innerHTML = `
+        <div class="order-totals-row">
+          <span>Subtotal</span>
+          <span>${formatPrice(subtotal)}</span>
+        </div>
+        <div class="order-totals-row">
+          <span>Frete</span>
+          <span style="color:var(--gray-400);font-size:.82rem;">Calculado no próximo passo</span>
+        </div>
+        <div class="order-totals-row total">
+          <span>Total</span>
+          <span>${formatPrice(subtotal)}</span>
+        </div>
+      `;
+
+      // CEP mask
+      document.getElementById('cep')?.addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g,'');
+        if (v.length > 5) v = v.slice(0,5)+'-'+v.slice(5,8);
+        e.target.value = v;
+      });
+
+      // Phone mask
+      document.getElementById('phone')?.addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g,'');
+        if (v.length > 2) v = '('+v.slice(0,2)+') '+v.slice(2);
+        if (v.length > 10) v = v.slice(0,10)+'-'+v.slice(10,14);
+        e.target.value = v;
+      });
+
+      // Card number mask
+      document.getElementById('cardNumber')?.addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g,'').slice(0,16);
+        e.target.value = v.replace(/(.{4})/g,'$1 ').trim();
+      });
+
+      // Card expiry mask
+      document.getElementById('cardExpiry')?.addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g,'').slice(0,4);
+        if (v.length > 2) v = v.slice(0,2)+'/'+v.slice(2);
+        e.target.value = v;
+      });
+    });
+
+    // ── Payment tabs ──
+    let currentPaymentMethod = 'pix';
+
+    function switchPayment(method, btn) {
+      currentPaymentMethod = method;
+      document.querySelectorAll('.payment-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.payment-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + method).classList.add('active');
+    }
+
+    function copyPix(el) {
+      const key = document.getElementById('pixKeyText').textContent;
+      navigator.clipboard?.writeText(key).then(() => {
+        showToast('✓ Chave PIX copiada!');
+      });
+    }
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    async function saveOrderToSupabase(order) {
+      try {
+        await DB.createOrder(order);
+      } catch (err) {
+        console.error('Erro ao salvar pedido no Supabase:', err);
+      }
+    }
+
+    // ── Finalizar pedido ──
+    async function finalizarPedido() {
+      const required = ['firstName','lastName','email','phone','cep','cidade','endereco','numero'];
+      const labels = {
+        firstName: 'Nome', lastName: 'Sobrenome', email: 'E-mail',
+        phone: 'WhatsApp', cep: 'CEP', cidade: 'Cidade',
+        endereco: 'Endereço', numero: 'Número'
+      };
+      for (const id of required) {
+        const el = document.getElementById(id);
+        if (!el || !el.value.trim()) {
+          showToast(`Preencha o campo: ${labels[id]}`);
+          el?.focus();
+          return;
+        }
+      }
+
+      // Validate card fields if cartão selected
+      if (currentPaymentMethod === 'cartao') {
+        const cardNum = document.getElementById('cardNumber')?.value.replace(/\s/g,'');
+        if (!cardNum || cardNum.length < 13) { showToast('Número do cartão inválido'); return; }
+        if (!document.getElementById('cardName')?.value.trim()) { showToast('Nome no cartão obrigatório'); return; }
+        if (!document.getElementById('cardExpiry')?.value.trim()) { showToast('Validade do cartão obrigatória'); return; }
+        if (!document.getElementById('cardCvv')?.value.trim()) { showToast('CVV obrigatório'); return; }
+      }
+
+      const items = Cart.getItems();
+      const subtotal = Cart.getTotal();
+      const paymentLabels = { pix: 'PIX', cartao: 'Cartão de Crédito', boleto: 'Boleto Bancário' };
+      const installments = currentPaymentMethod === 'cartao'
+        ? parseInt(document.getElementById('cardInstallments')?.value || '1') : 1;
+
+      const order = {
+        id: genId(),
+        customer_name: document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim(),
+        customer_phone: document.getElementById('phone').value.trim(),
+        customer_email: document.getElementById('email').value.trim(),
+        city: document.getElementById('cidade').value.trim(),
+        state: document.getElementById('estado')?.value.trim() || 'CE',
+        address: document.getElementById('endereco').value.trim() + ', ' + document.getElementById('numero').value.trim(),
+        cep: document.getElementById('cep').value.trim(),
+        subtotal,
+        shipping: 0,
+        total: subtotal,
+        status: 'pendente',
+        payment_method: paymentLabels[currentPaymentMethod] + (installments > 1 ? ` ${installments}x` : ''),
+        items_json: JSON.stringify(items.map(i => ({ name: i.name, size: i.size, qty: i.qty, price: i.price }))),
+        notes: '',
+        created_at: new Date().toISOString()
+      };
+
+      await saveOrderToSupabase(order);
+
+      // Compose WhatsApp message
+      const itemsList = items.map(i => `• ${i.name} (${i.size}) x${i.qty} — ${formatPrice(i.price * i.qty)}`).join('%0A');
+      const waMsg = `Olá! Acabei de fazer um pedido no site da Outlet 365 🛍️%0A%0A*Pedido #${order.id.slice(-4).toUpperCase()}*%0A${itemsList}%0A%0A*Total:* ${formatPrice(subtotal)}%0A*Pagamento:* ${order.payment_method}%0A%0AEndereço: ${order.address}, ${order.city}/${order.state} — CEP: ${order.cep}`;
+      const waUrl = `https://wa.me/5588992757076?text=${waMsg}`;
+
+      // Show success messages by method
+      const msgs = {
+        pix: 'Envie o comprovante do PIX pelo WhatsApp para confirmarmos seu pedido.',
+        cartao: 'Entraremos em contato pelo WhatsApp para confirmar os detalhes do pagamento.',
+        boleto: 'O boleto será enviado pelo WhatsApp. Pague em até 2 dias úteis.'
+      };
+      document.getElementById('successPaymentMsg').textContent = msgs[currentPaymentMethod];
+      document.getElementById('successWaBtn').href = waUrl;
+      document.getElementById('successModal').style.display = 'flex';
+      Cart.clear();
+    }
+
+    window.showToast = function(msg, duration = 2800) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), duration);
+    };
+  </script>
+</body>
+</html>

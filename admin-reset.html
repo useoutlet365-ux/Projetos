@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Redefinir Senha — Outlet 365</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A0A0A;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: .5rem; }
+    p  { font-size: .88rem; color: #6b7280; margin-bottom: 1.5rem; }
+    label { display: block; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #374151; margin-bottom: .4rem; }
+    input {
+      width: 100%; padding: .8rem 1rem;
+      border: 1.5px solid #e5e7eb; border-radius: 8px;
+      font-size: .95rem; font-family: inherit; outline: none; margin-bottom: 1rem;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: #2452C8; }
+    button {
+      width: 100%; padding: .9rem;
+      background: #0A0A0A; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: .95rem; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: background .2s;
+    }
+    button:hover { background: #1f2937; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    .msg { padding: .75rem 1rem; border-radius: 8px; font-size: .84rem; margin-bottom: 1rem; display: none; }
+    .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .msg.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Redefinir Senha</h2>
+    <p>Digite sua nova senha para acessar o painel administrativo.</p>
+
+    <div class="msg error" id="errMsg"></div>
+    <div class="msg success" id="okMsg"></div>
+
+    <label>Nova senha</label>
+    <input type="password" id="newPass" placeholder="Mínimo 6 caracteres" minlength="6"/>
+    <label>Confirmar senha</label>
+    <input type="password" id="confirmPass" placeholder="Repita a senha"/>
+    <button id="btnSave" onclick="savePassword()">Salvar Senha</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/db.js"></script>
+  <script>
+    async function savePassword() {
+      const pass    = document.getElementById('newPass').value;
+      const confirm = document.getElementById('confirmPass').value;
+      const errEl   = document.getElementById('errMsg');
+      const okEl    = document.getElementById('okMsg');
+      const btn     = document.getElementById('btnSave');
+
+      errEl.style.display = 'none';
+      okEl.style.display  = 'none';
+
+      if (pass.length < 6) { errEl.textContent = 'A senha deve ter pelo menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+      if (pass !== confirm) { errEl.textContent = 'As senhas não coincidem.'; errEl.style.display = 'block'; return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      const { error } = await supabase.auth.updateUser({ password: pass });
+      if (error) {
+        errEl.textContent = 'Erro: ' + error.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Salvar Senha';
+      } else {
+        okEl.textContent = 'Senha redefinida com sucesso! Redirecionando...';
+        okEl.style.display = 'block';
+        setTimeout(() => window.location.href = 'admin.html', 2000);
+      }
+    }
+  </script>
+</body>
+</html>

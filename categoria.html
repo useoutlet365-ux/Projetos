@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo — Outlet 365</title>
+  <meta name="description" content="Catálogo completo de moda masculina, calçados e acessórios da Outlet 365." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- HEADER (mesmo da home) -->
+  <header class="site-header" id="site-header">
+    <div class="header-top">
+      <p><i class="fas fa-truck"></i> Frete para todo o Ceará e Brasil · <strong>Seg–Sáb 08:30–17:30</strong></p>
+    </div>
+    <div class="header-main">
+      <button class="btn-menu-toggle" id="menuToggle" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
+      </button>
+      <a href="index.html" class="site-logo">
+        <span class="logo-text">OUTLET<span class="logo-accent">365</span></span>
+      </a>
+      <nav class="header-nav desktop-only">
+        <a href="categoria.html?cat=camisas">Camisas</a>
+        <a href="categoria.html?cat=shorts-calcas">Shorts e Calças</a>
+        <a href="categoria.html?cat=calcados-chinelos">Calçados</a>
+        <a href="categoria.html?cat=acessorios">Acessórios</a>
+      </nav>
+      <div class="header-actions">
+        <button class="btn-icon btn-search-toggle" id="searchToggle" aria-label="Buscar"><i class="fas fa-search"></i></button>
+        <a href="https://www.instagram.com/outlet365__" target="_blank" class="btn-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <button class="btn-icon btn-cart-toggle" id="cartToggle" aria-label="Carrinho">
+          <i class="fas fa-shopping-bag"></i>
+          <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+      </div>
+    </div>
+    <div class="search-bar-container" id="searchBar">
+      <div class="search-bar-inner">
+        <input type="text" id="searchInput" placeholder="O que você está buscando?" autocomplete="off" />
+        <button class="btn-search-exec" id="searchBtn"><i class="fas fa-search"></i></button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </header>
+
+  <!-- MENU LATERAL -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+  <aside class="side-menu" id="sideMenu">
+    <div class="side-menu-header">
+      <span class="logo-text">OUTLET<span class="logo-accent">365</span></span>
+      <button class="btn-menu-close" id="menuClose" aria-label="Fechar menu"><i class="fas fa-times"></i></button>
+    </div>
+    <nav class="side-menu-nav">
+      <div class="menu-section">
+        <p class="menu-section-title">CATEGORIAS</p>
+        <a href="categoria.html?cat=camisas" class="menu-item"><span>CAMISAS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=shorts-calcas" class="menu-item"><span>SHORTS E CALÇAS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=calcados-chinelos" class="menu-item"><span>CALÇADOS E CHINELOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=acessorios" class="menu-item"><span>ACESSÓRIOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=perfumes" class="menu-item"><span>PERFUMES</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=promocoes" class="menu-item" style="color:#b45309;"><span>🔥 PROMOÇÕES</span><i class="fas fa-chevron-right"></i></a>
+      </div>
+      <div class="menu-section">
+        <p class="menu-section-title">INFORMAÇÕES</p>
+        <a href="sobre.html" class="menu-item"><span>QUEM SOMOS</span><i class="fas fa-chevron-right"></i></a>
+        <a href="entrega.html" class="menu-item"><span>ENTREGA E FRETE</span><i class="fas fa-chevron-right"></i></a>
+        <a href="trocas.html" class="menu-item"><span>TROCAS E DEVOLUÇÕES</span><i class="fas fa-chevron-right"></i></a>
+        <a href="contato.html" class="menu-item"><span>CONTATO</span><i class="fas fa-chevron-right"></i></a>
+      </div>
+    </nav>
+    <div class="side-menu-footer">
+      <a href="https://www.instagram.com/outlet365__" target="_blank" class="menu-social">
+        <i class="fab fa-instagram"></i> @outlet365__
+      </a>
+    </div>
+  </aside>
+
+  <!-- CARRINHO LATERAL -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header">
+      <h2>Meu Carrinho</h2>
+      <button class="btn-cart-close" id="cartClose"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty" id="cartEmpty">
+        <i class="fas fa-shopping-bag"></i>
+        <p>Seu carrinho está vazio</p>
+        <a href="categoria.html" class="btn-primary">Ver Produtos</a>
+      </div>
+    </div>
+    <div class="cart-footer" id="cartFooter" style="display:none;">
+      <div class="cart-subtotal">
+        <span>Subtotal</span>
+        <strong id="cartSubtotal">R$ 0,00</strong>
+      </div>
+      <a href="checkout.html" class="btn-primary btn-block">FINALIZAR COMPRA</a>
+      <button class="btn-outline btn-block" id="continueShopping">Continuar Comprando</button>
+    </div>
+  </aside>
+
+  <!-- PAGE HEADER -->
+  <div class="page-header" id="pageHeader">
+    <div class="page-header-inner">
+      <nav class="breadcrumb">
+        <a href="index.html">Início</a>
+        <i class="fas fa-chevron-right" style="font-size:.6rem"></i>
+        <span id="breadcrumbCat">Todos os Produtos</span>
+      </nav>
+      <h1 id="pageTitle">Todos os Produtos</h1>
+      <p id="pageDesc">Explore nossa coleção completa de moda masculina</p>
+    </div>
+  </div>
+
+  <!-- CATALOG -->
+  <main>
+    <div class="catalog-layout">
+      <!-- Filters -->
+      <div class="catalog-filters" id="catalogFilters">
+        <button class="filter-btn active" data-cat="todos">Todos</button>
+        <button class="filter-btn" data-cat="camisas">Camisas</button>
+        <button class="filter-btn" data-cat="shorts-calcas">Shorts e Calças</button>
+        <button class="filter-btn" data-cat="calcados-chinelos">Calçados</button>
+        <button class="filter-btn" data-cat="acessorios">Acessórios</button>
+        <button class="filter-btn" data-cat="perfumes">Perfumes</button>
+        <button class="filter-btn" data-cat="promocoes" style="background:#fff3e0;border-color:#f59e0b;color:#b45309;">🔥 Promoções</button>
+        <span class="catalog-count" id="catalogCount"></span>
+      </div>
+
+      <!-- Grid -->
+      <div class="products-grid" id="catalogGrid"></div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="logo-text footer-logo">OUTLET<span class="logo-accent">365</span></span>
+          <p>Moda masculina, calçados e acessórios com qualidade e preço acessível para você e sua região.</p>
+          <a href="https://www.instagram.com/outlet365__" target="_blank" class="footer-social"><i class="fab fa-instagram"></i></a>
+        </div>
+        <div class="footer-links">
+          <h4>Categorias</h4>
+          <ul>
+            <li><a href="categoria.html?cat=camisas">Camisas</a></li>
+            <li><a href="categoria.html?cat=shorts-calcas">Shorts e Calças</a></li>
+            <li><a href="categoria.html?cat=calcados-chinelos">Calçados e Chinelos</a></li>
+            <li><a href="categoria.html?cat=acessorios">Acessórios</a></li>
+            <li><a href="categoria.html?cat=perfumes">Perfumes</a></li>
+            <li><a href="categoria.html?cat=promocoes">🔥 Promoções</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Informações</h4>
+          <ul>
+            <li><a href="sobre.html">Quem somos</a></li>
+            <li><a href="entrega.html">Entrega e Frete</a></li>
+            <li><a href="trocas.html">Trocas e Devoluções</a></li>
+            <li><a href="contato.html">Contato</a></li>
+          </ul>
+        </div>
+        <div class="footer-contact">
+          <h4>Atendimento</h4>
+          <p><i class="fas fa-map-marker-alt"></i> Santa Terezinha, Rua José Patrício Nogueira, 220 — Madalena-CE</p>
+          <p><i class="fas fa-clock"></i> Seg–Sáb: 08:30 às 17:30</p>
+          <p><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/outlet365__" target="_blank">@outlet365__</a></p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Outlet 365. Todos os direitos reservados. · Madalena-CE · CEP 63860-000</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- WHATSAPP FLUTUANTE -->
+  <a href="https://wa.me/5588992757076?text=Olá!%20Vim%20pelo%20site%20da%20Outlet%20365%20e%20gostaria%20de%20mais%20informações." class="whatsapp-float" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/catalog-dynamic.js"></script>
+</body>
+</html>
