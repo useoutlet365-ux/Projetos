@@ -664,14 +664,33 @@ function getSelectedSizes() {
   return selected.length>0 ? selected.join(', ') : (custom||'');
 }
 
-function handlePhotoInput(event) {
-  const files = Array.from(event.target.files);
-  if (photosData.length + files.length > 4) { admToast('Máximo de 4 fotos por produto','error'); return; }
-  files.forEach(file => {
+function compressImage(file, maxWidth = 900, quality = 0.78) {
+  return new Promise(resolve => {
     const reader = new FileReader();
-    reader.onload = e => { photosData.push(e.target.result); renderPhotoPreviews(); };
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
     reader.readAsDataURL(file);
   });
+}
+
+async function handlePhotoInput(event) {
+  const files = Array.from(event.target.files);
+  if (photosData.length + files.length > 4) { admToast('Máximo de 4 fotos por produto','error'); return; }
+  for (const file of files) {
+    const compressed = await compressImage(file);
+    photosData.push(compressed);
+    renderPhotoPreviews();
+  }
 }
 
 function renderPhotoPreviews() {
@@ -742,18 +761,17 @@ async function saveProduct(event) {
     sales_count:     0
   };
 
+  const saveBtn = document.querySelector('#productForm [type="submit"]');
   try {
-    const saveBtn = event.submitter || document.querySelector('[type="submit"]');
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...'; }
     if (editingProductId) { await updateRecord('admin_products',editingProductId,data); admToast('Produto atualizado!'); }
     else                  { await createRecord('admin_products',data); admToast('Produto cadastrado!'); }
-    saveBtn.disabled = false;
-    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto';
     resetForm();
     navigateTo('produtos');
   } catch(e) {
-    admToast('Erro ao salvar produto. Tente novamente.','error'); console.error(e);
+    console.error(e);
+    admToast('Erro ao salvar. Verifique a conexão e tente novamente.','error');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto'; }
   }
 }
 
