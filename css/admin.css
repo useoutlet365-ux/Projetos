@@ -298,18 +298,24 @@ img { display: block; max-width: 100%; }
 /* Photo capture */
 .photo-capture-area {
   border: 2px dashed var(--adm-border); border-radius: var(--adm-radius);
-  padding: 1.5rem; text-align: center; cursor: pointer;
-  transition: border-color .2s, background .2s; position: relative;
+  padding: 1.5rem; text-align: center;
+  transition: border-color .2s, background .2s;
 }
-.photo-capture-area:hover { border-color: var(--adm-green); background: var(--adm-green-light); }
-.photo-capture-area input[type="file"] {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-}
+.photo-capture-area input[type="file"] { display: none; }
 .photo-capture-area i { font-size: 2rem; color: var(--adm-muted); margin-bottom: .5rem; }
 .photo-capture-area p { font-size: .82rem; color: var(--adm-muted); margin: 0; }
-.photo-capture-area .photo-hint {
-  font-size: .72rem; color: #9ca3af; margin-top: .25rem;
+.photo-capture-area .photo-hint { font-size: .72rem; color: #9ca3af; margin-top: .5rem; }
+.photo-capture-btns { display: flex; gap: .65rem; justify-content: center; flex-wrap: wrap; }
+.photo-btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .55rem 1.1rem; border-radius: 8px;
+  font-size: .83rem; font-weight: 600; cursor: pointer; transition: all .15s;
+  border: 1.5px solid; background: #fff;
 }
+.photo-btn-camera { border-color: var(--adm-green); color: var(--adm-green); }
+.photo-btn-camera:hover { background: var(--adm-green); color: #fff; }
+.photo-btn-gallery { border-color: #6b7280; color: #6b7280; }
+.photo-btn-gallery:hover { background: #6b7280; color: #fff; }
 .photo-previews {
   display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem;
 }

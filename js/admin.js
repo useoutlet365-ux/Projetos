@@ -664,22 +664,72 @@ function getSelectedSizes() {
   return selected.length>0 ? selected.join(', ') : (custom||'');
 }
 
-function compressImage(file, maxWidth = 900, quality = 0.78) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
+function compressImage(file, maxWidth = 600, quality = 0.70) {
+  return new Promise((resolve, reject) => {
+    // Para maior compatibilidade e prevenção de vazamento de memória no Safari iOS,
+    // usamos URL.createObjectURL em vez de FileReader.readAsDataURL para carregar
+    // a imagem inicial. Também liberamos os recursos do Canvas e da Image imediatamente.
+    if (typeof URL === 'undefined' || !URL.createObjectURL) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const base64 = canvas.toDataURL('image/jpeg', quality);
+            canvas.width = 1;
+            canvas.height = 1; // Limpa o canvas do Safari iOS
+            resolve(base64);
+          } catch (err) {
+            reject(err);
+          } finally {
+            img.src = ''; // Libera memória da imagem decodificada no iOS
+          }
+        };
+        img.onerror = () => {
+          img.src = '';
+          reject(new Error("Erro ao carregar a imagem."));
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Erro ao ler o arquivo."));
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
         const canvas = document.createElement('canvas');
         let w = img.width, h = img.height;
         if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
         canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.src = e.target.result;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const base64 = canvas.toDataURL('image/jpeg', quality);
+        canvas.width = 1;
+        canvas.height = 1; // Limpa o canvas do Safari iOS
+        resolve(base64);
+      } catch (err) {
+        reject(err);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+        img.src = ''; // Libera memória da imagem decodificada no iOS
+      }
     };
-    reader.readAsDataURL(file);
+    img.onerror = (e) => {
+      URL.revokeObjectURL(objectUrl);
+      img.src = '';
+      console.error("Erro no carregamento da imagem:", e);
+      reject(new Error("Erro ao processar imagem selecionada. Verifique o formato."));
+    };
+    img.src = objectUrl;
   });
 }
 
@@ -687,9 +737,14 @@ async function handlePhotoInput(event) {
   const files = Array.from(event.target.files);
   if (photosData.length + files.length > 4) { admToast('Máximo de 4 fotos por produto','error'); return; }
   for (const file of files) {
-    const compressed = await compressImage(file);
-    photosData.push(compressed);
-    renderPhotoPreviews();
+    try {
+      const compressed = await compressImage(file);
+      photosData.push(compressed);
+      renderPhotoPreviews();
+    } catch (err) {
+      console.error("Erro ao processar imagem:", err);
+      admToast(err.message || 'Erro ao processar a foto selecionada', 'error');
+    }
   }
 }
 
@@ -769,8 +824,9 @@ async function saveProduct(event) {
     resetForm();
     navigateTo('produtos');
   } catch(e) {
-    console.error(e);
-    admToast('Erro ao salvar. Verifique a conexão e tente novamente.','error');
+    console.error('saveProduct error:', e);
+    const msg = e?.message || e?.error_description || 'verifique a conexão';
+    admToast('Erro ao salvar: ' + msg, 'error');
     if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto'; }
   }
 }

@@ -344,10 +344,19 @@
                   <i class="fas fa-camera" style="margin-right:.35rem;color:var(--adm-green);"></i>Fotos do Produto
                 </label>
                 <div class="photo-capture-area" id="photoCaptureArea">
-                  <input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotoInput(event)"/>
+                  <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoInput(event)"/>
+                  <input type="file" id="photoInputGallery" accept="image/*" multiple style="display:none" onchange="handlePhotoInput(event)"/>
                   <i class="fas fa-camera"></i>
-                  <p><strong>Toque para abrir a câmera</strong> ou escolher da galeria</p>
-                  <p class="photo-hint">Até 4 fotos · JPG, PNG · Recomendado: foto em boa iluminação</p>
+                  <p style="margin:.35rem 0 .85rem;"><strong>Adicionar Fotos</strong></p>
+                  <div class="photo-capture-btns">
+                    <button type="button" class="photo-btn photo-btn-camera" onclick="document.getElementById('photoInputCamera').click()">
+                      <i class="fas fa-camera"></i> Câmera
+                    </button>
+                    <button type="button" class="photo-btn photo-btn-gallery" onclick="document.getElementById('photoInputGallery').click()">
+                      <i class="fas fa-images"></i> Galeria
+                    </button>
+                  </div>
+                  <p class="photo-hint">Até 4 fotos · Recomendado: boa iluminação</p>
                 </div>
                 <div class="photo-previews" id="photoPreviews"></div>
               </div>
