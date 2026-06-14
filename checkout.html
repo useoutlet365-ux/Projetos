@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout — Outlet 365</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
 
   <!-- HEADER SIMPLIFICADO -->
@@ -48,7 +51,8 @@
         <div class="checkout-form-section">
           <!-- Identificação -->
           <section>
-            <h2 class="checkout-section-title"><i class="fas fa-user" style="color:var(--green);margin-right:.5rem"></i> Identificação</h2>
+            <h2 class="checkout-section-title"><i class="fas fa-user" style="color:var(--green);margin-right:.5rem"></i>
+              Identificação</h2>
             <div class="form-row">
               <div class="form-group">
                 <label>Nome</label>
@@ -73,7 +77,8 @@
 
           <!-- Endereço -->
           <section style="margin-top:2rem;">
-            <h2 class="checkout-section-title"><i class="fas fa-map-marker-alt" style="color:var(--green);margin-right:.5rem"></i> Endereço de Entrega</h2>
+            <h2 class="checkout-section-title"><i class="fas fa-map-marker-alt"
+                style="color:var(--green);margin-right:.5rem"></i> Endereço de Entrega</h2>
             <div class="form-row">
               <div class="form-group">
                 <label>CEP</label>
@@ -106,15 +111,18 @@
 
           <!-- Opções de Envio -->
           <section id="shippingSection" style="margin-top:2rem; display:none;">
-            <h2 class="checkout-section-title"><i class="fas fa-truck" style="color:var(--green);margin-right:.5rem"></i> Opção de Envio</h2>
-            <div class="shipping-options-list" id="shippingOptionsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+            <h2 class="checkout-section-title"><i class="fas fa-truck"
+                style="color:var(--green);margin-right:.5rem"></i> Opção de Envio</h2>
+            <div class="shipping-options-list" id="shippingOptionsList"
+              style="display:flex; flex-direction:column; gap:0.75rem;">
               <!-- Gerado dinamicamente -->
             </div>
           </section>
 
           <!-- Pagamento -->
           <section style="margin-top:2rem;">
-            <h2 class="checkout-section-title"><i class="fas fa-credit-card" style="color:var(--green);margin-right:.5rem"></i> Forma de Pagamento</h2>
+            <h2 class="checkout-section-title"><i class="fas fa-credit-card"
+                style="color:var(--green);margin-right:.5rem"></i> Forma de Pagamento</h2>
 
             <!-- Tabs -->
             <div class="payment-tabs">
@@ -131,8 +139,10 @@
 
             <!-- PIX -->
             <div class="payment-panel active" id="panel-pix">
-              <div class="mp-info-box" style="display:flex;flex-direction:column;gap:1rem;padding:1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:rgba(250,250,250,.96);">
-                <h4 style="margin:0;font-size:1rem;font-weight:700;"><i class="fas fa-qrcode" style="margin-right:.4rem;color:var(--green);"></i> PIX seguro pelo Mercado Pago</h4>
+              <div class="mp-info-box"
+                style="display:flex;flex-direction:column;gap:1rem;padding:1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:rgba(250,250,250,.96);">
+                <h4 style="margin:0;font-size:1rem;font-weight:700;"><i class="fas fa-qrcode"
+                    style="margin-right:.4rem;color:var(--green);"></i> PIX seguro pelo Mercado Pago</h4>
                 <p style="margin:0;font-size:.95rem;color:var(--gray-700);line-height:1.6;">
                   Após confirmar o pedido, você receberá um QR Code do Mercado Pago para pagar com PIX instantaneamente.
                 </p>
@@ -148,21 +158,26 @@
 
             <!-- CARTÃO -->
             <div class="payment-panel" id="panel-cartao">
-              <div class="mp-info-box" style="display:flex;flex-direction:column;gap:1rem;padding:1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:rgba(250,250,250,.96);">
-                <h4 style="margin:0;font-size:1rem;font-weight:700;"><i class="fas fa-lock" style="margin-right:.4rem;color:var(--green);"></i> Cartão seguro pelo Mercado Pago</h4>
+              <div class="mp-info-box"
+                style="display:flex;flex-direction:column;gap:1rem;padding:1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:rgba(250,250,250,.96);">
+                <h4 style="margin:0;font-size:1rem;font-weight:700;"><i class="fas fa-lock"
+                    style="margin-right:.4rem;color:var(--green);"></i> Cartão seguro pelo Mercado Pago</h4>
                 <p style="margin:0;font-size:.95rem;color:var(--gray-700);line-height:1.6;">
-                  Após confirmar o pedido, você será redirecionado ao checkout seguro do Mercado Pago para informar os dados do cartão.
+                  Após confirmar o pedido, você será redirecionado ao checkout seguro do Mercado Pago para informar os
+                  dados do cartão.
                 </p>
                 <div class="card-field">
                   <label>Parcelas</label>
-                  <select id="cardInstallments" style="padding:.7rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:.92rem;outline:none;font-family:var(--font);width:100%;">
+                  <select id="cardInstallments"
+                    style="padding:.7rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:.92rem;outline:none;font-family:var(--font);width:100%;">
                     <option value="1">À vista</option>
                     <option value="2">2x sem juros</option>
                     <option value="3">3x sem juros</option>
                   </select>
                 </div>
                 <p style="margin:0;font-size:.82rem;color:var(--gray-600);">
-                  Seus dados de cartão não são coletados neste site. O Mercado Pago solicita número, validade e CVV diretamente.
+                  Seus dados de cartão não são coletados neste site. O Mercado Pago solicita número, validade e CVV
+                  diretamente.
                 </p>
               </div>
               <div class="mp-badge">
@@ -175,7 +190,8 @@
             <div class="payment-panel" id="panel-boleto">
               <div class="boleto-box">
                 <h4><i class="fas fa-barcode" style="margin-right:.4rem;color:var(--green);"></i>Boleto Bancário</h4>
-                <p style="font-size:.82rem;color:var(--gray-600);">Prazo de vencimento: <strong>2 dias úteis</strong> após a emissão.</p>
+                <p style="font-size:.82rem;color:var(--gray-600);">Prazo de vencimento: <strong>2 dias úteis</strong>
+                  após a emissão.</p>
                 <div class="boleto-steps">
                   <div class="boleto-step">
                     <span class="boleto-step-num">1</span>
@@ -194,7 +210,8 @@
             </div>
           </section>
 
-          <button class="btn-primary btn-block" id="btnFinish" style="margin-top:2rem;padding:1.1rem;font-size:1rem;" onclick="finalizarPedido()">
+          <button class="btn-primary btn-block" id="btnFinish" style="margin-top:2rem;padding:1.1rem;font-size:1rem;"
+            onclick="finalizarPedido()">
             <i class="fas fa-check"></i> CONFIRMAR PEDIDO
           </button>
         </div>
@@ -232,7 +249,8 @@
       <p style="color:var(--gray-600);font-size:.95rem;line-height:1.6;margin-bottom:1rem;">
         Recebemos seu pedido com sucesso! <span id="successPaymentMsg"></span>
       </p>
-      <a id="successWaBtn" href="#" target="_blank" class="btn-primary btn-block" style="background:#25D366;margin-bottom:.75rem;">
+      <a id="successWaBtn" href="#" target="_blank" class="btn-primary btn-block"
+        style="background:#25D366;margin-bottom:.75rem;">
         <i class="fab fa-whatsapp"></i> Falar no WhatsApp
       </a>
       <a href="index.html" class="btn-outline btn-block">Continuar Comprando</a>
@@ -240,7 +258,8 @@
   </div>
 
   <!-- WHATSAPP FLUTUANTE -->
-  <a href="https://wa.me/5588992757076?text=Olá!%20Vim%20pelo%20site%20da%20Outlet%20365%20e%20gostaria%20de%20mais%20informações." class="whatsapp-float" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <a href="https://wa.me/5588992757076?text=Olá!%20Vim%20pelo%20site%20da%20Outlet%20365%20e%20gostaria%20de%20mais%20informações."
+    class="whatsapp-float" target="_blank" rel="noopener" aria-label="WhatsApp">
     <i class="fab fa-whatsapp"></i>
   </a>
 
@@ -313,7 +332,7 @@
       } catch (err) {
         console.error('Erro ao buscar CEP via API:', err);
         showToast('CEP não encontrado via API. Calculando de forma estimada...');
-        
+
         // Fallback local vs national calculation
         const isLocal = cleanCep.startsWith('63') || cleanCep.startsWith('60') || cleanCep.startsWith('62') || cleanCep.startsWith('61');
         renderShippingOptions(isLocal ? 'CE' : 'Nacional');
@@ -356,10 +375,10 @@
       selectShippingOption(options[0].id, options[0].price, options[0].label);
     }
 
-    window.selectShippingOption = function(id, price, label) {
+    window.selectShippingOption = function (id, price, label) {
       selectedShippingPrice = price;
       selectedShippingOptionLabel = label;
-      
+
       // Update styling of shipping options cards
       document.querySelectorAll('.shipping-options-list .frete-option').forEach(el => {
         el.style.borderColor = 'var(--gray-200)';
@@ -374,7 +393,48 @@
       updateTotals(price);
     }
 
+    function handlePaymentRedirect() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get('status');
+      const externalReference = urlParams.get('external_reference');
+
+      if (status) {
+        const successModal = document.getElementById('successModal');
+        const successPaymentMsg = document.getElementById('successPaymentMsg');
+        const successWaBtn = document.getElementById('successWaBtn');
+
+        if (status === 'success') {
+          Cart.clear();
+          if (successPaymentMsg) {
+            successPaymentMsg.innerHTML = `Seu pagamento foi <strong>aprovado</strong>! O número do seu pedido é <strong>${externalReference || ''}</strong>.`;
+          }
+          if (successWaBtn) {
+            successWaBtn.href = `https://wa.me/5588992757076?text=Olá!%20Acabei%20de%20pagar%20o%20pedido%20${externalReference || ''}%20no%20site%20e%20gostaria%20de%20confirmar.`;
+          }
+          if (successModal) {
+            successModal.style.display = 'flex';
+          }
+        } else if (status === 'pending') {
+          Cart.clear();
+          if (successPaymentMsg) {
+            successPaymentMsg.innerHTML = `Seu pedido foi registrado e está <strong>aguardando pagamento/aprovação</strong>. O número do seu pedido é <strong>${externalReference || ''}</strong>.`;
+          }
+          if (successWaBtn) {
+            successWaBtn.href = `https://wa.me/5588992757076?text=Olá!%20Fiz%20o%20pedido%20${externalReference || ''}%20e%20gostaria%20de%20saber%20se%20o%20pagamento%20está%20pendente.`;
+          }
+          if (successModal) {
+            successModal.style.display = 'flex';
+          }
+        } else if (status === 'failure') {
+          showToast('O pagamento não foi autorizado pelo Mercado Pago. Por favor, tente novamente.', 5000);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+      handlePaymentRedirect();
+
       const items = Cart.getItems();
       const checkoutEmpty = document.getElementById('checkoutEmpty');
       const checkoutGrid = document.getElementById('checkoutGrid');
@@ -408,8 +468,8 @@
 
       // CEP mask and listener
       document.getElementById('cep')?.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g,'');
-        if (v.length > 5) v = v.slice(0,5)+'-'+v.slice(5,8);
+        let v = e.target.value.replace(/\D/g, '');
+        if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5, 8);
         e.target.value = v;
 
         const cleanCep = v.replace(/\D/g, '');
@@ -420,22 +480,22 @@
 
       // Phone mask
       document.getElementById('phone')?.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g,'');
-        if (v.length > 2) v = '('+v.slice(0,2)+') '+v.slice(2);
-        if (v.length > 10) v = v.slice(0,10)+'-'+v.slice(10,14);
+        let v = e.target.value.replace(/\D/g, '');
+        if (v.length > 2) v = '(' + v.slice(0, 2) + ') ' + v.slice(2);
+        if (v.length > 10) v = v.slice(0, 10) + '-' + v.slice(10, 14);
         e.target.value = v;
       });
 
       // Card number mask
       document.getElementById('cardNumber')?.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g,'').slice(0,16);
-        e.target.value = v.replace(/(.{4})/g,'$1 ').trim();
+        let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+        e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
       });
 
       // Card expiry mask
       document.getElementById('cardExpiry')?.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g,'').slice(0,4);
-        if (v.length > 2) v = v.slice(0,2)+'/'+v.slice(2);
+        let v = e.target.value.replace(/\D/g, '').slice(0, 4);
+        if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
         e.target.value = v;
       });
     });
@@ -465,7 +525,7 @@
 
     // ── Finalizar pedido ──
     async function finalizarPedido() {
-      const required = ['firstName','lastName','email','phone','cep','cidade','endereco','numero'];
+      const required = ['firstName', 'lastName', 'email', 'phone', 'cep', 'cidade', 'endereco', 'numero'];
       const labels = {
         firstName: 'Nome', lastName: 'Sobrenome', email: 'E-mail',
         phone: 'WhatsApp', cep: 'CEP', cidade: 'Cidade',
@@ -538,6 +598,11 @@
         number: phoneDigits.slice(2)
       };
       const [street, number] = order.address.split(',').map(part => part.trim());
+      // Mercado Pago exige domínios públicos HTTPS para back_urls
+      const baseRedirectUrl = (location.protocol === 'http:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        ? 'https://outlet365.netlify.app' // Fallback para funcionamento local (substitua pela sua URL final se desejar)
+        : location.origin;
+
       const payload = {
         items: items.map(item => ({
           title: item.name,
@@ -579,9 +644,9 @@
         },
         statement_descriptor: 'OUTLET365',
         back_urls: {
-          success: `${location.origin}/checkout.html?status=success`,
-          pending: `${location.origin}/checkout.html?status=pending`,
-          failure: `${location.origin}/checkout.html?status=failure`
+          success: `${baseRedirectUrl}/checkout.html?status=success`,
+          pending: `${baseRedirectUrl}/checkout.html?status=pending`,
+          failure: `${baseRedirectUrl}/checkout.html?status=failure`
         },
         auto_return: 'approved'
       };
@@ -598,7 +663,7 @@
       return await response.json();
     }
 
-    window.showToast = function(msg, duration = 2800) {
+    window.showToast = function (msg, duration = 2800) {
       const toast = document.getElementById('toast');
       if (!toast) return;
       toast.textContent = msg;
@@ -607,4 +672,5 @@
     };
   </script>
 </body>
+
 </html>
