@@ -131,49 +131,39 @@
 
             <!-- PIX -->
             <div class="payment-panel active" id="panel-pix">
-              <div class="pix-box">
-                <h4><i class="fas fa-check-circle" style="color:#059669;margin-right:.4rem;"></i>Pagamento instantâneo via PIX</h4>
-                <p style="font-size:.85rem;color:#065f46;margin-top:.25rem;">Aprovação imediata após confirmação do pagamento.</p>
-                <div>
-                  <p style="font-size:.78rem;color:var(--gray-600);margin-top:.75rem;">Chave PIX (CNPJ / Telefone):</p>
-                  <div class="pix-key" onclick="copyPix(this)" title="Clique para copiar">
-                    <i class="fas fa-copy"></i>
-                    <span id="pixKeyText">5588992757076</span>
-                  </div>
-                </div>
-                <p class="pix-note"><i class="fas fa-info-circle"></i> Após o pagamento, envie o comprovante pelo WhatsApp para confirmar seu pedido.</p>
+              <div class="mp-info-box" style="display:flex;flex-direction:column;gap:1rem;padding:1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:rgba(250,250,250,.96);">
+                <h4 style="margin:0;font-size:1rem;font-weight:700;"><i class="fas fa-qrcode" style="margin-right:.4rem;color:var(--green);"></i> PIX seguro pelo Mercado Pago</h4>
+                <p style="margin:0;font-size:.95rem;color:var(--gray-700);line-height:1.6;">
+                  Após confirmar o pedido, você receberá um QR Code do Mercado Pago para pagar com PIX instantaneamente.
+                </p>
+                <p style="margin:0;font-size:.82rem;color:var(--gray-600);">
+                  A aprovação é imediata após o pagamento.
+                </p>
+              </div>
+              <div class="mp-badge" style="margin-top:1rem;">
+                <i class="fas fa-lock"></i>
+                <span>Pagamento processado pelo <strong>Mercado Pago</strong> — ambiente seguro</span>
               </div>
             </div>
 
             <!-- CARTÃO -->
             <div class="payment-panel" id="panel-cartao">
-              <div class="card-form-grid">
-                <div class="card-field">
-                  <label>Número do Cartão</label>
-                  <input type="tel" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" inputmode="numeric"/>
-                </div>
-                <div class="card-field">
-                  <label>Nome no Cartão</label>
-                  <input type="text" id="cardName" placeholder="NOME SOBRENOME" style="text-transform:uppercase;"/>
-                </div>
-                <div class="form-row">
-                  <div class="card-field">
-                    <label>Validade</label>
-                    <input type="tel" id="cardExpiry" placeholder="MM/AA" maxlength="5" inputmode="numeric"/>
-                  </div>
-                  <div class="card-field">
-                    <label>CVV</label>
-                    <input type="tel" id="cardCvv" placeholder="123" maxlength="4" inputmode="numeric"/>
-                  </div>
-                </div>
+              <div class="mp-info-box" style="display:flex;flex-direction:column;gap:1rem;padding:1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);background:rgba(250,250,250,.96);">
+                <h4 style="margin:0;font-size:1rem;font-weight:700;"><i class="fas fa-lock" style="margin-right:.4rem;color:var(--green);"></i> Cartão seguro pelo Mercado Pago</h4>
+                <p style="margin:0;font-size:.95rem;color:var(--gray-700);line-height:1.6;">
+                  Após confirmar o pedido, você será redirecionado ao checkout seguro do Mercado Pago para informar os dados do cartão.
+                </p>
                 <div class="card-field">
                   <label>Parcelas</label>
-                  <select id="cardInstallments" style="padding:.7rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:.92rem;outline:none;font-family:var(--font);">
+                  <select id="cardInstallments" style="padding:.7rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:.92rem;outline:none;font-family:var(--font);width:100%;">
                     <option value="1">À vista</option>
                     <option value="2">2x sem juros</option>
                     <option value="3">3x sem juros</option>
                   </select>
                 </div>
+                <p style="margin:0;font-size:.82rem;color:var(--gray-600);">
+                  Seus dados de cartão não são coletados neste site. O Mercado Pago solicita número, validade e CVV diretamente.
+                </p>
               </div>
               <div class="mp-badge">
                 <i class="fas fa-lock"></i>
@@ -395,6 +385,11 @@
         return;
       }
 
+      // ── RASTREAMENTO REAL (Supabase) ──
+      if (typeof DB !== 'undefined' && typeof DB.incrementStat === 'function') {
+        DB.incrementStat('checkouts');
+      }
+
       // Render order items
       const orderItems = document.getElementById('orderItems');
       orderItems.innerHTML = items.map(item => `
@@ -456,13 +451,6 @@
       document.getElementById('panel-' + method).classList.add('active');
     }
 
-    function copyPix(el) {
-      const key = document.getElementById('pixKeyText').textContent;
-      navigator.clipboard?.writeText(key).then(() => {
-        showToast('✓ Chave PIX copiada!');
-      });
-    }
-
     function genId() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     }
@@ -499,18 +487,9 @@
         return;
       }
 
-      // Validate card fields if cartão selected
-      if (currentPaymentMethod === 'cartao') {
-        const cardNum = document.getElementById('cardNumber')?.value.replace(/\s/g,'');
-        if (!cardNum || cardNum.length < 13) { showToast('Número do cartão inválido'); return; }
-        if (!document.getElementById('cardName')?.value.trim()) { showToast('Nome no cartão obrigatório'); return; }
-        if (!document.getElementById('cardExpiry')?.value.trim()) { showToast('Validade do cartão obrigatória'); return; }
-        if (!document.getElementById('cardCvv')?.value.trim()) { showToast('CVV obrigatório'); return; }
-      }
-
       const items = Cart.getItems();
       const subtotal = Cart.getTotal();
-      const paymentLabels = { pix: 'PIX', cartao: 'Cartão de Crédito', boleto: 'Boleto Bancário' };
+      const paymentLabels = { pix: 'Mercado Pago - PIX', cartao: 'Mercado Pago - Cartão', boleto: 'Mercado Pago - Boleto' };
       const installments = currentPaymentMethod === 'cartao'
         ? parseInt(document.getElementById('cardInstallments')?.value || '1') : 1;
 
@@ -528,6 +507,7 @@
         total: subtotal + selectedShippingPrice,
         status: 'pendente',
         payment_method: paymentLabels[currentPaymentMethod] + (installments > 1 ? ` ${installments}x` : ''),
+        payment_provider: 'Mercado Pago',
         items_json: JSON.stringify(items.map(i => ({ name: i.name, size: i.size, qty: i.qty, price: i.price }))),
         notes: '',
         created_at: new Date().toISOString()
@@ -535,21 +515,87 @@
 
       await saveOrderToSupabase(order);
 
-      // Compose WhatsApp message
-      const itemsList = items.map(i => `• ${i.name} (${i.size}) x${i.qty} — ${formatPrice(i.price * i.qty)}`).join('%0A');
-      const waMsg = `Olá! Acabei de fazer um pedido no site da Outlet 365 🛍️%0A%0A*Pedido #${order.id.slice(-4).toUpperCase()}*%0A${itemsList}%0A%0A*Subtotal:* ${formatPrice(subtotal)}%0A*Frete:* ${formatPrice(order.shipping)} (${selectedShippingOptionLabel})%0A*Total:* ${formatPrice(order.total)}%0A*Pagamento:* ${order.payment_method}%0A%0AEndereço: ${order.address}, ${order.city}/${order.state} — CEP: ${order.cep}`;
-      const waUrl = `https://wa.me/5588992757076?text=${waMsg}`;
+      try {
+        const preference = await createMercadoPagoPreference(order, items, installments);
+        const redirectUrl = preference.init_point || preference.sandbox_init_point;
+        if (!redirectUrl) {
+          throw new Error('URL de pagamento não retornada pelo Mercado Pago.');
+        }
+        showToast('Redirecionando para o Mercado Pago...', 3000);
+        window.location.href = redirectUrl;
+        return;
+      } catch (err) {
+        console.error('Erro na preferência Mercado Pago:', err);
+        showToast('Erro ao iniciar pagamento. Tente novamente.');
+        return;
+      }
+    }
 
-      // Show success messages by method
-      const msgs = {
-        pix: 'Envie o comprovante do PIX pelo WhatsApp para confirmarmos seu pedido.',
-        cartao: 'Entraremos em contato pelo WhatsApp para confirmar os detalhes do pagamento.',
-        boleto: 'O boleto será enviado pelo WhatsApp. Pague em até 2 dias úteis.'
+    async function createMercadoPagoPreference(order, items, installments) {
+      const phoneDigits = order.customer_phone.replace(/\D/g, '');
+      const payerPhone = {
+        area_code: phoneDigits.slice(0, 2),
+        number: phoneDigits.slice(2)
       };
-      document.getElementById('successPaymentMsg').textContent = msgs[currentPaymentMethod];
-      document.getElementById('successWaBtn').href = waUrl;
-      document.getElementById('successModal').style.display = 'flex';
-      Cart.clear();
+      const [street, number] = order.address.split(',').map(part => part.trim());
+      const payload = {
+        items: items.map(item => ({
+          title: item.name,
+          quantity: item.qty,
+          unit_price: item.price,
+          currency_id: 'BRL'
+        })),
+        payer: {
+          email: order.customer_email,
+          name: order.customer_name,
+          phone: payerPhone,
+          address: {
+            zip_code: order.cep.replace(/\D/g, ''),
+            street_name: street || '',
+            street_number: (number && !isNaN(Number(number))) ? Number(number) : 0,
+            city: order.city,
+            state: order.state
+          }
+        },
+        shipments: {
+          cost: order.shipping,
+          mode: 'not_specified',
+          receiver_address: {
+            zip_code: order.cep.replace(/\D/g, ''),
+            street_name: street || '',
+            street_number: (number && !isNaN(Number(number))) ? Number(number) : 0,
+            city: order.city,
+            state: order.state
+          }
+        },
+        external_reference: order.id,
+        payment_methods: {
+          excluded_payment_types: currentPaymentMethod === 'pix'
+            ? [{ id: 'credit_card' }, { id: 'ticket' }]
+            : currentPaymentMethod === 'cartao'
+              ? [{ id: 'bank_transfer' }, { id: 'ticket' }]
+              : [{ id: 'credit_card' }, { id: 'bank_transfer' }],
+          installments: currentPaymentMethod === 'cartao' ? installments : 1
+        },
+        statement_descriptor: 'OUTLET365',
+        back_urls: {
+          success: `${location.origin}/checkout.html?status=success`,
+          pending: `${location.origin}/checkout.html?status=pending`,
+          failure: `${location.origin}/checkout.html?status=failure`
+        },
+        auto_return: 'approved'
+      };
+
+      const response = await fetch('/api/mp-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload })
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Erro desconhecido na API Mercado Pago');
+      }
+      return await response.json();
     }
 
     window.showToast = function(msg, duration = 2800) {

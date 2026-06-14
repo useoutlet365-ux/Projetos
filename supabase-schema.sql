@@ -47,9 +47,19 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ─── TABELA: site_stats ─────────────────────────────
+CREATE TABLE IF NOT EXISTS site_stats (
+  date             DATE PRIMARY KEY,
+  page_views       INT DEFAULT 0,
+  unique_visitors  INT DEFAULT 0,
+  cart_adds        INT DEFAULT 0,
+  checkouts        INT DEFAULT 0
+);
+
 -- ─── RLS ────────────────────────────────────────────
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_stats ENABLE ROW LEVEL SECURITY;
 
 -- Products: leitura pública (ativos), escrita só autenticados
 CREATE POLICY "anon_select_products" ON products
@@ -64,6 +74,38 @@ CREATE POLICY "anon_insert_orders" ON orders
 
 CREATE POLICY "auth_all_orders" ON orders
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Site Stats: todos podem ler/inserir/atualizar estatísticas
+CREATE POLICY "anon_all_site_stats" ON site_stats
+  FOR ALL TO anon USING (true) WITH CHECK (true);
+
+CREATE POLICY "auth_all_site_stats" ON site_stats
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- ─── RPC FUNCTION: increment_stat ───────────────────
+CREATE OR REPLACE FUNCTION increment_stat(stat_col TEXT, is_new_visitor BOOLEAN DEFAULT false)
+RETURNS VOID AS $$
+DECLARE
+  today DATE := CURRENT_DATE;
+BEGIN
+  -- Garante que o registro do dia de hoje existe
+  INSERT INTO site_stats (date)
+  VALUES (today)
+  ON CONFLICT (date) DO NOTHING;
+
+  -- Incrementa de forma atômica o respectivo contador
+  IF stat_col = 'page_views' THEN
+    UPDATE site_stats 
+    SET page_views = page_views + 1,
+        unique_visitors = unique_visitors + CASE WHEN is_new_visitor THEN 1 ELSE 0 END
+    WHERE date = today;
+  ELSIF stat_col = 'cart_adds' THEN
+    UPDATE site_stats SET cart_adds = cart_adds + 1 WHERE date = today;
+  ELSIF stat_col = 'checkouts' THEN
+    UPDATE site_stats SET checkouts = checkouts + 1 WHERE date = today;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ─── SEED: produtos iniciais ─────────────────────────
 INSERT INTO products (id, slug, name, category, subcategory, price, original_price, installments, sizes, description, image_url, featured, new_arrival, weekly_promo, hero_card, stock, active) VALUES

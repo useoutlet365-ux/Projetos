@@ -17,7 +17,7 @@ const STORE = {
 async function fetchAll(table) {
   if (table === 'admin_products') return DB.getAllProducts();
   if (table === 'orders')         return DB.getAllOrders();
-  if (table === 'site_stats')     return STORE.get('site_stats');
+  if (table === 'site_stats')     return DB.getSiteStats();
   return [];
 }
 
@@ -171,6 +171,58 @@ function slugify(str) {
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
+// ── CONSOLIDATE STATS ──
+function consolidateStats() {
+  // 1. Agrupar receita real dos pedidos por dia (excluindo os cancelados)
+  const revenueByDate = {};
+  allOrders.forEach(o => {
+    if (o.status === 'cancelado') return;
+    const dateStr = o.created_at ? o.created_at.substring(0, 10) : '';
+    if (dateStr) {
+      revenueByDate[dateStr] = (revenueByDate[dateStr] || 0) + parseFloat(o.total || 0);
+    }
+  });
+
+  // 2. Fazer o merge com os dados de site_stats vindos do Supabase
+  const statsMap = {};
+  
+  // Inicializa o mapa com as estatísticas do banco
+  allStats.forEach(s => {
+    statsMap[s.date] = {
+      id: s.date,
+      date: s.date,
+      revenue: 0,
+      unique_visitors: parseInt(s.unique_visitors) || 0,
+      page_views: parseInt(s.page_views) || 0,
+      cart_adds: parseInt(s.cart_adds) || 0,
+      checkouts: parseInt(s.checkouts) || 0
+    };
+  });
+
+  // Insere/atualiza a receita real dos pedidos e garante que o dia existe no mapa
+  Object.entries(revenueByDate).forEach(([dateStr, totalRev]) => {
+    if (!statsMap[dateStr]) {
+      statsMap[dateStr] = {
+        id: dateStr,
+        date: dateStr,
+        revenue: totalRev,
+        unique_visitors: 0,
+        page_views: 0,
+        cart_adds: 0,
+        checkouts: 0
+      };
+    } else {
+      statsMap[dateStr].revenue = totalRev;
+    }
+  });
+
+  // 3. Substitui allStats pelo array combinado, ordenado cronologicamente
+  allStats = Object.values(statsMap).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
 async function init() {
   // Auth guard — redireciona se não logado
   const user = await DB.getUser();
@@ -180,11 +232,11 @@ async function init() {
   const userEl = document.getElementById('adminUserEmail');
   if (userEl) userEl.textContent = user.email;
 
-  // Seed de stats se vazio (demo)
-  if (STORE.get('site_stats').length === 0) seedDemoData();
-
   [allOrders, allStats] = await Promise.all([fetchAll('orders'), fetchAll('site_stats')]);
   allAdminProducts = await fetchAll('admin_products');
+  
+  consolidateStats();
+
   renderKPIs();
   renderRevenueChart();
   renderEngageChart();

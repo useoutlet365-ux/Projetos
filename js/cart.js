@@ -32,6 +32,11 @@ const Cart = (() => {
     }
     save(items);
     updateUI();
+
+    // ── RASTREAMENTO REAL (Supabase) ──
+    if (typeof DB !== 'undefined' && typeof DB.incrementStat === 'function') {
+      DB.incrementStat('cart_adds');
+    }
   }
 
   function removeItem(key) {

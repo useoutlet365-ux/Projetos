@@ -117,3 +117,22 @@ Acesse em: `admin.html`
 3. **Definir gateway de pagamento** (Mercado Pago recomendado)
 4. **Integrar Correios** ou Melhor Envio para cálculo real de frete
 5. **Publicar** via aba Publish
+## 🚀 Integração Mercado Pago
+
+Esta loja agora suporta checkout via Mercado Pago para cartão e boleto. Para usar localmente, execute um servidor Node.js que cria a preferência de pagamento com o token de acesso Mercado Pago.
+
+### Passos rápidos
+
+1. Crie um arquivo `.env` na raiz com:
+
+   MP_ACCESS_TOKEN=seu_token_de_acesso_mercadopago
+
+2. Instale as dependências:
+
+   npm install
+
+3. Inicie o servidor:
+
+   npm start
+
+4. Acesse `http://localhost:3000/checkout.html` e finalize o pedido.

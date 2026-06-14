@@ -145,5 +145,27 @@ const DB = (() => {
       const { data: { user } } = await supabaseClient.auth.getUser();
       return user;
     },
+
+    // ── site_stats ──────────────────────────────────
+    async getSiteStats() {
+      const { data, error } = await supabaseClient
+        .from('site_stats')
+        .select('*')
+        .order('date', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+
+    async incrementStat(col, isNewVisitor = false) {
+      try {
+        const { error } = await supabaseClient.rpc('increment_stat', {
+          stat_col: col,
+          is_new_visitor: isNewVisitor
+        });
+        if (error) console.error('incrementStat error:', error);
+      } catch (err) {
+        console.error('incrementStat exception:', err);
+      }
+    },
   };
 })();

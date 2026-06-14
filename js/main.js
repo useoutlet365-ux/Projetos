@@ -6,6 +6,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Carrega produtos do Supabase antes de renderizar seções dinâmicas
   if (typeof DB !== 'undefined') await DB.loadProducts();
 
+  // ── RASTREAMENTO DE TRÁFEGO REAL (Supabase) ──
+  if (typeof DB !== 'undefined' && typeof DB.incrementStat === 'function') {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const lastVisit = localStorage.getItem('outlet365_vdate');
+      let isNewVisitor = false;
+      if (lastVisit !== todayStr) {
+        localStorage.setItem('outlet365_vdate', todayStr);
+        isNewVisitor = true;
+      }
+      DB.incrementStat('page_views', isNewVisitor);
+    } catch (e) {
+      console.error('Error tracking page view:', e);
+    }
+  }
+
   // ── MENU LATERAL ──
   const menuToggle = document.getElementById('menuToggle');
   const menuClose = document.getElementById('menuClose');
