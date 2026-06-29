@@ -167,8 +167,8 @@
                   dados do cartão.
                 </p>
                 <div class="card-field">
-                  <label>Parcelas</label>
-                  <select id="cardInstallments"
+                  <label for="cardInstallments">Parcelas</label>
+                  <select id="cardInstallments" title="Opções de parcelamento"
                     style="padding:.7rem .9rem;border:1.5px solid var(--gray-200);border-radius:var(--radius);font-size:.92rem;outline:none;font-family:var(--font);width:100%;">
                     <option value="1">À vista</option>
                     <option value="2">2x sem juros</option>
@@ -605,6 +605,7 @@
 
       const payload = {
         items: items.map(item => ({
+          id: item.id,
           title: item.name,
           quantity: item.qty,
           unit_price: item.price,

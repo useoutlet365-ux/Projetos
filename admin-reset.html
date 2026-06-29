@@ -84,7 +84,7 @@
       btn.disabled = true;
       btn.textContent = 'Salvando...';
 
-      const { error } = await supabase.auth.updateUser({ password: pass });
+      const { error } = await supabaseClient.auth.updateUser({ password: pass });
       if (error) {
         errEl.textContent = 'Erro: ' + error.message;
         errEl.style.display = 'block';

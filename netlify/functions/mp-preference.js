@@ -26,6 +26,61 @@ exports.handler = async (event, context) => {
       };
     }
 
+    const SUPABASE_URL = process.env.SUPABASE_URL || "https://umbqcfefdctakdkxlixy.supabase.co";
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYnFjZmVmZGN0YWtka3hsaXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjE5MDYsImV4cCI6MjA5NTEzNzkwNn0.r9fRNxtd2h64AEvE4O9RbLIa0EKh0et7lLiApJmOcu4";
+
+    // 1. Obter todos os produtos do Supabase para validação
+    const productsRes = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,price,active`, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+
+    if (!productsRes.ok) {
+      console.error("Falha ao consultar banco de dados Supabase:", await productsRes.text());
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Erro interno ao conectar com a base de dados para validação." }),
+      };
+    }
+
+    const dbProducts = await productsRes.json();
+    const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+    // 2. Validar cada item e substituir o preço pelo preço real do banco de dados
+    let calculatedSubtotal = 0;
+    for (const item of payload.items) {
+      const dbProd = productsMap.get(item.id);
+      if (!dbProd) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Produto inválido ou inexistente: ${item.title}` }),
+        };
+      }
+      if (!dbProd.active) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: `Produto indisponível: ${item.title}` }),
+        };
+      }
+
+      // Substituir o preço enviado pelo preço correto cadastrado no banco
+      const dbPrice = parseFloat(dbProd.price);
+      item.unit_price = dbPrice;
+      calculatedSubtotal += dbPrice * item.quantity;
+    }
+
+    // 3. Validar frete (deve bater com as regras estabelecidas no checkout: 0, 18.5, 28.9, 26.9 ou 48.5)
+    const allowedShippingCosts = [0, 18.5, 28.9, 26.9, 48.5];
+    const clientShippingCost = parseFloat(payload.shipments?.cost ?? 0);
+    if (!allowedShippingCosts.includes(clientShippingCost)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Opção de frete inválida ou adulterada." }),
+      };
+    }
+
     const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {

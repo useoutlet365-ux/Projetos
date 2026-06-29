@@ -100,7 +100,8 @@ Acesse em: `admin.html`
 
 ## ⏳ Funcionalidades Pendentes (Pós-MVP)
 
-- [ ] Integração com gateway de pagamento real (Mercado Pago, PagSeguro)
+- [x] Integração com gateway de pagamento real (Mercado Pago)
+- [ ] Integração com gateway de pagamento real (PagSeguro)
 - [ ] Integração com API real dos Correios para cálculo de frete
 - [ ] Área do cliente (login, pedidos, endereços)
 - [ ] Painel de administração de produtos
@@ -109,30 +110,49 @@ Acesse em: `admin.html`
 - [ ] Fotos reais dos produtos (substituir imagens Unsplash)
 - [ ] WhatsApp número real (quando disponível)
 - [ ] Perfumes árabes e tênis/sapatos com preços (pendentes de definição)
-
+ 
 ## 📱 Próximos Passos Recomendados
-
+ 
 1. **Substituir imagens** pelas fotos reais dos produtos
 2. **Adicionar WhatsApp** oficial quando disponível
-3. **Definir gateway de pagamento** (Mercado Pago recomendado)
-4. **Integrar Correios** ou Melhor Envio para cálculo real de frete
-5. **Publicar** via aba Publish
-## 🚀 Integração Mercado Pago
+3. **Integrar Correios** ou Melhor Envio para cálculo real de frete
+4. **Publicar** via aba Publish
 
-Esta loja agora suporta checkout via Mercado Pago para cartão e boleto. Para usar localmente, execute um servidor Node.js que cria a preferência de pagamento com o token de acesso Mercado Pago.
+## 🚀 Integração Mercado Pago & Netlify Functions
 
-### Passos rápidos
+A loja possui integração segura com o Mercado Pago (Checkout Pro) suportando pagamentos via **PIX**, **Cartão de Crédito** (com parcelamento) e **Boleto**, operando tanto localmente com um servidor Express quanto em produção através de **Netlify Functions** (Serverless).
 
-1. Crie um arquivo `.env` na raiz com:
+### 1. Funcionamento em Produção (Netlify)
 
-   MP_ACCESS_TOKEN=seu_token_de_acesso_mercadopago
+Ao publicar na Netlify, as credenciais confidenciais do Mercado Pago são mantidas em segurança no backend através de uma Serverless Function.
 
-2. Instale as dependências:
+- **Configuração de Rotas (`netlify.toml`)**: Mapeia as chamadas da API do front-end (`/api/mp-preference`) para a Netlify Function de forma transparente e automática.
+- **Serverless Function (`netlify/functions/mp-preference.js`)**: Recebe o payload do checkout e assina a preferência de pagamento com o `MP_ACCESS_TOKEN` no servidor.
+- **Retornos de Pagamento**: Trata os status de retorno (`success`, `pending`, `failure`) na própria página de checkout, limpando o carrinho, exibindo o modal de confirmação e gerando links personalizados para atendimento via WhatsApp com o ID do pedido.
 
+#### Configuração das Variáveis de Ambiente no Netlify:
+1. Acesse o painel da Netlify.
+2. Vá em **Site Configuration** > **Environment variables** (Variáveis de ambiente).
+3. Adicione uma variável:
+   - Nome: `MP_ACCESS_TOKEN`
+   - Valor: Seu Token de Acesso de produção (ou sandbox) obtido no painel de desenvolvedor do Mercado Pago.
+
+---
+
+### 2. Desenvolvimento e Testes Locais (Retrocompatibilidade)
+
+Para desenvolver ou testar o fluxo de checkout em sua máquina local:
+
+1. Crie ou edite o arquivo `.env` na raiz do projeto com seu token do Mercado Pago:
+   ```env
+   MP_ACCESS_TOKEN=TEST-seu_token_de_teste_ou_producao
+   ```
+2. Instale as dependências locais do Express:
+   ```bash
    npm install
-
-3. Inicie o servidor:
-
+   ```
+3. Inicie o servidor Express local:
+   ```bash
    npm start
-
-4. Acesse `http://localhost:3000/checkout.html` e finalize o pedido.
+   ```
+4. Acesse `http://localhost:3000/checkout.html`. Ao finalizar a compra, a chamada local será processada pelo `server.js` na porta 3000 e você será redirecionado para a tela de pagamento em modo Sandbox (Ambiente de Testes).

@@ -144,7 +144,7 @@
     async function handleForgotPassword() {
       const email = document.getElementById('loginEmail').value.trim();
       if (!email) { alert('Digite seu e-mail no campo acima primeiro.'); return; }
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + window.location.pathname.replace('admin-login.html', 'admin-reset.html')
       });
       if (error) { alert('Erro ao enviar e-mail: ' + error.message); }

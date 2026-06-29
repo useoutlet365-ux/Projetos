@@ -75,10 +75,7 @@ CREATE POLICY "anon_insert_orders" ON orders
 CREATE POLICY "auth_all_orders" ON orders
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- Site Stats: todos podem ler/inserir/atualizar estatísticas
-CREATE POLICY "anon_all_site_stats" ON site_stats
-  FOR ALL TO anon USING (true) WITH CHECK (true);
-
+-- Site Stats: leitura pública desativada, gestão só autenticados (RPC gerencia inserção atômica com controle)
 CREATE POLICY "auth_all_site_stats" ON site_stats
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 

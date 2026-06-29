@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Outlet 365</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/admin.css"/>
+  <link rel="stylesheet" href="css/admin.css" />
 </head>
+
 <body class="admin-body">
 
   <!-- SIDEBAR OVERLAY (mobile) -->
@@ -48,8 +51,13 @@
     <div class="adm-sidebar-footer">
       <a href="index.html" target="_blank"><i class="fas fa-external-link-alt"></i> Ver Loja</a>
       <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid rgba(255,255,255,.1);">
-        <p id="adminUserEmail" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></p>
-        <button id="btnLogout" style="width:100%;padding:.5rem;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:none;border-radius:6px;font-size:.78rem;font-family:inherit;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+        <p id="adminUserEmail"
+          style="font-size:.72rem;color:rgba(255,255,255,.5);margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        </p>
+        <button id="btnLogout"
+          style="width:100%;padding:.5rem;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:none;border-radius:6px;font-size:.78rem;font-family:inherit;cursor:pointer;transition:background .2s;"
+          onmouseover="this.style.background='rgba(255,255,255,.2)'"
+          onmouseout="this.style.background='rgba(255,255,255,.1)'">
           <i class="fas fa-sign-out-alt"></i> Sair
         </button>
       </div>
@@ -61,7 +69,8 @@
     <!-- TOPBAR -->
     <header class="adm-topbar">
       <div class="adm-topbar-left">
-        <button class="adm-btn-menu-mobile" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+        <button class="adm-btn-menu-mobile" id="mobileMenuBtn" title="Abrir menu" aria-label="Abrir menu"><i
+            class="fas fa-bars"></i></button>
         <h1 id="topbarTitle">Dashboard</h1>
       </div>
       <div class="adm-topbar-right">
@@ -126,7 +135,8 @@
         <div class="charts-row">
           <div class="adm-card">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-chart-area" style="color:var(--adm-green);margin-right:.4rem"></i>Faturamento Diário (R$)</span>
+              <span class="adm-card-title"><i class="fas fa-chart-area"
+                  style="color:var(--adm-green);margin-right:.4rem"></i>Faturamento Diário (R$)</span>
             </div>
             <div class="adm-card-body">
               <div class="chart-container"><canvas id="revenueChart"></canvas></div>
@@ -134,7 +144,8 @@
           </div>
           <div class="adm-card">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-chart-donut" style="color:var(--adm-blue);margin-right:.4rem"></i>Visitas vs Carrinho</span>
+              <span class="adm-card-title"><i class="fas fa-chart-donut"
+                  style="color:var(--adm-blue);margin-right:.4rem"></i>Visitas vs Carrinho</span>
             </div>
             <div class="adm-card-body">
               <div class="chart-container"><canvas id="engageChart"></canvas></div>
@@ -146,8 +157,10 @@
         <div class="charts-row">
           <div class="adm-card">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-list" style="color:var(--adm-blue);margin-right:.4rem"></i>Últimos Pedidos</span>
-              <button class="adm-btn adm-btn-secondary" style="padding:.35rem .75rem;font-size:.75rem;" onclick="navigateTo('pedidos')">Ver todos</button>
+              <span class="adm-card-title"><i class="fas fa-list"
+                  style="color:var(--adm-blue);margin-right:.4rem"></i>Últimos Pedidos</span>
+              <button class="adm-btn adm-btn-secondary" style="padding:.35rem .75rem;font-size:.75rem;"
+                onclick="navigateTo('pedidos')">Ver todos</button>
             </div>
             <div class="adm-card-body" style="padding:0;">
               <div class="adm-table-wrap">
@@ -167,7 +180,8 @@
           </div>
           <div class="adm-card">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-fire" style="color:var(--adm-yellow);margin-right:.4rem"></i>Top Produtos</span>
+              <span class="adm-card-title"><i class="fas fa-fire"
+                  style="color:var(--adm-yellow);margin-right:.4rem"></i>Top Produtos</span>
             </div>
             <div class="adm-card-body">
               <div id="topProductsList"></div>
@@ -205,7 +219,8 @@
         <!-- Gráfico de barras -->
         <div class="adm-card" style="margin-bottom:1.25rem;">
           <div class="adm-card-header">
-            <span class="adm-card-title"><i class="fas fa-chart-bar" style="color:var(--adm-green);margin-right:.4rem"></i>Receita por Dia</span>
+            <span class="adm-card-title"><i class="fas fa-chart-bar"
+                style="color:var(--adm-green);margin-right:.4rem"></i>Receita por Dia</span>
           </div>
           <div class="adm-card-body">
             <div class="chart-container" style="height:260px;"><canvas id="finBarChart"></canvas></div>
@@ -216,7 +231,8 @@
         <div class="charts-row">
           <div class="adm-card">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-shopping-cart" style="color:var(--adm-blue);margin-right:.4rem"></i>Funil de Conversão</span>
+              <span class="adm-card-title"><i class="fas fa-shopping-cart"
+                  style="color:var(--adm-blue);margin-right:.4rem"></i>Funil de Conversão</span>
             </div>
             <div class="adm-card-body">
               <div class="chart-container"><canvas id="funnelChart"></canvas></div>
@@ -224,7 +240,8 @@
           </div>
           <div class="adm-card">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-map-marker-alt" style="color:var(--adm-purple);margin-right:.4rem"></i>Pedidos por Cidade</span>
+              <span class="adm-card-title"><i class="fas fa-map-marker-alt"
+                  style="color:var(--adm-purple);margin-right:.4rem"></i>Pedidos por Cidade</span>
             </div>
             <div class="adm-card-body">
               <div id="cityList"></div>
@@ -235,7 +252,8 @@
         <!-- Tabela detalhada -->
         <div class="adm-card" style="margin-top:1.25rem;">
           <div class="adm-card-header">
-            <span class="adm-card-title"><i class="fas fa-table" style="color:var(--adm-muted);margin-right:.4rem"></i>Extrato Diário</span>
+            <span class="adm-card-title"><i class="fas fa-table"
+                style="color:var(--adm-muted);margin-right:.4rem"></i>Extrato Diário</span>
           </div>
           <div class="adm-card-body" style="padding:0;">
             <div class="adm-table-wrap">
@@ -262,7 +280,8 @@
         <div class="section-head">
           <h2>Gerenciar Pedidos</h2>
           <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-            <select id="statusFilter" style="padding:.4rem .8rem;border:1.5px solid var(--adm-border);border-radius:8px;font-size:.82rem;outline:none;">
+            <select id="statusFilter" title="Filtrar por status"
+              style="padding:.4rem .8rem;border:1.5px solid var(--adm-border);border-radius:8px;font-size:.82rem;outline:none;">
               <option value="">Todos os status</option>
               <option value="pendente">Pendente</option>
               <option value="confirmado">Confirmado</option>
@@ -312,8 +331,8 @@
           <button class="adm-filter-btn" data-pcat="perfumes">Perfumes</button>
           <button class="adm-filter-btn" data-pcat="promocoes">🔥 Promoções</button>
           <div class="adm-search-inline">
-            <input type="text" id="prodSearch" placeholder="Buscar produto..."/>
-            <button><i class="fas fa-search"></i></button>
+            <input type="text" id="prodSearch" placeholder="Buscar produto..." />
+            <button title="Buscar" aria-label="Buscar"><i class="fas fa-search"></i></button>
           </div>
         </div>
         <div class="adm-products-grid" id="adminProductsGrid">
@@ -336,23 +355,28 @@
         <div class="adm-card">
           <div class="adm-card-body">
             <form id="productForm" onsubmit="saveProduct(event)">
-              <input type="hidden" id="editProductId" value=""/>
+              <input type="hidden" id="editProductId" value="" />
 
               <!-- FOTOS -->
               <div style="margin-bottom:1.5rem;">
-                <label style="font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--adm-muted);display:block;margin-bottom:.6rem;">
+                <label
+                  style="font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--adm-muted);display:block;margin-bottom:.6rem;">
                   <i class="fas fa-camera" style="margin-right:.35rem;color:var(--adm-green);"></i>Fotos do Produto
                 </label>
                 <div class="photo-capture-area" id="photoCaptureArea">
-                  <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoInput(event)"/>
-                  <input type="file" id="photoInputGallery" accept="image/*" multiple style="display:none" onchange="handlePhotoInput(event)"/>
+                  <input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none"
+                    onchange="handlePhotoInput(event)" />
+                  <input type="file" id="photoInputGallery" accept="image/*" multiple style="display:none"
+                    onchange="handlePhotoInput(event)" />
                   <i class="fas fa-camera"></i>
                   <p style="margin:.35rem 0 .85rem;"><strong>Adicionar Fotos</strong></p>
                   <div class="photo-capture-btns">
-                    <button type="button" class="photo-btn photo-btn-camera" onclick="document.getElementById('photoInputCamera').click()">
+                    <button type="button" class="photo-btn photo-btn-camera"
+                      onclick="document.getElementById('photoInputCamera').click()">
                       <i class="fas fa-camera"></i> Câmera
                     </button>
-                    <button type="button" class="photo-btn photo-btn-gallery" onclick="document.getElementById('photoInputGallery').click()">
+                    <button type="button" class="photo-btn photo-btn-gallery"
+                      onclick="document.getElementById('photoInputGallery').click()">
                       <i class="fas fa-images"></i> Galeria
                     </button>
                   </div>
@@ -361,17 +385,17 @@
                 <div class="photo-previews" id="photoPreviews"></div>
               </div>
 
-              <hr class="adm-divider"/>
+              <hr class="adm-divider" />
 
               <!-- DADOS BÁSICOS -->
               <div class="adm-form-grid">
                 <div class="adm-form-group adm-form-full">
                   <label>Nome do Produto *</label>
-                  <input type="text" id="prodName" placeholder="Ex: Camisa Pima Peruana" required/>
+                  <input type="text" id="prodName" placeholder="Ex: Camisa Pima Peruana" required />
                 </div>
                 <div class="adm-form-group">
-                  <label>Categoria *</label>
-                  <select id="prodCategory" required onchange="updateSubcategory()">
+                  <label for="prodCategory">Categoria *</label>
+                  <select id="prodCategory" title="Categoria" required onchange="updateSubcategory()">
                     <option value="">Selecionar categoria</option>
                     <option value="camisas">Camisas</option>
                     <option value="shorts-calcas">Shorts e Calças</option>
@@ -381,22 +405,23 @@
                   </select>
                 </div>
                 <div class="adm-form-group">
-                  <label>Subcategoria</label>
-                  <select id="prodSubcategory">
+                  <label for="prodSubcategory">Subcategoria</label>
+                  <select id="prodSubcategory" title="Subcategoria">
                     <option value="">Selecione a categoria primeiro</option>
                   </select>
                 </div>
                 <div class="adm-form-group">
                   <label>Preço de Venda (R$) *</label>
-                  <input type="number" id="prodPrice" placeholder="0,00" step="0.01" min="0" required/>
+                  <input type="number" id="prodPrice" placeholder="0,00" step="0.01" min="0" required />
                 </div>
                 <div class="adm-form-group">
-                  <label>Preço Original (R$) <small style="font-weight:400;text-transform:none;">(se houver desconto)</small></label>
-                  <input type="number" id="prodOriginalPrice" placeholder="0,00" step="0.01" min="0"/>
+                  <label>Preço Original (R$) <small style="font-weight:400;text-transform:none;">(se houver
+                      desconto)</small></label>
+                  <input type="number" id="prodOriginalPrice" placeholder="0,00" step="0.01" min="0" />
                 </div>
                 <div class="adm-form-group">
-                  <label>Parcelas</label>
-                  <select id="prodInstallments">
+                  <label for="prodInstallments">Parcelas</label>
+                  <select id="prodInstallments" title="Parcelas">
                     <option value="1">À vista</option>
                     <option value="2">2x sem juros</option>
                     <option value="3" selected>3x sem juros</option>
@@ -404,7 +429,7 @@
                 </div>
                 <div class="adm-form-group">
                   <label>Estoque</label>
-                  <input type="number" id="prodStock" placeholder="0" min="0" value="10"/>
+                  <input type="number" id="prodStock" placeholder="0" min="0" value="10" />
                 </div>
               </div>
 
@@ -415,27 +440,30 @@
                   <!-- Gerado dinamicamente -->
                 </div>
                 <div id="customSizeWrap" style="margin-top:.5rem;display:none;">
-                  <input type="text" id="customSizes" placeholder="Ou digite manualmente: P, M, G, GG"/>
+                  <input type="text" id="customSizes" placeholder="Ou digite manualmente: P, M, G, GG" />
                 </div>
               </div>
 
               <!-- DESCRIÇÃO -->
               <div class="adm-form-group" style="margin-top:1.25rem;">
                 <label>Descrição do Produto *</label>
-                <textarea id="prodDescription" rows="4" placeholder="Descreva o produto: material, modelagem, uso recomendado, diferenciais..." required></textarea>
+                <textarea id="prodDescription" rows="4"
+                  placeholder="Descreva o produto: material, modelagem, uso recomendado, diferenciais..."
+                  required></textarea>
               </div>
 
-              <hr class="adm-divider"/>
+              <hr class="adm-divider" />
 
               <!-- CONFIGURAÇÕES DE DESTAQUE -->
               <div style="margin-bottom:1.25rem;">
-                <label style="font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--adm-muted);display:block;margin-bottom:.75rem;">
+                <label
+                  style="font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--adm-muted);display:block;margin-bottom:.75rem;">
                   <i class="fas fa-sliders-h" style="margin-right:.35rem;color:var(--adm-green);"></i>Opções de Destaque
                 </label>
                 <div class="adm-toggles-row">
                   <!-- Ativo -->
                   <label class="adm-toggle-item">
-                    <input type="checkbox" id="prodActive" checked/>
+                    <input type="checkbox" id="prodActive" checked />
                     <span class="adm-toggle-switch"></span>
                     <span class="adm-toggle-label">
                       Ativo
@@ -444,7 +472,7 @@
                   </label>
                   <!-- Destaque -->
                   <label class="adm-toggle-item">
-                    <input type="checkbox" id="prodFeatured"/>
+                    <input type="checkbox" id="prodFeatured" />
                     <span class="adm-toggle-switch"></span>
                     <span class="adm-toggle-label">
                       Destaque
@@ -453,7 +481,7 @@
                   </label>
                   <!-- Novidade -->
                   <label class="adm-toggle-item">
-                    <input type="checkbox" id="prodNew"/>
+                    <input type="checkbox" id="prodNew" />
                     <span class="adm-toggle-switch"></span>
                     <span class="adm-toggle-label">
                       Novidade
@@ -462,7 +490,7 @@
                   </label>
                   <!-- Promoção -->
                   <label class="adm-toggle-item">
-                    <input type="checkbox" id="prodPromo"/>
+                    <input type="checkbox" id="prodPromo" />
                     <span class="adm-toggle-switch"></span>
                     <span class="adm-toggle-label">
                       Promoção da Semana 🔥
@@ -472,9 +500,10 @@
                 </div>
 
                 <!-- Card Principal (destaque especial) -->
-                <div style="margin-top:.85rem;padding:.85rem;border:1.5px solid #bfdbfe;border-radius:8px;background:#eff6ff;">
+                <div
+                  style="margin-top:.85rem;padding:.85rem;border:1.5px solid #bfdbfe;border-radius:8px;background:#eff6ff;">
                   <label class="adm-toggle-item" style="margin-bottom:.5rem;">
-                    <input type="checkbox" id="prodHeroCard"/>
+                    <input type="checkbox" id="prodHeroCard" />
                     <span class="adm-toggle-switch" style="background:#d1d5db;"></span>
                     <span class="adm-toggle-label">
                       ⭐ Card Principal (Hero)
@@ -516,7 +545,7 @@
             <div id="heroCardProductsList">
               <div class="empty-state">
                 <i class="fas fa-star"></i>
-                <p>Nenhum produto no card principal ainda.<br/>Marque produtos no formulário.</p>
+                <p>Nenhum produto no card principal ainda.<br />Marque produtos no formulário.</p>
               </div>
             </div>
           </div>
@@ -551,10 +580,12 @@
     <div class="adm-modal" style="max-width:400px;">
       <div class="adm-modal-header">
         <h2>Confirmar exclusão</h2>
-        <button class="adm-modal-close" onclick="closeModal('deleteModal')"><i class="fas fa-times"></i></button>
+        <button class="adm-modal-close" onclick="closeModal('deleteModal')" title="Fechar" aria-label="Fechar"><i
+            class="fas fa-times"></i></button>
       </div>
       <div class="adm-modal-body">
-        <p style="font-size:.9rem;color:var(--adm-muted);">Tem certeza que deseja excluir o produto <strong id="deleteProductName"></strong>? Esta ação não pode ser desfeita.</p>
+        <p style="font-size:.9rem;color:var(--adm-muted);">Tem certeza que deseja excluir o produto <strong
+            id="deleteProductName"></strong>? Esta ação não pode ser desfeita.</p>
       </div>
       <div class="adm-modal-footer">
         <button class="adm-btn adm-btn-secondary" onclick="closeModal('deleteModal')">Cancelar</button>
@@ -568,7 +599,8 @@
     <div class="adm-modal">
       <div class="adm-modal-header">
         <h2>Detalhes do Pedido</h2>
-        <button class="adm-modal-close" onclick="closeModal('orderModal')"><i class="fas fa-times"></i></button>
+        <button class="adm-modal-close" onclick="closeModal('orderModal')" title="Fechar" aria-label="Fechar"><i
+            class="fas fa-times"></i></button>
       </div>
       <div class="adm-modal-body" id="orderModalBody"></div>
       <div class="adm-modal-footer">
@@ -585,4 +617,5 @@
   <script src="js/db.js"></script>
   <script src="js/admin.js"></script>
 </body>
+
 </html>
