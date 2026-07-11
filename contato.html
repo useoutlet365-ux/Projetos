@@ -41,13 +41,28 @@
         <a href="categoria.html?cat=calcados-chinelos">Calçados</a>
         <a href="categoria.html?cat=acessorios">Acessórios</a>
         <a href="categoria.html?cat=perfumes">Perfumes</a>
+        <a href="categoria.html?cat=promocoes" style="color:#b45309;font-weight:700;">🔥 Promoções</a>
       </nav>
       <div class="header-actions">
-        <a href="https://www.instagram.com/outlet365__" target="_blank" class="btn-icon"><i class="fab fa-instagram"></i></a>
-        <button class="btn-icon btn-cart-toggle" id="cartToggle">
-          <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartBadge">0</span>
+        <button class="btn-icon btn-search-toggle" id="searchToggle" aria-label="Buscar">
+          <i class="fas fa-search"></i>
+        </button>
+        <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer" class="btn-icon" aria-label="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <button class="btn-icon btn-cart-toggle" id="cartToggle" aria-label="Carrinho">
+          <i class="fas fa-shopping-bag"></i>
+          <span class="cart-badge" id="cartBadge">0</span>
         </button>
       </div>
+    </div>
+    <!-- Search bar -->
+    <div class="search-bar-container" id="searchBar">
+      <div class="search-bar-inner">
+        <input type="text" id="searchInput" placeholder="O que você está buscando?" autocomplete="off" />
+        <button class="btn-search-exec" id="searchBtn" title="Buscar" aria-label="Buscar"><i class="fas fa-search"></i></button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
     </div>
   </header>
   <div class="menu-overlay" id="menuOverlay"></div>
@@ -61,6 +76,7 @@
         <a href="categoria.html?cat=calcados-chinelos" class="menu-item"><span>CALÇADOS E CHINELOS</span><i class="fas fa-chevron-right"></i></a>
         <a href="categoria.html?cat=acessorios" class="menu-item"><span>ACESSÓRIOS</span><i class="fas fa-chevron-right"></i></a>
         <a href="categoria.html?cat=perfumes" class="menu-item"><span>PERFUMES</span><i class="fas fa-chevron-right"></i></a>
+        <a href="categoria.html?cat=promocoes" class="menu-item" style="color:#b45309;"><span>🔥 PROMOÇÕES</span><i class="fas fa-chevron-right"></i></a>
       </div>
       <div class="menu-section">
         <p class="menu-section-title">INFORMAÇÕES</p>
@@ -163,7 +179,12 @@
     <i class="fab fa-whatsapp"></i>
   </a>
 
-  <script src="js/data.js"></script><script src="js/cart.js"></script><script src="js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
   <script>
     function handleContactForm(e) {
       e.preventDefault();

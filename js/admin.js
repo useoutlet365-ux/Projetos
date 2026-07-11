@@ -718,70 +718,46 @@ function getSelectedSizes() {
 
 function compressImage(file, maxWidth = 600, quality = 0.70) {
   return new Promise((resolve, reject) => {
-    // Para maior compatibilidade e prevenção de vazamento de memória no Safari iOS,
-    // usamos URL.createObjectURL em vez de FileReader.readAsDataURL para carregar
-    // a imagem inicial. Também liberamos os recursos do Canvas e da Image imediatamente.
-    if (typeof URL === 'undefined' || !URL.createObjectURL) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            let w = img.width, h = img.height;
-            if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-            canvas.width = w; canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-            const base64 = canvas.toDataURL('image/jpeg', quality);
-            canvas.width = 1;
-            canvas.height = 1; // Limpa o canvas do Safari iOS
-            resolve(base64);
-          } catch (err) {
-            reject(err);
-          } finally {
-            img.src = ''; // Libera memória da imagem decodificada no iOS
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          if (w === 0 || h === 0) {
+            reject(new Error("Dimensões inválidas da imagem."));
+            return;
           }
-        };
-        img.onerror = () => {
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const base64 = canvas.toDataURL('image/jpeg', quality);
+          
+          // Limpa o canvas e referências para liberar memória imediatamente no iOS Safari
+          canvas.width = 1;
+          canvas.height = 1;
           img.src = '';
-          reject(new Error("Erro ao carregar a imagem."));
-        };
-        img.src = e.target.result;
+          
+          resolve(base64);
+        } catch (err) {
+          reject(err);
+        }
       };
-      reader.onerror = () => reject(new Error("Erro ao ler o arquivo."));
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        const base64 = canvas.toDataURL('image/jpeg', quality);
-        canvas.width = 1;
-        canvas.height = 1; // Limpa o canvas do Safari iOS
-        resolve(base64);
-      } catch (err) {
-        reject(err);
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-        img.src = ''; // Libera memória da imagem decodificada no iOS
-      }
+      img.onerror = () => {
+        img.src = '';
+        reject(new Error("Erro ao carregar a imagem para compressão."));
+      };
+      img.src = e.target.result;
     };
-    img.onerror = (e) => {
-      URL.revokeObjectURL(objectUrl);
-      img.src = '';
-      console.error("Erro no carregamento da imagem:", e);
-      reject(new Error("Erro ao processar imagem selecionada. Verifique o formato."));
-    };
-    img.src = objectUrl;
+    reader.onerror = () => reject(new Error("Erro ao ler o arquivo de imagem."));
+    reader.readAsDataURL(file);
   });
 }
 

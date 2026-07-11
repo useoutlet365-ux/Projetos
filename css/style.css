@@ -966,3 +966,21 @@ input { font-family: var(--font); }
   flex-shrink: 0;
   margin-top: .1rem;
 }
+
+/* === LINT FIXES & UTILITY CLASSES === */
+.u-hidden { display: none; }
+.u-flex-align { display: flex; align-items: center; gap: 0.75rem; }
+.u-mb-0 { margin-bottom: 0 !important; }
+.u-mt-6 { margin-top: 1.5rem !important; }
+
+.nav-promo { color: #b45309 !important; font-weight: 700; }
+
+.hero-slide-1 { background-image: url('../image/capa site - OUTLET365 bem vindo.png'); }
+.hero-slide-2 { background-image: url('../image/capa site - OUTLET365 02.png'); }
+.hero-slide-3 { background-image: url('../image/capa site - OUTLET365 03.png'); }
+
+.cat-img-camisas { background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80'); }
+.cat-img-shorts { background-image: url('https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=600&q=80'); }
+.cat-img-calcados { background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80'); }
+.cat-img-acessorios { background-image: url('https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80'); }
+.cat-img-perfumes { background-image: url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80'); }

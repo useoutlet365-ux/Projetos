@@ -36,13 +36,14 @@
         <a href="categoria.html?cat=calcados-chinelos">Calçados</a>
         <a href="categoria.html?cat=acessorios">Acessórios</a>
         <a href="categoria.html?cat=perfumes">Perfumes</a>
-        <a href="categoria.html?cat=promocoes" style="color:#b45309;font-weight:700;">🔥 Promoções</a>
+        <a href="categoria.html?cat=promocoes" class="nav-promo">🔥 Promoções</a>
       </nav>
       <div class="header-actions">
         <button class="btn-icon btn-search-toggle" id="searchToggle" aria-label="Buscar">
           <i class="fas fa-search"></i>
         </button>
-        <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer" class="btn-icon" aria-label="Instagram">
+        <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer" class="btn-icon"
+          aria-label="Instagram">
           <i class="fab fa-instagram"></i>
         </a>
         <button class="btn-icon btn-cart-toggle" id="cartToggle" aria-label="Carrinho">
@@ -55,7 +56,8 @@
     <div class="search-bar-container" id="searchBar">
       <div class="search-bar-inner">
         <input type="text" id="searchInput" placeholder="O que você está buscando?" autocomplete="off" />
-        <button class="btn-search-exec" id="searchBtn" title="Buscar" aria-label="Buscar"><i class="fas fa-search"></i></button>
+        <button class="btn-search-exec" id="searchBtn" title="Buscar" aria-label="Buscar"><i
+            class="fas fa-search"></i></button>
       </div>
       <div class="search-results" id="searchResults"></div>
     </div>
@@ -86,7 +88,7 @@
         <a href="categoria.html?cat=perfumes" class="menu-item">
           <span>PERFUMES</span><i class="fas fa-chevron-right"></i>
         </a>
-        <a href="categoria.html?cat=promocoes" class="menu-item" style="color:#b45309;">
+        <a href="categoria.html?cat=promocoes" class="menu-item nav-promo">
           <span>🔥 PROMOÇÕES</span><i class="fas fa-chevron-right"></i>
         </a>
       </div>
@@ -119,7 +121,7 @@
         <a href="categoria.html?cat=camisas" class="btn-primary">Ver Produtos</a>
       </div>
     </div>
-    <div class="cart-footer" id="cartFooter" style="display:none;">
+    <div class="cart-footer u-hidden" id="cartFooter">
       <div class="cart-subtotal">
         <span>Subtotal</span>
         <strong id="cartSubtotal">R$ 0,00</strong>
@@ -135,7 +137,7 @@
     <!-- HERO -->
     <section class="hero-section" id="hero-section">
       <div class="hero-slider" id="heroSlider">
-        <div class="hero-slide active" style="background-image: url('image/capa site - OUTLET365 bem vindo.png')">
+        <div class="hero-slide active hero-slide-1">
           <div class="hero-content">
             <span class="hero-tag">Nova Coleção</span>
             <h1>Moda Masculina<br />com Estilo Próprio</h1>
@@ -143,7 +145,7 @@
             <a href="categoria.html?cat=camisas" class="btn-hero">Ver Coleção</a>
           </div>
         </div>
-        <div class="hero-slide" style="background-image: url('image/capa site - OUTLET365 02.png')">
+        <div class="hero-slide hero-slide-2">
           <div class="hero-content">
             <span class="hero-tag">Shorts e Calças</span>
             <h1>Conforto e Estilo<br />Para Toda Ocasião</h1>
@@ -151,7 +153,7 @@
             <a href="categoria.html?cat=shorts-calcas" class="btn-hero">Explorar</a>
           </div>
         </div>
-        <div class="hero-slide" style="background-image: url('image/capa site - OUTLET365 03.png')">
+        <div class="hero-slide hero-slide-3">
           <div class="hero-content">
             <span class="hero-tag">Calçados</span>
             <h1>Passo Certo<br />Todo Dia</h1>
@@ -165,8 +167,10 @@
         <button class="dot" data-slide="1" title="Slide 2" aria-label="Ir para o slide 2"></button>
         <button class="dot" data-slide="2" title="Slide 3" aria-label="Ir para o slide 3"></button>
       </div>
-      <button class="hero-nav hero-prev" id="heroPrev" title="Slide anterior" aria-label="Slide anterior"><i class="fas fa-chevron-left"></i></button>
-      <button class="hero-nav hero-next" id="heroNext" title="Próximo slide" aria-label="Próximo slide"><i class="fas fa-chevron-right"></i></button>
+      <button class="hero-nav hero-prev" id="heroPrev" title="Slide anterior" aria-label="Slide anterior"><i
+          class="fas fa-chevron-left"></i></button>
+      <button class="hero-nav hero-next" id="heroNext" title="Próximo slide" aria-label="Próximo slide"><i
+          class="fas fa-chevron-right"></i></button>
     </section>
 
     <!-- CATEGORIAS -->
@@ -175,45 +179,35 @@
         <h2 class="section-title">Nossas Categorias</h2>
         <div class="categories-grid">
           <a href="categoria.html?cat=camisas" class="category-card">
-            <div class="category-img"
-              style="background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80')">
-            </div>
+            <div class="category-img cat-img-camisas"></div>
             <div class="category-info">
               <h3>Camisas</h3>
               <span>Ver todos <i class="fas fa-arrow-right"></i></span>
             </div>
           </a>
           <a href="categoria.html?cat=shorts-calcas" class="category-card">
-            <div class="category-img"
-              style="background-image: url('https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=600&q=80')">
-            </div>
+            <div class="category-img cat-img-shorts"></div>
             <div class="category-info">
               <h3>Shorts e Calças</h3>
               <span>Ver todos <i class="fas fa-arrow-right"></i></span>
             </div>
           </a>
           <a href="categoria.html?cat=calcados-chinelos" class="category-card">
-            <div class="category-img"
-              style="background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80')">
-            </div>
+            <div class="category-img cat-img-calcados"></div>
             <div class="category-info">
               <h3>Calçados e Chinelos</h3>
               <span>Ver todos <i class="fas fa-arrow-right"></i></span>
             </div>
           </a>
           <a href="categoria.html?cat=acessorios" class="category-card">
-            <div class="category-img"
-              style="background-image: url('https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80')">
-            </div>
+            <div class="category-img cat-img-acessorios"></div>
             <div class="category-info">
               <h3>Acessórios</h3>
               <span>Ver todos <i class="fas fa-arrow-right"></i></span>
             </div>
           </a>
           <a href="categoria.html?cat=perfumes" class="category-card">
-            <div class="category-img"
-              style="background-image: url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80')">
-            </div>
+            <div class="category-img cat-img-perfumes"></div>
             <div class="category-info">
               <h3>Perfumes</h3>
               <span>Ver todos <i class="fas fa-arrow-right"></i></span>
@@ -224,7 +218,7 @@
     </section>
 
     <!-- CARD PRINCIPAL (dinâmico) -->
-    <section class="hero-card-section" id="heroCardSection" style="display:none;">
+    <section class="hero-card-section u-hidden" id="heroCardSection">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">⭐ Destaques da Loja</h2>
@@ -254,11 +248,11 @@
     </section>
 
     <!-- PROMOÇÕES DA SEMANA (dinâmico) -->
-    <section class="promo-section" id="promoSection" style="display:none;">
+    <section class="promo-section u-hidden" id="promoSection">
       <div class="container">
         <div class="section-header">
-          <div style="display:flex;align-items:center;gap:.75rem;">
-            <h2 class="section-title" style="margin-bottom:0;">🔥 Promoções da Semana</h2>
+          <div class="u-flex-align">
+            <h2 class="section-title u-mb-0">🔥 Promoções da Semana</h2>
             <span class="promo-badge">Só essa semana</span>
           </div>
           <a href="categoria.html?cat=promocoes" class="section-link">Ver todas <i class="fas fa-arrow-right"></i></a>
@@ -318,7 +312,8 @@
       <div class="container">
         <div class="instagram-header">
           <h2 class="section-title">Siga no Instagram</h2>
-          <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer" class="insta-handle">
+          <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer"
+            class="insta-handle">
             <i class="fab fa-instagram"></i> @outlet365__
           </a>
         </div>
@@ -354,9 +349,9 @@
             <div class="insta-overlay"><i class="fab fa-instagram"></i></div>
           </a>
         </div>
-        <div class="text-center" style="margin-top:1.5rem;">
-          <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer" class="btn-primary"><i
-              class="fab fa-instagram"></i> Ver mais no Instagram</a>
+        <div class="text-center u-mt-6">
+          <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer"
+            class="btn-primary"><i class="fab fa-instagram"></i> Ver mais no Instagram</a>
         </div>
       </div>
     </section>
@@ -370,7 +365,8 @@
         <div class="footer-brand">
           <span class="logo-text footer-logo">OUTLET<span class="logo-accent">365</span></span>
           <p>Moda masculina, calçados e acessórios com qualidade e preço acessível para você e sua região.</p>
-          <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer" class="footer-social" title="Instagram" aria-label="Instagram">
+          <a href="https://www.instagram.com/outlet365__" target="_blank" rel="noopener noreferrer"
+            class="footer-social" title="Instagram" aria-label="Instagram">
             <i class="fab fa-instagram"></i>
           </a>
         </div>
@@ -398,8 +394,8 @@
           <h4>Atendimento</h4>
           <p><i class="fas fa-map-marker-alt"></i> Santa Terezinha, Rua José Patrício Nogueira, 220 — Madalena-CE</p>
           <p><i class="fas fa-clock"></i> Seg–Sáb: 08:30 às 17:30</p>
-          <p><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/outlet365__"
-              target="_blank" rel="noopener noreferrer">@outlet365__</a></p>
+          <p><i class="fab fa-instagram"></i> <a href="https://www.instagram.com/outlet365__" target="_blank"
+              rel="noopener noreferrer">@outlet365__</a></p>
         </div>
       </div>
       <div class="footer-bottom">
