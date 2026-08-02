@@ -364,6 +364,11 @@
     async function saveOrderToSupabase(order) {
       try {
         await DB.createOrder(order);
+        let items = [];
+        try { items = JSON.parse(order.items_json || '[]'); } catch (e) { }
+        if (items.length > 0) {
+          await DB.decrementStockForOrder(items);
+        }
       } catch (err) {
         console.error('Erro ao salvar pedido no Supabase:', err);
       }

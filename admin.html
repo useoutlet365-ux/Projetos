@@ -30,6 +30,9 @@
       <button class="adm-nav-item active" data-section="dashboard">
         <i class="fas fa-chart-line"></i> Dashboard
       </button>
+      <button class="adm-nav-item pdv-nav-highlight" data-section="pdv">
+        <i class="fas fa-cash-register"></i> PDV (Balcão)
+      </button>
       <button class="adm-nav-item" data-section="financeiro">
         <i class="fas fa-dollar-sign"></i> Financeiro
       </button>
@@ -334,6 +337,17 @@
             <input type="text" id="prodSearch" placeholder="Buscar produto..." />
             <button title="Buscar" aria-label="Buscar"><i class="fas fa-search"></i></button>
           </div>
+          <div class="adm-sort-wrap" style="display:flex;align-items:center;gap:.4rem;">
+            <label for="prodSortOrder" style="font-size:.78rem;font-weight:700;color:var(--adm-muted);white-space:nowrap;"><i class="fas fa-sort-amount-down"></i> Ordenar:</label>
+            <select id="prodSortOrder" style="padding:.45rem .65rem;border:1px solid var(--adm-border);border-radius:6px;font-size:.8rem;font-weight:600;background:#fff;cursor:pointer;">
+              <option value="newest">🆕 Últimos Cadastrados</option>
+              <option value="oldest">⏳ Mais Antigos</option>
+              <option value="name_asc">🔤 Nome (A - Z)</option>
+              <option value="price_asc">💲 Preço (Menor → Maior)</option>
+              <option value="price_desc">💰 Preço (Maior → Menor)</option>
+              <option value="stock_asc">📦 Estoque (Menor → Maior)</option>
+            </select>
+          </div>
         </div>
         <div class="adm-products-grid" id="adminProductsGrid">
           <div class="empty-state" style="grid-column:1/-1;">
@@ -395,20 +409,23 @@
                 </div>
                 <div class="adm-form-group">
                   <label for="prodCategory">Categoria *</label>
-                  <select id="prodCategory" title="Categoria" required onchange="updateSubcategory()">
+                  <select id="prodCategory" title="Categoria" required onchange="onCategoryChange()">
                     <option value="">Selecionar categoria</option>
                     <option value="camisas">Camisas</option>
                     <option value="shorts-calcas">Shorts e Calças</option>
                     <option value="calcados-chinelos">Calçados e Chinelos</option>
                     <option value="acessorios">Acessórios</option>
                     <option value="perfumes">Perfumes</option>
+                    <option value="__new_category__">+ Criar Nova Categoria...</option>
                   </select>
+                  <input type="text" id="customCategoryInput" placeholder="Nome da nova categoria..." style="display:none;margin-top:.4rem;padding:.5rem;border:1px solid var(--adm-border);border-radius:6px;font-size:.85rem;" />
                 </div>
                 <div class="adm-form-group">
                   <label for="prodSubcategory">Subcategoria</label>
-                  <select id="prodSubcategory" title="Subcategoria">
+                  <select id="prodSubcategory" title="Subcategoria" onchange="onSubcategoryChange()">
                     <option value="">Selecione a categoria primeiro</option>
                   </select>
+                  <input type="text" id="customSubcategoryInput" placeholder="Nome da nova subcategoria..." style="display:none;margin-top:.4rem;padding:.5rem;border:1px solid var(--adm-border);border-radius:6px;font-size:.85rem;" />
                 </div>
                 <div class="adm-form-group">
                   <label>Preço de Venda (R$) *</label>
@@ -433,7 +450,7 @@
                 </div>
               </div>
 
-              <!-- TAMANHOS -->
+              <!-- TAMANHOS E ESTOQUE POR VARIAÇÃO -->
               <div class="adm-form-group" style="margin-top:1.25rem;">
                 <label>Tamanhos / Numeração disponíveis *</label>
                 <div id="sizesSelector" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
@@ -441,6 +458,12 @@
                 </div>
                 <div id="customSizeWrap" style="margin-top:.5rem;display:none;">
                   <input type="text" id="customSizes" placeholder="Ou digite manualmente: P, M, G, GG" />
+                </div>
+                <div id="variantStockWrap" style="margin-top:1rem;display:none;background:var(--adm-bg);padding:1rem;border-radius:8px;border:1px solid var(--adm-border);">
+                  <label style="font-weight:600;font-size:0.85rem;color:var(--adm-text);display:block;margin-bottom:0.5rem;">
+                    <i class="fas fa-boxes" style="color:var(--adm-accent);margin-right:0.35rem;"></i>Estoque por Tamanho/Variação
+                  </label>
+                  <div id="variantStockInputs" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));gap:0.75rem;"></div>
                 </div>
               </div>
 
@@ -572,6 +595,107 @@
         </div>
       </section>
 
+      <!-- ═══════════════ PDV (BALCÃO / LOJA FÍSICA) ═══════════════ -->
+      <section class="adm-section" id="sec-pdv">
+        <div class="pdv-layout">
+
+          <!-- COLUNA ESQUERDA: CATÁLOGO DE PRODUTOS -->
+          <div class="pdv-catalog-col">
+            <div class="pdv-search-bar">
+              <div class="pdv-search-input-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="pdvSearchInput" placeholder="Pesquisar produto ou tamanho..." autocomplete="off" />
+                <button type="button" id="pdvClearSearchBtn" class="pdv-clear-search" style="display:none;"><i class="fas fa-times"></i></button>
+              </div>
+            </div>
+
+            <div class="pdv-categories-tabs" id="pdvCategoriesTabs">
+              <button class="pdv-cat-tab active" data-cat="all">Todos</button>
+              <button class="pdv-cat-tab" data-cat="camisas">Camisas</button>
+              <button class="pdv-cat-tab" data-cat="shorts-calcas">Shorts & Calças</button>
+              <button class="pdv-cat-tab" data-cat="calcados-chinelos">Calçados</button>
+              <button class="pdv-cat-tab" data-cat="acessorios">Acessórios</button>
+              <button class="pdv-cat-tab" data-cat="perfumes">Perfumes</button>
+            </div>
+
+            <div class="pdv-products-grid" id="pdvProductsGrid">
+              <!-- Renderizado dinamicamente -->
+            </div>
+          </div>
+
+          <!-- COLUNA DIREITA: CAIXA / CARRINHO DO PDV -->
+          <div class="pdv-cart-col">
+            <div class="pdv-cart-card">
+              <div class="pdv-cart-header">
+                <h3><i class="fas fa-cash-register"></i> Caixa Presencial</h3>
+                <button class="pdv-btn-clear-cart" id="pdvClearCartBtn" title="Limpar Itens"><i class="fas fa-trash-alt"></i> Limpar</button>
+              </div>
+
+              <!-- DADOS DO CLIENTE (OPCIONAL) -->
+              <div class="pdv-customer-box">
+                <div style="display:flex;gap:.5rem;">
+                  <input type="text" id="pdvCustomerName" placeholder="Cliente (Ex: João Silva)" value="Cliente Balcão" />
+                  <input type="tel" id="pdvCustomerPhone" placeholder="WhatsApp (opcional)" style="width:140px;" />
+                </div>
+              </div>
+
+              <!-- ITENS SELECIONADOS -->
+              <div class="pdv-cart-items" id="pdvCartItems">
+                <div class="pdv-cart-empty">
+                  <i class="fas fa-shopping-basket"></i>
+                  <p>Caixa vazio</p>
+                  <small>Clique em um tamanho do produto para adicionar ao carrinho</small>
+                </div>
+              </div>
+
+              <!-- RESUMO & PAGAMENTO -->
+              <div class="pdv-cart-summary">
+                <div class="pdv-summary-row">
+                  <span>Subtotal</span>
+                  <strong id="pdvSubtotalVal">R$ 0,00</strong>
+                </div>
+
+                <div class="pdv-discount-box">
+                  <label for="pdvDiscountInput">Desconto (R$)</label>
+                  <input type="number" id="pdvDiscountInput" min="0" step="0.50" placeholder="0,00" value="0" />
+                </div>
+
+                <div class="pdv-payment-methods">
+                  <label>Forma de Pagamento *</label>
+                  <div class="pdv-pay-grid">
+                    <button type="button" class="pdv-pay-btn active" data-method="PIX"><i class="fas fa-bolt"></i> PIX</button>
+                    <button type="button" class="pdv-pay-btn" data-method="Cartão de Crédito"><i class="far fa-credit-card"></i> Crédito</button>
+                    <button type="button" class="pdv-pay-btn" data-method="Cartão de Débito"><i class="fas fa-credit-card"></i> Débito</button>
+                    <button type="button" class="pdv-pay-btn" data-method="Dinheiro"><i class="fas fa-money-bill-wave"></i> Dinheiro</button>
+                  </div>
+                </div>
+
+                <div class="pdv-cash-change-box" id="pdvCashChangeBox" style="display:none;">
+                  <div class="pdv-form-inline">
+                    <label>Valor Entregue (R$)</label>
+                    <input type="number" id="pdvCashReceived" placeholder="0,00" step="1.00" />
+                  </div>
+                  <div class="pdv-troco-info">
+                    <span>Troco:</span>
+                    <strong id="pdvTrocoVal">R$ 0,00</strong>
+                  </div>
+                </div>
+
+                <div class="pdv-summary-row pdv-total-row">
+                  <span>Total Final</span>
+                  <strong id="pdvTotalVal">R$ 0,00</strong>
+                </div>
+
+                <button type="button" class="pdv-btn-checkout" id="pdvFinishSaleBtn" disabled>
+                  <i class="fas fa-check-circle"></i> Finalizar Venda Presencial
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </div><!-- /adm-content -->
   </div><!-- /adm-main -->
 
@@ -606,6 +730,27 @@
       <div class="adm-modal-footer">
         <button class="adm-btn adm-btn-secondary" onclick="closeModal('orderModal')">Fechar</button>
         <button class="adm-btn adm-btn-primary" id="updateStatusBtn">Atualizar Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEIPT MODAL (PDV) -->
+  <div class="adm-modal-overlay" id="pdvReceiptModal">
+    <div class="adm-modal" style="max-width:460px;">
+      <div class="adm-modal-header">
+        <h2><i class="fas fa-receipt" style="color:var(--adm-green);margin-right:.4rem;"></i>Venda Concluída!</h2>
+        <button class="adm-modal-close" onclick="closeModal('pdvReceiptModal')" title="Fechar" aria-label="Fechar"><i
+            class="fas fa-times"></i></button>
+      </div>
+      <div class="adm-modal-body" id="pdvReceiptContent" style="background:#fff;color:#111;padding:1.25rem;font-family:monospace;font-size:0.85rem;border-radius:8px;">
+        <!-- Recibo gerado via JS -->
+      </div>
+      <div class="adm-modal-footer" style="justify-content:space-between;">
+        <button class="adm-btn adm-btn-secondary" onclick="closeModal('pdvReceiptModal')">Nova Venda</button>
+        <div style="display:flex;gap:.5rem;">
+          <button class="adm-btn adm-btn-secondary" id="pdvShareWappBtn" style="background:#25D366;color:#fff;border:none;"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+          <button class="adm-btn adm-btn-primary" id="pdvPrintReceiptBtn"><i class="fas fa-print"></i> Imprimir Recibo</button>
+        </div>
       </div>
     </div>
   </div>

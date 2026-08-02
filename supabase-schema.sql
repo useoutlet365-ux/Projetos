@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS products (
   weekly_promo    BOOLEAN DEFAULT false,
   hero_card       BOOLEAN DEFAULT false,
   stock           INT DEFAULT 0,
+  variant_stock   JSONB DEFAULT '{}'::jsonb,
   active          BOOLEAN DEFAULT true,
   sales_count     INT DEFAULT 0,
   created_at      TIMESTAMPTZ DEFAULT NOW()
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method  TEXT DEFAULT '',
   items_json      TEXT DEFAULT '[]',
   notes           TEXT DEFAULT '',
+  channel         TEXT DEFAULT 'online',
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 

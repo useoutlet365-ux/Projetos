@@ -119,10 +119,11 @@ function navigateTo(section) {
   const btn = document.querySelector(`[data-section="${section}"]`);
   if (btn) btn.classList.add('active');
   const titles = {
-    dashboard: 'Dashboard', financeiro: 'Financeiro', pedidos: 'Pedidos',
+    dashboard: 'Dashboard', pdv: 'PDV (Balcão)', financeiro: 'Financeiro', pedidos: 'Pedidos',
     produtos: 'Produtos', 'novo-produto': 'Novo Produto', 'hero-config': 'Card Principal'
   };
   document.getElementById('topbarTitle').textContent = titles[section] || section;
+  if (section === 'pdv') renderPdvCatalog();
   if (section === 'produtos') renderAdminProducts();
   if (section === 'hero-config') renderHeroConfig();
   if (section === 'novo-produto') { resetForm(); updateHeroCounter(); }
@@ -237,6 +238,7 @@ async function init() {
 
   consolidateStats();
 
+  initPdvModule();
   renderKPIs();
   renderRevenueChart();
   renderEngageChart();
@@ -541,7 +543,7 @@ function viewOrder(id) {
 // ══════════════════════════════════════════
 // ADMIN PRODUCTS
 // ══════════════════════════════════════════
-async function renderAdminProducts(catFilter = 'todos', search = '') {
+async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder = '') {
   const grid = document.getElementById('adminProductsGrid');
   if (!grid) return;
   allAdminProducts = await fetchAll('admin_products');
@@ -549,6 +551,22 @@ async function renderAdminProducts(catFilter = 'todos', search = '') {
   if (catFilter === 'promocoes') products = products.filter(p => p.weekly_promo);
   else if (catFilter !== 'todos') products = products.filter(p => p.category === catFilter);
   if (search) products = products.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()));
+
+  // Ordenação
+  const sort = sortOrder || document.getElementById('prodSortOrder')?.value || 'newest';
+  if (sort === 'newest') {
+    products.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  } else if (sort === 'oldest') {
+    products.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+  } else if (sort === 'name_asc') {
+    products.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  } else if (sort === 'price_asc') {
+    products.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+  } else if (sort === 'price_desc') {
+    products.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+  } else if (sort === 'stock_asc') {
+    products.sort((a, b) => (parseInt(a.stock) || 0) - (parseInt(b.stock) || 0));
+  }
 
   if (products.length === 0) {
     grid.innerHTML = `
@@ -588,6 +606,9 @@ async function renderAdminProducts(catFilter = 'todos', search = '') {
           <button class="adm-btn-sm adm-btn-edit" onclick="editProduct('${p.id}')">
             <i class="fas fa-pencil-alt"></i> Editar
           </button>
+          <button class="adm-btn-sm adm-btn-duplicate" onclick="duplicateProduct('${p.id}')" title="Duplicar anúncio para criar variação">
+            <i class="fas fa-copy"></i> Duplicar
+          </button>
           <button class="adm-btn-sm adm-btn-toggle ${p.active !== false ? 'on' : ''}" onclick="toggleProductActive('${p.id}',${p.active !== false})">
             <i class="fas ${p.active !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
           </button>
@@ -604,12 +625,16 @@ document.querySelectorAll('.adm-filter-btn[data-pcat]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.adm-filter-btn[data-pcat]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    renderAdminProducts(btn.dataset.pcat, document.getElementById('prodSearch')?.value || '');
+    renderAdminProducts(btn.dataset.pcat, document.getElementById('prodSearch')?.value || '', document.getElementById('prodSortOrder')?.value || '');
   });
 });
 document.getElementById('prodSearch')?.addEventListener('input', e => {
   const cat = document.querySelector('.adm-filter-btn[data-pcat].active')?.dataset.pcat || 'todos';
-  renderAdminProducts(cat, e.target.value);
+  renderAdminProducts(cat, e.target.value, document.getElementById('prodSortOrder')?.value || '');
+});
+document.getElementById('prodSortOrder')?.addEventListener('change', e => {
+  const cat = document.querySelector('.adm-filter-btn[data-pcat].active')?.dataset.pcat || 'todos';
+  renderAdminProducts(cat, document.getElementById('prodSearch')?.value || '', e.target.value);
 });
 
 async function toggleProductActive(id, currentActive) {
@@ -638,9 +663,32 @@ async function editProduct(id) {
   document.getElementById('formProductTitle').textContent = 'Editar Produto';
   document.getElementById('editProductId').value = id;
   document.getElementById('prodName').value = p.name || '';
-  document.getElementById('prodCategory').value = p.category || '';
-  updateSubcategory();
-  setTimeout(() => { document.getElementById('prodSubcategory').value = p.subcategory || ''; }, 100);
+  
+  const catSel = document.getElementById('prodCategory');
+  if (catSel) {
+    if (![...catSel.options].some(o => o.value === p.category)) {
+      const opt = document.createElement('option');
+      opt.value = p.category;
+      opt.textContent = p.category;
+      catSel.appendChild(opt);
+    }
+    catSel.value = p.category || '';
+  }
+  onCategoryChange();
+
+  setTimeout(() => {
+    const subSel = document.getElementById('prodSubcategory');
+    if (subSel && p.subcategory) {
+      if (![...subSel.options].some(o => o.value === p.subcategory)) {
+        const opt = document.createElement('option');
+        opt.value = p.subcategory;
+        opt.textContent = p.subcategory;
+        subSel.appendChild(opt);
+      }
+      subSel.value = p.subcategory;
+    }
+  }, 100);
+
   document.getElementById('prodPrice').value = p.price || '';
   document.getElementById('prodOriginalPrice').value = p.original_price || '';
   document.getElementById('prodInstallments').value = p.installments || 3;
@@ -659,19 +707,90 @@ async function editProduct(id) {
   } else if (p.image_url) {
     prev.innerHTML = `<p style="font-size:.78rem;color:#9ca3af;">Foto URL: ${p.image_url}</p>`;
   }
-  const sizesStr = p.sizes || '';
+  const sizesStr = p.sizes ? (Array.isArray(p.sizes) ? p.sizes.join(', ') : p.sizes) : '';
   setTimeout(() => {
     const buttons = document.querySelectorAll('.size-option-btn');
     sizesStr.split(',').map(s => s.trim()).forEach(s => {
       const btn = [...buttons].find(b => b.dataset.size === s);
-      if (btn) { btn.classList.add('selected'); toggleSizeBtn(btn); }
+      if (btn) { btn.classList.add('selected'); btn.style.background = '#1a6b3c'; btn.style.color = '#fff'; btn.style.borderColor = '#1a6b3c'; }
     });
+    renderVariantStockFields();
   }, 200);
   updateHeroCounter();
 }
 
+async function duplicateProduct(id) {
+  const p = allAdminProducts.find(x => x.id === id);
+  if (!p) return;
+
+  editingProductId = null; // Forces creation of a NEW product on save!
+  navigateTo('novo-produto');
+
+  document.getElementById('formProductTitle').textContent = `Duplicar Anúncio: ${p.name}`;
+  document.getElementById('editProductId').value = '';
+  document.getElementById('prodName').value = `${p.name} (Cópia)`;
+
+  const catSel = document.getElementById('prodCategory');
+  if (catSel) {
+    if (![...catSel.options].some(o => o.value === p.category)) {
+      const opt = document.createElement('option');
+      opt.value = p.category;
+      opt.textContent = p.category;
+      catSel.appendChild(opt);
+    }
+    catSel.value = p.category || '';
+  }
+  onCategoryChange();
+
+  setTimeout(() => {
+    const subSel = document.getElementById('prodSubcategory');
+    if (subSel && p.subcategory) {
+      if (![...subSel.options].some(o => o.value === p.subcategory)) {
+        const opt = document.createElement('option');
+        opt.value = p.subcategory;
+        opt.textContent = p.subcategory;
+        subSel.appendChild(opt);
+      }
+      subSel.value = p.subcategory;
+    }
+  }, 100);
+
+  document.getElementById('prodPrice').value = p.price || '';
+  document.getElementById('prodOriginalPrice').value = p.original_price || '';
+  document.getElementById('prodInstallments').value = p.installments || 3;
+  document.getElementById('prodStock').value = p.stock || 0;
+  document.getElementById('prodDescription').value = p.description || '';
+  document.getElementById('prodActive').checked = true;
+  document.getElementById('prodFeatured').checked = !!p.featured;
+  document.getElementById('prodNew').checked = !!p.new_arrival;
+  document.getElementById('prodPromo').checked = !!p.weekly_promo;
+  document.getElementById('prodHeroCard').checked = false;
+
+  photosData = [];
+  const prev = document.getElementById('photoPreviews');
+  if (p.image_base64) {
+    photosData.push(p.image_base64);
+    prev.innerHTML = `<div class="photo-preview-item"><img src="${p.image_base64}"/><button type="button" onclick="removePhoto(0)"><i class="fas fa-times"></i></button></div>`;
+  } else if (p.image_url) {
+    prev.innerHTML = `<p style="font-size:.78rem;color:#9ca3af;">Foto URL: ${p.image_url}</p>`;
+  }
+
+  const sizesStr = p.sizes ? (Array.isArray(p.sizes) ? p.sizes.join(', ') : p.sizes) : '';
+  setTimeout(() => {
+    const buttons = document.querySelectorAll('.size-option-btn');
+    sizesStr.split(',').map(s => s.trim()).forEach(s => {
+      const btn = [...buttons].find(b => b.dataset.size === s);
+      if (btn) { btn.classList.add('selected'); btn.style.background = '#1a6b3c'; btn.style.color = '#fff'; btn.style.borderColor = '#1a6b3c'; }
+    });
+    renderVariantStockFields();
+  }, 200);
+
+  updateHeroCounter();
+  admToast('Anúncio clonado! Edite os campos e clique em Salvar.', 'info');
+}
+
 // ══════════════════════════════════════════
-// PRODUCT FORM
+// PRODUCT FORM & DYNAMIC CATEGORIES
 // ══════════════════════════════════════════
 const SUBCATEGORIES = {
   'camisas': ['Básicas', 'Polo', 'Premium', 'Street', 'Outras'],
@@ -688,17 +807,68 @@ const SIZE_GROUPS = {
   'perfumes': ['30ml', '50ml', '100ml', 'Único']
 };
 
-function updateSubcategory() {
-  const cat = document.getElementById('prodCategory').value;
+function onCategoryChange() {
+  const catSel = document.getElementById('prodCategory');
+  const customCatInput = document.getElementById('customCategoryInput');
+  const cat = catSel ? catSel.value : '';
+
+  if (cat === '__new_category__') {
+    if (customCatInput) {
+      customCatInput.style.display = 'block';
+      customCatInput.focus();
+    }
+  } else {
+    if (customCatInput) {
+      customCatInput.style.display = 'none';
+      customCatInput.value = '';
+    }
+  }
+  updateSubcategory();
+}
+
+function onSubcategoryChange() {
   const subSel = document.getElementById('prodSubcategory');
+  const customSubInput = document.getElementById('customSubcategoryInput');
+  const sub = subSel ? subSel.value : '';
+
+  if (sub === '__new_subcategory__') {
+    if (customSubInput) {
+      customSubInput.style.display = 'block';
+      customSubInput.focus();
+    }
+  } else {
+    if (customSubInput) {
+      customSubInput.style.display = 'none';
+      customSubInput.value = '';
+    }
+  }
+}
+
+function updateSubcategory() {
+  const catSel = document.getElementById('prodCategory');
+  let cat = catSel ? catSel.value : '';
+  if (cat === '__new_category__') {
+    const customInp = document.getElementById('customCategoryInput');
+    cat = customInp ? customInp.value.trim().toLowerCase().replace(/\s+/g, '-') : '';
+  }
+
+  const subSel = document.getElementById('prodSubcategory');
+  if (!subSel) return;
+
+  const defaultSubs = SUBCATEGORIES[cat] || ['Geral', 'Outras'];
   subSel.innerHTML = `<option value="">Selecionar subcategoria</option>` +
-    (SUBCATEGORIES[cat] || []).map(s => `<option value="${s}">${s}</option>`).join('');
+    defaultSubs.map(s => `<option value="${s}">${s}</option>`).join('') +
+    `<option value="__new_subcategory__">+ Criar Nova Subcategoria...</option>`;
+
   const sizes = SIZE_GROUPS[cat] || ['P', 'M', 'G', 'GG'];
-  document.getElementById('sizesSelector').innerHTML = sizes.map(s => `
-    <button type="button" class="size-option-btn" data-size="${s}"
-      style="min-width:44px;height:40px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
-      onclick="toggleSizeBtn(this)">${s}</button>
-  `).join('');
+  const sizesSelector = document.getElementById('sizesSelector');
+  if (sizesSelector) {
+    sizesSelector.innerHTML = sizes.map(s => `
+      <button type="button" class="size-option-btn" data-size="${s}"
+        style="min-width:44px;height:40px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
+        onclick="toggleSizeBtn(this)">${s}</button>
+    `).join('');
+  }
 }
 
 function toggleSizeBtn(btn) {
@@ -708,6 +878,75 @@ function toggleSizeBtn(btn) {
   } else {
     btn.style.background = '#fff'; btn.style.color = ''; btn.style.borderColor = 'var(--adm-border)';
   }
+  renderVariantStockFields();
+}
+
+function renderVariantStockFields() {
+  const wrap = document.getElementById('variantStockWrap');
+  const container = document.getElementById('variantStockInputs');
+  if (!wrap || !container) return;
+
+  const sizesStr = getSelectedSizes();
+  if (!sizesStr) {
+    wrap.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  const sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean);
+  if (sizes.length === 0) {
+    wrap.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+
+  wrap.style.display = 'block';
+
+  const currentInputs = {};
+  container.querySelectorAll('input[data-vsize]').forEach(input => {
+    currentInputs[input.dataset.vsize] = input.value;
+  });
+
+  let pVariantStock = {};
+  if (editingProductId) {
+    const p = allAdminProducts.find(x => x.id === editingProductId);
+    if (p && p.variant_stock) pVariantStock = p.variant_stock;
+  }
+
+  container.innerHTML = sizes.map(size => {
+    const val = currentInputs[size] !== undefined
+      ? currentInputs[size]
+      : (pVariantStock[size] !== undefined ? pVariantStock[size] : 5);
+    return `
+      <div>
+        <label style="font-size:0.75rem;font-weight:700;color:var(--adm-muted);display:block;margin-bottom:0.2rem;">${size}</label>
+        <input type="number" data-vsize="${size}" value="${val}" min="0" placeholder="0" oninput="updateTotalStockFromVariants()" style="width:100%;padding:0.4rem;border:1px solid var(--adm-border);border-radius:6px;font-size:0.85rem;font-weight:700;" />
+      </div>
+    `;
+  }).join('');
+
+  updateTotalStockFromVariants();
+}
+
+function updateTotalStockFromVariants() {
+  const inputs = document.querySelectorAll('input[data-vsize]');
+  if (inputs.length === 0) return;
+  let total = 0;
+  inputs.forEach(inp => {
+    total += parseInt(inp.value) || 0;
+  });
+  const stockInput = document.getElementById('prodStock');
+  if (stockInput) stockInput.value = total;
+}
+
+function getVariantStockData() {
+  const inputs = document.querySelectorAll('input[data-vsize]');
+  if (inputs.length === 0) return null;
+  const data = {};
+  inputs.forEach(inp => {
+    data[inp.dataset.vsize] = Math.max(0, parseInt(inp.value) || 0);
+  });
+  return data;
 }
 
 function getSelectedSizes() {
@@ -804,7 +1043,20 @@ async function updateHeroCounter() {
 async function saveProduct(event) {
   event.preventDefault();
   const name = document.getElementById('prodName').value.trim();
-  const category = document.getElementById('prodCategory').value;
+
+  let category = document.getElementById('prodCategory').value;
+  if (category === '__new_category__') {
+    const customCat = (document.getElementById('customCategoryInput')?.value || '').trim();
+    if (!customCat) { admToast('Digite o nome da nova categoria', 'error'); return; }
+    category = slugify(customCat);
+  }
+
+  let subcategory = document.getElementById('prodSubcategory').value;
+  if (subcategory === '__new_subcategory__') {
+    const customSub = (document.getElementById('customSubcategoryInput')?.value || '').trim();
+    if (customSub) subcategory = customSub;
+  }
+
   const price = parseFloat(document.getElementById('prodPrice').value);
   const description = document.getElementById('prodDescription').value.trim();
   const sizes = getSelectedSizes();
@@ -839,13 +1091,19 @@ async function saveProduct(event) {
       counter++;
     }
 
+    const vStockData = getVariantStockData();
+    const computedStock = vStockData && Object.keys(vStockData).length > 0
+      ? Object.values(vStockData).reduce((a, b) => a + (parseInt(b) || 0), 0)
+      : (parseInt(document.getElementById('prodStock').value) || 0);
+
     const data = {
       name, category,
-      subcategory: document.getElementById('prodSubcategory').value,
+      subcategory,
       price,
       original_price: parseFloat(document.getElementById('prodOriginalPrice').value) || 0,
       installments: parseInt(document.getElementById('prodInstallments').value),
-      stock: parseInt(document.getElementById('prodStock').value) || 0,
+      stock: computedStock,
+      variant_stock: vStockData || {},
       description,
       sizes: sizes || 'Único',
       image_base64: photosData[0] || '',
@@ -951,6 +1209,410 @@ async function removeFromHero(id) {
   allAdminProducts = await fetchAll('admin_products');
   admToast('Removido do card principal');
   renderHeroConfig();
+}
+
+// ══════════════════════════════════════════
+// PDV MODULE (BALCÃO / CAIXA PRESENCIAL)
+// ══════════════════════════════════════════
+let pdvCart = [];
+let pdvPaymentMethod = 'PIX';
+let pdvSelectedCategory = 'all';
+let pdvSearchTerm = '';
+let pdvDiscount = 0;
+
+function initPdvModule() {
+  const tabs = document.querySelectorAll('#pdvCategoriesTabs .pdv-cat-tab');
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      pdvSelectedCategory = tab.dataset.cat;
+      renderPdvCatalog();
+    };
+  });
+
+  const searchInp = document.getElementById('pdvSearchInput');
+  const clearBtn = document.getElementById('pdvClearSearchBtn');
+  if (searchInp) {
+    searchInp.oninput = (e) => {
+      pdvSearchTerm = e.target.value.trim().toLowerCase();
+      if (clearBtn) clearBtn.style.display = pdvSearchTerm ? 'block' : 'none';
+      renderPdvCatalog();
+    };
+  }
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      if (searchInp) searchInp.value = '';
+      pdvSearchTerm = '';
+      clearBtn.style.display = 'none';
+      renderPdvCatalog();
+    };
+  }
+
+  const clearCartBtn = document.getElementById('pdvClearCartBtn');
+  if (clearCartBtn) {
+    clearCartBtn.onclick = () => {
+      pdvCart = [];
+      renderPdvCart();
+    };
+  }
+
+  const discInp = document.getElementById('pdvDiscountInput');
+  if (discInp) {
+    discInp.oninput = (e) => {
+      pdvDiscount = Math.max(0, parseFloat(e.target.value) || 0);
+      renderPdvCart();
+    };
+  }
+
+  const payBtns = document.querySelectorAll('.pdv-pay-btn');
+  payBtns.forEach(btn => {
+    btn.onclick = () => {
+      payBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      pdvPaymentMethod = btn.dataset.method;
+      const cashBox = document.getElementById('pdvCashChangeBox');
+      if (cashBox) cashBox.style.display = pdvPaymentMethod === 'Dinheiro' ? 'block' : 'none';
+      renderPdvCart();
+    };
+  });
+
+  const cashRecInp = document.getElementById('pdvCashReceived');
+  if (cashRecInp) {
+    cashRecInp.oninput = () => renderPdvCart();
+  }
+
+  const finishBtn = document.getElementById('pdvFinishSaleBtn');
+  if (finishBtn) {
+    finishBtn.onclick = finalizarVendaPDV;
+  }
+}
+
+async function renderPdvCatalog() {
+  const grid = document.getElementById('pdvProductsGrid');
+  if (!grid) return;
+
+  if (allAdminProducts.length === 0) {
+    allAdminProducts = await fetchAll('admin_products');
+  }
+
+  let products = allAdminProducts.filter(p => p.active !== false);
+
+  if (pdvSelectedCategory && pdvSelectedCategory !== 'all') {
+    products = products.filter(p => p.category === pdvSelectedCategory);
+  }
+
+  if (pdvSearchTerm) {
+    products = products.filter(p =>
+      p.name.toLowerCase().includes(pdvSearchTerm) ||
+      (p.sizes && p.sizes.some && p.sizes.some(s => s.toLowerCase().includes(pdvSearchTerm))) ||
+      p.id.toLowerCase().includes(pdvSearchTerm)
+    );
+  }
+
+  if (products.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;padding:2rem;">
+        <i class="fas fa-search" style="font-size:2rem;color:var(--adm-muted);"></i>
+        <p style="font-size:.9rem;color:var(--adm-muted);margin-top:.5rem;">Nenhum produto encontrado no catálogo</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = products.map(p => {
+    const vStock = p.variant_stock || {};
+    const sizes = p.sizes && p.sizes.length > 0 ? (Array.isArray(p.sizes) ? p.sizes : p.sizes.split(',').map(s => s.trim())) : ['Único'];
+
+    const sizesHtml = sizes.map(size => {
+      let qty = vStock[size] !== undefined ? parseInt(vStock[size]) : (p.stock || 0);
+      const isOutOfStock = qty <= 0;
+      return `
+        <button type="button" class="pdv-size-btn" ${isOutOfStock ? 'disabled' : ''} onclick="addPdvCartItem('${p.id}', '${size}')" title="${isOutOfStock ? 'Sem estoque' : 'Adicionar ao caixa'}">
+          ${size} <span class="pdv-size-qty">(${qty})</span>
+        </button>
+      `;
+    }).join('');
+
+    const img = p.image_base64 || p.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80';
+
+    return `
+      <div class="pdv-prod-card">
+        <img src="${img}" class="pdv-prod-img" alt="${p.name}" loading="lazy"/>
+        <div class="pdv-prod-info">
+          <div class="pdv-prod-name">${p.name}</div>
+          <div class="pdv-prod-price">${fmtCurrency(p.price)}</div>
+        </div>
+        <div class="pdv-sizes-wrap">
+          ${sizesHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addPdvCartItem(prodId, size) {
+  const p = allAdminProducts.find(x => x.id === prodId);
+  if (!p) return;
+
+  const vStock = p.variant_stock || {};
+  const availableStock = vStock[size] !== undefined ? parseInt(vStock[size]) : (p.stock || 0);
+
+  const existing = pdvCart.find(i => i.id === prodId && i.size === size);
+  const currentInCart = existing ? existing.qty : 0;
+
+  if (currentInCart + 1 > availableStock) {
+    admToast(`Estoque esgotado para o tamanho ${size} (${p.name})`, 'error');
+    return;
+  }
+
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    pdvCart.push({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      size: size,
+      qty: 1,
+      image: p.image_base64 || p.image_url || ''
+    });
+  }
+
+  admToast(`+1 ${p.name} (${size}) no caixa`, 'info');
+  renderPdvCart();
+}
+
+function updatePdvItemQty(index, delta) {
+  if (!pdvCart[index]) return;
+  const item = pdvCart[index];
+  const p = allAdminProducts.find(x => x.id === item.id);
+  const vStock = p ? (p.variant_stock || {}) : {};
+  const availableStock = p ? (vStock[item.size] !== undefined ? parseInt(vStock[item.size]) : (p.stock || 0)) : 999;
+
+  if (delta > 0 && item.qty + delta > availableStock) {
+    admToast(`Estoque máximo atingido para ${item.size} (${availableStock} un)`, 'error');
+    return;
+  }
+
+  item.qty += delta;
+  if (item.qty <= 0) {
+    pdvCart.splice(index, 1);
+  }
+  renderPdvCart();
+}
+
+function removePdvItem(index) {
+  pdvCart.splice(index, 1);
+  renderPdvCart();
+}
+
+function renderPdvCart() {
+  const container = document.getElementById('pdvCartItems');
+  const subtotalEl = document.getElementById('pdvSubtotalVal');
+  const totalEl = document.getElementById('pdvTotalVal');
+  const finishBtn = document.getElementById('pdvFinishSaleBtn');
+  const trocoValEl = document.getElementById('pdvTrocoVal');
+  const cashRecInp = document.getElementById('pdvCashReceived');
+
+  if (!container) return;
+
+  if (pdvCart.length === 0) {
+    container.innerHTML = `
+      <div class="pdv-cart-empty">
+        <i class="fas fa-shopping-basket"></i>
+        <p>Caixa vazio</p>
+        <small>Clique em um tamanho do produto para adicionar ao carrinho</small>
+      </div>`;
+    if (subtotalEl) subtotalEl.textContent = fmtCurrency(0);
+    if (totalEl) totalEl.textContent = fmtCurrency(0);
+    if (finishBtn) finishBtn.disabled = true;
+    return;
+  }
+
+  const subtotal = pdvCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const total = Math.max(0, subtotal - pdvDiscount);
+
+  container.innerHTML = pdvCart.map((item, idx) => `
+    <div class="pdv-cart-item">
+      <div class="pdv-item-details">
+        <div class="pdv-item-title">${item.name}</div>
+        <div class="pdv-item-sub">Tamanho: <strong>${item.size}</strong> · ${fmtCurrency(item.price)} un</div>
+      </div>
+      <div class="pdv-item-qty-controls">
+        <button type="button" class="pdv-qty-btn" onclick="updatePdvItemQty(${idx}, -1)">-</button>
+        <span class="pdv-qty-val">${item.qty}</span>
+        <button type="button" class="pdv-qty-btn" onclick="updatePdvItemQty(${idx}, 1)">+</button>
+      </div>
+      <div class="pdv-item-price">${fmtCurrency(item.price * item.qty)}</div>
+      <button type="button" class="pdv-item-remove" onclick="removePdvItem(${idx})" title="Remover"><i class="fas fa-times"></i></button>
+    </div>
+  `).join('');
+
+  if (subtotalEl) subtotalEl.textContent = fmtCurrency(subtotal);
+  if (totalEl) totalEl.textContent = fmtCurrency(total);
+
+  if (pdvPaymentMethod === 'Dinheiro' && cashRecInp && trocoValEl) {
+    const cashRec = parseFloat(cashRecInp.value) || 0;
+    const troco = Math.max(0, cashRec - total);
+    trocoValEl.textContent = fmtCurrency(troco);
+  }
+
+  if (finishBtn) finishBtn.disabled = false;
+}
+
+async function finalizarVendaPDV() {
+  if (pdvCart.length === 0) return;
+
+  const custName = (document.getElementById('pdvCustomerName')?.value || '').trim() || 'Cliente Balcão';
+  const custPhone = (document.getElementById('pdvCustomerPhone')?.value || '').trim();
+
+  const subtotal = pdvCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const total = Math.max(0, subtotal - pdvDiscount);
+
+  const finishBtn = document.getElementById('pdvFinishSaleBtn');
+  if (finishBtn) {
+    finishBtn.disabled = true;
+    finishBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando Venda...';
+  }
+
+  try {
+    const orderId = 'pdv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const orderData = {
+      id: orderId,
+      customer_name: custName,
+      customer_phone: custPhone,
+      customer_email: '',
+      city: 'Madalena',
+      state: 'CE',
+      address: 'Loja Física - Balcão',
+      cep: '63860-000',
+      subtotal: subtotal,
+      shipping: 0,
+      total: total,
+      status: 'entregue',
+      payment_method: pdvPaymentMethod,
+      items_json: JSON.stringify(pdvCart.map(i => ({ id: i.id, name: i.name, size: i.size, qty: i.qty, price: i.price }))),
+      notes: pdvDiscount > 0 ? `Venda PDV - Desconto presencial: R$ ${pdvDiscount.toFixed(2)}` : 'Venda Presencial PDV',
+      channel: 'pdv',
+      created_at: new Date().toISOString()
+    };
+
+    // 1. Criar pedido no Supabase
+    await DB.createOrder(orderData);
+
+    // 2. Dar baixa no estoque por variação
+    await DB.decrementStockForOrder(pdvCart);
+
+    // 3. Atualizar estados locais
+    allOrders.push(orderData);
+    allAdminProducts = await fetchAll('admin_products');
+    consolidateStats();
+    renderKPIs();
+    renderRecentOrders();
+    renderOrdersTable();
+    renderPdvCatalog();
+
+    // 4. Gerar Recibo
+    mostrarReciboPDV(orderData, pdvCart, subtotal, pdvDiscount, total);
+
+    // 5. Reset do Carrinho PDV
+    pdvCart = [];
+    pdvDiscount = 0;
+    const discInp = document.getElementById('pdvDiscountInput');
+    if (discInp) discInp.value = '0';
+    renderPdvCart();
+
+    admToast('🎉 Venda presencial concluída com sucesso!');
+  } catch (err) {
+    console.error('Erro ao finalizar venda PDV:', err);
+    admToast('Erro ao finalizar venda: ' + (err.message || err), 'error');
+  } finally {
+    if (finishBtn) {
+      finishBtn.disabled = false;
+      finishBtn.innerHTML = '<i class="fas fa-check-circle"></i> Finalizar Venda Presencial';
+    }
+  }
+}
+
+function mostrarReciboPDV(order, items, subtotal, discount, total) {
+  const content = document.getElementById('pdvReceiptContent');
+  if (!content) return;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  let cashRecInfo = '';
+  if (order.payment_method === 'Dinheiro') {
+    const cashRec = parseFloat(document.getElementById('pdvCashReceived')?.value) || total;
+    const troco = Math.max(0, cashRec - total);
+    cashRecInfo = `
+Valor Recebido: ${fmtCurrency(cashRec)}
+Troco:          ${fmtCurrency(troco)}`;
+  }
+
+  content.innerHTML = `
+    <div style="text-align:center;margin-bottom:1rem;">
+      <h3 style="font-size:1.1rem;font-weight:900;margin-bottom:2px;letter-spacing:.05em;">OUTLET 365</h3>
+      <p style="font-size:0.75rem;color:#555;">Madalena - CE · (88) 99275-7076</p>
+      <p style="font-size:0.7rem;color:#777;margin-top:2px;text-transform:uppercase;">Comprovante de Venda Presencial</p>
+    </div>
+    <div style="border-top:1px dashed #aaa;border-bottom:1px dashed #aaa;padding:0.5rem 0;margin-bottom:0.75rem;font-size:0.78rem;line-height:1.4;">
+      <div><strong>PEDIDO:</strong> #${order.id.slice(-6).toUpperCase()}</div>
+      <div><strong>DATA:</strong> ${dateStr}</div>
+      <div><strong>CLIENTE:</strong> ${order.customer_name}</div>
+      ${order.customer_phone ? `<div><strong>FONE:</strong> ${order.customer_phone}</div>` : ''}
+      <div><strong>PAGAMENTO:</strong> ${order.payment_method}</div>
+    </div>
+    <table style="width:100%;font-size:0.78rem;border-collapse:collapse;margin-bottom:0.75rem;">
+      <thead>
+        <tr style="border-bottom:1px solid #ddd;text-align:left;">
+          <th style="padding-bottom:4px;">QTD ITEM</th>
+          <th style="padding-bottom:4px;text-align:right;">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(i => `
+          <tr>
+            <td style="padding:3px 0;">${i.qty}x ${i.name} (${i.size})</td>
+            <td style="padding:3px 0;text-align:right;">${fmtCurrency(i.price * i.qty)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <div style="border-top:1px dashed #aaa;padding-top:0.5rem;font-size:0.8rem;line-height:1.4;">
+      <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${fmtCurrency(subtotal)}</span></div>
+      ${discount > 0 ? `<div style="display:flex;justify-content:space-between;color:#dc2626;"><span>Desconto:</span><span>-${fmtCurrency(discount)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:0.95rem;margin-top:4px;"><span>TOTAL:</span><span>${fmtCurrency(total)}</span></div>
+      ${cashRecInfo ? `<pre style="font-family:inherit;font-size:0.75rem;margin-top:4px;color:#555;">${cashRecInfo}</pre>` : ''}
+    </div>
+    <div style="text-align:center;margin-top:1rem;font-size:0.7rem;color:#777;">
+      *** Obrigado pela preferência! ***<br/>@outlet365__
+    </div>
+  `;
+
+  const printBtn = document.getElementById('pdvPrintReceiptBtn');
+  if (printBtn) {
+    printBtn.onclick = () => {
+      const win = window.open('', '', 'width=400,height=600');
+      win.document.write(`<html><head><title>Recibo - Outlet 365</title><style>body{font-family:monospace;font-size:12px;padding:15px;}</style></head><body>${content.innerHTML}</body></html>`);
+      win.document.close();
+      win.focus();
+      win.print();
+      win.close();
+    };
+  }
+
+  const wappBtn = document.getElementById('pdvShareWappBtn');
+  if (wappBtn) {
+    wappBtn.onclick = () => {
+      const phoneClean = (order.customer_phone || '').replace(/\D/g, '');
+      const text = encodeURIComponent(`*OUTLET 365 — Comprovante de Compra*\n\nOlá ${order.customer_name}!\nObrigado por comprar conosco.\n\n*Pedido:* #${order.id.slice(-6).toUpperCase()}\n*Total:* ${fmtCurrency(total)}\n*Pagamento:* ${order.payment_method}\n\nVolte sempre!`);
+      const link = phoneClean ? `https://wa.me/55${phoneClean}?text=${text}` : `https://wa.me/?text=${text}`;
+      window.open(link, '_blank');
+    };
+  }
+
+  document.getElementById('pdvReceiptModal')?.classList.add('active');
 }
 
 // ── LOGOUT ──

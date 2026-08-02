@@ -8,6 +8,17 @@ const DB = (() => {
 
   function normalizeProduct(p) {
     const img = p.image_base64 || p.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80';
+    let vStock = {};
+    if (p.variant_stock) {
+      try {
+        vStock = typeof p.variant_stock === 'string' ? JSON.parse(p.variant_stock) : p.variant_stock;
+      } catch (e) { vStock = {}; }
+    }
+    const sizesArr = (p.sizes || 'Único').split(',').map(s => s.trim()).filter(Boolean);
+    let computedStock = p.stock || 0;
+    if (Object.keys(vStock).length > 0) {
+      computedStock = Object.values(vStock).reduce((acc, cur) => acc + (parseInt(cur) || 0), 0);
+    }
     return {
       id:             p.id,
       slug:           p.slug,
@@ -17,7 +28,7 @@ const DB = (() => {
       price:          parseFloat(p.price) || 0,
       original_price: parseFloat(p.original_price) || 0,
       installments:   p.installments || 3,
-      sizes:          (p.sizes || 'Único').split(',').map(s => s.trim()).filter(Boolean),
+      sizes:          sizesArr,
       description:    p.description || '',
       image:          img,
       images:         [img],
@@ -27,7 +38,8 @@ const DB = (() => {
       new_arrival:    !!p.new_arrival,
       weekly_promo:   !!p.weekly_promo,
       hero_card:      !!p.hero_card,
-      stock:          p.stock || 0,
+      stock:          computedStock,
+      variant_stock:  vStock,
       active:         p.active !== false,
     };
   }
@@ -82,6 +94,7 @@ const DB = (() => {
         weekly_promo:   !!raw.weekly_promo,
         hero_card:      !!raw.hero_card,
         stock:          parseInt(raw.stock) || 0,
+        variant_stock:  raw.variant_stock || {},
         active:         raw.active !== false,
         sales_count:    0,
       };
@@ -95,12 +108,43 @@ const DB = (() => {
       const updates = {};
       const allowed = ['name','category','subcategory','price','original_price','installments',
         'sizes','description','image_base64','image_url','featured','new_arrival',
-        'weekly_promo','hero_card','stock','active','slug'];
+        'weekly_promo','hero_card','stock','variant_stock','active','slug'];
       allowed.forEach(k => { if (k in raw) updates[k] = raw[k]; });
       const { data, error } = await supabaseClient.from('products').update(updates).eq('id', id).select().single();
       if (error) throw error;
       _loaded = false;
       return data;
+    },
+
+    async decrementStockForOrder(items) {
+      // items = [{ id, size, qty }, ...]
+      for (const item of items) {
+        if (!item.id) continue;
+        try {
+          const { data: prod } = await supabaseClient.from('products').select('stock, variant_stock').eq('id', item.id).single();
+          if (!prod) continue;
+          let vStock = prod.variant_stock || {};
+          if (typeof vStock === 'string') {
+            try { vStock = JSON.parse(vStock); } catch (e) { vStock = {}; }
+          }
+          const currentTotal = prod.stock || 0;
+          const qtyToSub = parseInt(item.qty) || 1;
+          const newTotal = Math.max(0, currentTotal - qtyToSub);
+
+          if (item.size && vStock && (item.size in vStock)) {
+            const currentSizeQty = parseInt(vStock[item.size]) || 0;
+            vStock[item.size] = Math.max(0, currentSizeQty - qtyToSub);
+          }
+
+          await supabaseClient.from('products').update({
+            stock: newTotal,
+            variant_stock: vStock
+          }).eq('id', item.id);
+        } catch (err) {
+          console.error(`Erro ao dar baixa no estoque do produto ${item.id}:`, err);
+        }
+      }
+      _loaded = false;
     },
 
     async deleteProduct(id) {
@@ -111,7 +155,15 @@ const DB = (() => {
 
     // ── Orders ──────────────────────────────────────
     async createOrder(orderData) {
-      const { data, error } = await supabaseClient.from('orders').insert(orderData).select().single();
+      let { data, error } = await supabaseClient.from('orders').insert(orderData).select().single();
+      if (error && error.message && error.message.includes('channel')) {
+        console.warn('Coluna channel ainda não existe na tabela orders do Supabase. Salvando sem a coluna...');
+        const copy = { ...orderData };
+        delete copy.channel;
+        const retry = await supabaseClient.from('orders').insert(copy).select().single();
+        if (retry.error) throw retry.error;
+        return retry.data;
+      }
       if (error) throw error;
       return data;
     },

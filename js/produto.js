@@ -66,12 +66,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       <!-- Tamanhos -->
       <p class="pdp-label">Tamanho</p>
       <div class="size-grid" id="sizeGrid">
-        ${product.sizes.map(s => `
-          <button class="size-btn ${s === selectedSize ? 'selected' : ''}"
-            data-size="${s}" onclick="selectSize('${s}')">
-            ${s}
-          </button>
-        `).join('')}
+        ${product.sizes.map(s => {
+          const vStock = product.variant_stock || {};
+          const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (product.stock || 999);
+          const isOut = qty <= 0;
+          return `
+            <button class="size-btn ${s === selectedSize ? 'selected' : ''} ${isOut ? 'disabled' : ''}"
+              data-size="${s}" ${isOut ? 'disabled title="Tamanho esgotado"' : `onclick="selectSize('${s}')"`}
+              style="${isOut ? 'opacity:0.4;cursor:not-allowed;text-decoration:line-through;' : ''}">
+              ${s}
+            </button>
+          `;
+        }).join('')}
       </div>
 
       <!-- Ações -->
