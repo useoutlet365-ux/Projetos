@@ -1,36 +1,69 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
+    <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a0a0f"/>
-      <stop offset="100%" stop-color="#050714"/>
+      <stop offset="0%" stop-color="#090b16"/>
+      <stop offset="50%" stop-color="#060810"/>
+      <stop offset="100%" stop-color="#04050a"/>
     </linearGradient>
-    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="50%" stop-color="#080ce6"/>
-      <stop offset="100%" stop-color="#4f46e5"/>
+
+    <!-- Neon Brand Gradient -->
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="40%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#080ce6"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#080ce6" flood-opacity="0.4"/>
+
+    <!-- Accent Golden/Orange/White Gradient for Energy/Shopping -->
+    <linearGradient id="accentGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#93c5fd"/>
+    </linearGradient>
+
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#2563eb" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#080ce6" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Ambient Glow Filter -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  
-  <!-- Background -->
-  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
-  <rect width="512" height="512" rx="100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
-  
-  <!-- Shopping Bag / Modern Tag Icon -->
-  <g transform="translate(106, 80)" filter="url(#glow)">
-    <!-- Bag Handle -->
-    <path d="M 90 90 C 90 35, 210 35, 210 90" fill="none" stroke="url(#accentGrad)" stroke-width="24" stroke-linecap="round"/>
-    <!-- Bag Body -->
-    <rect x="30" y="80" width="240" height="250" rx="36" fill="#111322" stroke="url(#accentGrad)" stroke-width="12"/>
-    
-    <!-- Accent 365 & Lightning / Star inside bag -->
-    <path d="M 150 120 L 125 190 L 165 190 L 135 270 L 195 180 L 155 180 Z" fill="#ffffff" opacity="0.95"/>
+
+  <!-- Squircle Base -->
+  <rect x="16" y="16" width="480" height="480" rx="110" fill="url(#bgGrad)"/>
+  <rect x="16" y="16" width="480" height="480" rx="110" fill="none" stroke="url(#borderGrad)" stroke-width="8"/>
+
+  <!-- Inner Soft Radial Light -->
+  <circle cx="256" cy="220" r="180" fill="#080ce6" opacity="0.18" filter="url(#neonGlow)"/>
+
+  <!-- Shopping Bag Handle -->
+  <path d="M 176 170 C 176 100, 336 100, 336 170" 
+        fill="none" 
+        stroke="url(#brandGrad)" 
+        stroke-width="26" 
+        stroke-linecap="round"/>
+
+  <!-- Modern Bag Body with Angled Chamfer Style -->
+  <path d="M 120 170 L 392 170 L 372 410 C 370 426, 356 438, 340 438 L 172 438 C 156 438, 142 426, 140 410 Z" 
+        fill="#0b0f24" 
+        stroke="url(#brandGrad)" 
+        stroke-width="18" 
+        stroke-linejoin="round"/>
+
+  <!-- Center Dynamic Lightning / Fast Shopping Badge -->
+  <path d="M 270 190 L 195 295 L 245 295 L 225 410 L 320 280 L 268 280 Z" 
+        fill="url(#accentGlow)"/>
+
+  <!-- Small Stylish "365" Tag Badge on Bag Corner -->
+  <g transform="translate(256, 360)">
+    <rect x="-62" y="-18" width="124" height="36" rx="18" fill="#080ce6" stroke="#38bdf8" stroke-width="3"/>
+    <text x="0" y="8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-weight="900" font-size="22" fill="#ffffff" text-anchor="middle" letter-spacing="2">365</text>
   </g>
-  
-  <!-- Text: OUTLET 365 -->
-  <text x="256" y="420" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-weight="900" font-size="44" fill="#ffffff" letter-spacing="4">
-    OUTLET<tspan fill="#3b82f6">365</tspan>
-  </text>
 </svg>

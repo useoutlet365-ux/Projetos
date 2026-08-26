@@ -32,6 +32,12 @@ app.get('/manifest.json', (req, res) => {
   res.sendFile(path.join(__dirname, 'manifest.json'));
 });
 
+app.get('/favicon.ico', (req, res) => {
+  res.setHeader('Content-Type', 'image/x-icon');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(__dirname, 'favicon.ico'));
+});
+
 app.use(express.static(path.join(__dirname)));
 
 // ── CÁLCULO DE FRETE (SuperFrete + Fallback) ──

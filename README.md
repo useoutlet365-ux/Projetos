@@ -1,158 +1,165 @@
-# Outlet 365 — E-commerce
+# Outlet 365 — E-commerce & PWA
 
-E-commerce completo de moda masculina, calçados e acessórios para a **Outlet 365**, loja física localizada em Madalena-CE.
-
-## 🎯 Objetivo
-
-Criar uma loja virtual profissional mobile-first para vender online com catálogo organizado, página de produto com simulação de frete e escalabilidade regional.
-
-## ✅ Funcionalidades Implementadas
-
-- **Home** — Hero slider, grid de categorias, produtos em destaque, novidades, benefícios, feed do Instagram
-- **Menu mobile lateral** — Drawer com categorias, links institucionais e link para o Instagram
-- **Catálogo** (`categoria.html`) — Listagem com filtros por categoria, contagem de produtos
-- **Página de Produto** (`produto.html`) — Galeria de fotos, seleção de tamanho, botão comprar, simulação de frete por CEP, descrição, produtos similares
-- **Carrinho lateral** — Drawer com add/remove/qtd, subtotal persistido no localStorage
-- **Checkout** (`checkout.html`) — Formulário completo com modal de confirmação de pedido
-- **Busca** — Campo de busca com resultados em tempo real
-- **Páginas institucionais** — Quem Somos, Entrega e Frete, Trocas e Devoluções, Contato
-- **Toast notifications** — Feedback visual para ações do usuário
-- **Design responsivo** — Mobile-first, funciona em todos os dispositivos
-
-## 📄 Páginas e URIs
-
-| Página | Arquivo | Parâmetros |
-|---|---|---|
-| Home | `index.html` | — |
-| Catálogo | `categoria.html` | `?cat=camisas\|shorts-calcas\|calcados-chinelos\|acessorios` |
-| Produto | `produto.html` | `?slug=<slug-do-produto>` |
-| Checkout | `checkout.html` | — |
-| Quem Somos | `sobre.html` | — |
-| Entrega | `entrega.html` | — |
-| Trocas | `trocas.html` | — |
-| Contato | `contato.html` | — |
-
-## 🛍️ Catálogo de Produtos (MVP)
-
-| Categoria | Qtd | Faixa de Preço |
-|---|---|---|
-| Camisas | 5 | R$ 75 – R$ 127 |
-| Shorts e Calças | 5 | R$ 42 – R$ 190 |
-| Calçados e Chinelos | 5 | R$ 55 – R$ 109 |
-| Acessórios | 2 | R$ 45 – R$ 69 |
-
-## 🏗️ Estrutura de Arquivos
-
-```
-index.html          — Home
-categoria.html      — Listagem de produtos
-produto.html        — Página de produto (PDP)
-checkout.html       — Finalizar compra
-sobre.html          — Quem somos
-entrega.html        — Entrega e frete
-trocas.html         — Trocas e devoluções
-contato.html        — Contato
-css/
-  style.css         — Todos os estilos
-js/
-  data.js           — Dados dos produtos e funções utilitárias
-  cart.js           — Módulo do carrinho (localStorage)
-  main.js           — Interações globais (menu, slider, busca, toast)
-  catalog.js        — Lógica da página de catálogo
-  produto.js        — Lógica da PDP (galeria, tamanhos, frete, similares)
-```
-
-## 🎨 Design
-
-- **Cor primária:** Azul `#080ce6`
-- **Tipografia:** Inter (Google Fonts)
-- **Estilo:** Masculino, moderno, limpo
-- **Abordagem:** Mobile-first
-
-## 🏪 Dados da Loja
-
-- **Nome:** Outlet 365
-- **Endereço:** Santa Terezinha, Rua José Patrício Nogueira, nº 220 — Madalena-CE, CEP 63860-000
-- **Horário:** Segunda a sábado: 08:30 às 17:30
-- **Instagram:** [@outlet365__](https://www.instagram.com/outlet365__)
-
-## 🛠️ Painel Administrativo
-
-Acesse em: `admin.html`
-
-### Seções do Admin
-| Seção | Funcionalidade |
-|---|---|
-| **Dashboard** | KPIs (faturamento, pedidos, visitantes, conversão), gráfico de receita diária, engajamento, últimos pedidos, top produtos |
-| **Financeiro** | Receita total, ticket médio, melhor dia, gráfico de barras, funil de conversão, pedidos por cidade, extrato diário |
-| **Pedidos** | Listagem completa com filtro por status, visualização detalhada, atualização de status inline |
-| **Produtos** | Grid com filtro por categoria, editar, ativar/desativar, excluir |
-| **Novo Produto** | Formulário mobile-first com câmera, seleção de tamanhos, toggles de destaque, card principal e promoção |
-| **Card Principal** | Gerenciar até 5 produtos no destaque da home |
-
-### Funcionalidades do Formulário de Produto
-- 📷 **Câmera mobile** — Abre câmera diretamente no celular (`capture="environment"`)
-- 🔥 **Promoção da Semana** — Toggle que faz o produto aparecer na seção especial da home
-- ⭐ **Card Principal** — Toggle que adiciona ao destaque (máx. 5 produtos)
-- 🏷️ **Subcategorias dinâmicas** — Mudam conforme a categoria selecionada
-- 📐 **Seleção visual de tamanhos** — Botões clicáveis por categoria
-- ✅ **Validação** com limite de hero card em tempo real
-
-## ⏳ Funcionalidades Pendentes (Pós-MVP)
-
-- [x] Integração com gateway de pagamento real (Mercado Pago)
-- [ ] Integração com gateway de pagamento real (PagSeguro)
-- [ ] Integração com API real dos Correios para cálculo de frete
-- [ ] Área do cliente (login, pedidos, endereços)
-- [ ] Painel de administração de produtos
-- [ ] Integração com sistema de estoque
-- [ ] Programa de fidelidade
-- [ ] Fotos reais dos produtos (substituir imagens Unsplash)
-- [ ] WhatsApp número real (quando disponível)
-- [ ] Perfumes árabes e tênis/sapatos com preços (pendentes de definição)
- 
-## 📱 Próximos Passos Recomendados
- 
-1. **Substituir imagens** pelas fotos reais dos produtos
-2. **Adicionar WhatsApp** oficial quando disponível
-3. **Integrar Correios** ou Melhor Envio para cálculo real de frete
-4. **Publicar** via aba Publish
-
-## 🚀 Integração Mercado Pago & Netlify Functions
-
-A loja possui integração segura com o Mercado Pago (Checkout Pro) suportando pagamentos via **PIX**, **Cartão de Crédito** (com parcelamento) e **Boleto**, operando tanto localmente com um servidor Express quanto em produção através de **Netlify Functions** (Serverless).
-
-### 1. Funcionamento em Produção (Netlify)
-
-Ao publicar na Netlify, as credenciais confidenciais do Mercado Pago são mantidas em segurança no backend através de uma Serverless Function.
-
-- **Configuração de Rotas (`netlify.toml`)**: Mapeia as chamadas da API do front-end (`/api/mp-preference`) para a Netlify Function de forma transparente e automática.
-- **Serverless Function (`netlify/functions/mp-preference.js`)**: Recebe o payload do checkout e assina a preferência de pagamento com o `MP_ACCESS_TOKEN` no servidor.
-- **Retornos de Pagamento**: Trata os status de retorno (`success`, `pending`, `failure`) na própria página de checkout, limpando o carrinho, exibindo o modal de confirmação e gerando links personalizados para atendimento via WhatsApp com o ID do pedido.
-
-#### Configuração das Variáveis de Ambiente no Netlify:
-1. Acesse o painel da Netlify.
-2. Vá em **Site Configuration** > **Environment variables** (Variáveis de ambiente).
-3. Adicione uma variável:
-   - Nome: `MP_ACCESS_TOKEN`
-   - Valor: Seu Token de Acesso de produção (ou sandbox) obtido no painel de desenvolvedor do Mercado Pago.
+E-commerce completo e Progressive Web App (PWA) de moda masculina, calçados e acessórios para a **Outlet 365**, loja física e virtual localizada em Madalena-CE.
 
 ---
 
-### 2. Desenvolvimento e Testes Locais (Retrocompatibilidade)
+## 🎯 Objetivo do Projeto
 
-Para desenvolver ou testar o fluxo de checkout em sua máquina local:
+Proporcionar uma experiência de compra online moderna, rápida e mobile-first, integrando catálogo dinâmico em nuvem, simulação real de frete (SuperFrete + Correios/Jadlog), checkout seguro com Mercado Pago (PIX, Cartão e Boleto), gestão completa via Painel Administrativo com autenticação e suporte a funcionamento offline/PWA instalável.
 
-1. Crie ou edite o arquivo `.env` na raiz do projeto com seu token do Mercado Pago:
-   ```env
-   MP_ACCESS_TOKEN=TEST-seu_token_de_teste_ou_producao
-   ```
-2. Instale as dependências locais do Express:
+---
+
+## 🚀 Tecnologias e Arquitetura
+
+- **Front-end:** HTML5 semântico, CSS3 moderno (design system responsivo, dark/light accents, microinterações), Vanilla JavaScript (modular e performático).
+- **PWA (Progressive Web App):** Service Worker (`sw.js`), Manifesto Web (`manifest.json`), suporte a instalação em tela inicial e cache de recursos estáticos.
+- **Banco de Dados & Autenticação:** [Supabase](https://supabase.com) (PostgreSQL em nuvem, Row Level Security, RPC de métricas, Supabase Auth para o Admin).
+- **Gateway de Pagamento:** [Mercado Pago](https://www.mercadopago.com.br) (Checkout Pro & PIX) via Netlify Functions e backend Express local.
+- **Cálculo de Frete:** Integração oficial com API [SuperFrete](https://superfrete.com) (PAC, SEDEX, Mini Envios, Jadlog) com fallback regional inteligente para o Ceará e retirada na loja.
+- **Hospedagem & Serverless:** [Netlify](https://netlify.com) com Serverless Functions (`netlify/functions/`) e suporte a servidor local Node.js/Express (`server.js`).
+
+---
+
+## ✅ Funcionalidades Implementadas
+
+### 🛍️ Loja & Experiência do Cliente
+- **Home Dinâmica** (`index.html`) — Hero slider configurável, vitrines automáticas (Destaques, Promoções da Semana, Novidades), grid de categorias, benefícios e feed do Instagram.
+- **Navegação & Menu Mobile** — Drawer lateral fluído com links por categoria, institucional e redes sociais.
+- **Busca em Tempo Real** — Pesquisa instantânea por nome, categoria e descrição.
+- **Catálogo Inteligente** (`categoria.html`) — Listagem filtrada por categoria e subcategoria, contagem de itens e skeleton loading.
+- **Página de Produto (PDP)** (`produto.html`) — Galeria com zoom/thumbnails, seleção visual de variações/tamanhos com validação de estoque em tempo real, cálculo de frete por CEP via SuperFrete, produtos similares e compartilhamento WhatsApp.
+- **Carrinho Drawer** (`cart.js`) — Persistência em `localStorage`, controle dinâmico de quantidades com base no estoque disponível e cálculo de subtotal.
+- **Checkout Integrado** (`checkout.html`) — Formulário completo com validação de CEP e endereço, cálculo de frete selecionável, integração com Mercado Pago e opção de fallback com fechamento via WhatsApp oficial.
+- **PWA Instalável** — Notificação de instalação (A2HS), ícones em alta resolução para Android/iOS e operação offline com Service Worker.
+- **Páginas Institucionais** — Quem Somos (`sobre.html`), Entrega e Frete (`entrega.html`), Trocas e Devoluções (`trocas.html`) e Contato (`contato.html`).
+
+### 🛡️ Painel Administrativo (`admin.html`)
+- **Autenticação Segura** (`admin-login.html`, `admin-reset.html`) — Login com e-mail/senha via Supabase Auth e fluxo de recuperação de senha.
+- **Dashboard & KPIs** — Métricas em tempo real: faturamento total, pedidos realizados, visitantes, conversão, gráfico de receita diária e produtos mais vendidos.
+- **Gestão de Produtos** — Cadastro completo com fotos (upload/câmera com conversão base64 ou URL), variações de tamanho com estoque individual por grade, dimensões e peso para frete, toggles de promoção/destaque/hero e ordenação.
+- **Baixa Automática de Estoque** — Atualização automática das quantidades e variações no Supabase a cada pedido confirmado.
+- **Gestão de Pedidos** — Listagem cronológica, filtro por status (Pendente, Pago, Enviado, Entregue, Cancelado) e atualização de status em tempo real.
+- **Módulo Financeiro** — Resumo de faturamento, ticket médio, análise de canais e extrato detalhado.
+- **Gerenciador da Home** — Configuração visual dos cards em destaque no Hero da loja.
+
+---
+
+## 📄 Estrutura de Páginas e Rotas
+
+| Página | Arquivo | Finalidade |
+|---|---|---|
+| **Home** | `index.html` | Vitrine principal da loja |
+| **Catálogo** | `categoria.html` | Listagem com filtros (`?cat=camisas\|shorts-calcas\|...`) |
+| **Produto** | `produto.html` | Página de detalhes (`?slug=<slug-do-produto>`) |
+| **Checkout** | `checkout.html` | Finalização de compra e pagamento |
+| **Login Admin** | `admin-login.html` | Acesso autenticado à área restrita |
+| **Recuperação de Senha** | `admin-reset.html` | Redefinição de credenciais do admin |
+| **Painel Admin** | `admin.html` | Gestão de produtos, pedidos, estoque e métricas |
+| **Quem Somos** | `sobre.html` | História e informações da marca |
+| **Entrega & Frete** | `entrega.html` | Políticas de envio e prazos |
+| **Trocas & Devoluções** | `trocas.html` | Política de troca conforme CDC |
+| **Contato** | `contato.html` | Canais de atendimento e localização |
+
+---
+
+## 🏗️ Estrutura de Arquivos do Projeto
+
+```
+c:/Outlet365/
+├── index.html                   # Página inicial da loja
+├── categoria.html               # Página de catálogo / listagem
+├── produto.html                 # Página de detalhes do produto (PDP)
+├── checkout.html                # Página de checkout e pagamento
+├── sobre.html                   # Página institucional: Quem Somos
+├── entrega.html                 # Página institucional: Entrega e Frete
+├── trocas.html                  # Página institucional: Trocas e Devoluções
+├── contato.html                 # Página institucional: Contato
+├── admin.html                   # Painel administrativo
+├── admin-login.html             # Login do painel administrativo
+├── admin-reset.html             # Recuperação de senha do admin
+├── manifest.json                # Manifesto PWA
+├── sw.js                        # Service Worker (PWA & Cache)
+├── favicon.ico                  # Favicon oficial
+├── server.js                    # Servidor local Node.js / Express
+├── supabase-schema.sql          # Schema do banco de dados PostgreSQL (Supabase)
+├── package.json                 # Dependências e scripts do projeto
+│
+├── css/
+│   ├── style.css                # Estilos globais da loja (Design System)
+│   └── admin.css                # Estilos dedicados ao Painel Administrativo
+│
+├── js/
+│   ├── supabase-client.js       # Inicialização do cliente Supabase
+│   ├── db.js                    # Camada de abstração e operações de banco (CRUD, Estoque, Auth)
+│   ├── data.js                  # Catálogo padrão e dados estáticos de fallback
+│   ├── cart.js                  # Gerenciador do carrinho de compras (localStorage)
+│   ├── main.js                  # Interações globais (menu mobile, busca, toast)
+│   ├── home-dynamic.js          # Renderização dinâmica dos blocos da Home
+│   ├── catalog.js               # Lógica de filtros e listagem do catálogo
+│   ├── produto.js               # Lógica da PDP (galeria, tamanhos, frete, similares)
+│   ├── pwa.js                   # Registro do Service Worker e prompt de instalação
+│   └── admin.js                 # Lógica completa do painel administrativo
+│
+├── netlify/
+│   └── functions/
+│       ├── calculate-shipping.js# Serverless function: Cálculo de frete (SuperFrete)
+│       ├── mp-preference.js     # Serverless function: Criar preferência Mercado Pago
+│       └── process-payment.js   # Serverless function: Processamento transparente
+│
+└── scripts/
+    ├── generate-favicons.js     # Script auxiliar para geração de ícones PWA
+    └── update-html-icons.js     # Script para atualização de meta tags nos HTMLs
+```
+
+---
+
+## 🏪 Dados Oficiais da Loja
+
+- **Razão Social / Nome:** Outlet 365
+- **Endereço:** Santa Terezinha, Rua José Patrício Nogueira, nº 220 — Madalena - CE, CEP: 63860-000
+- **Horário de Funcionamento:** Segunda a Sábado: 08:30 às 17:30
+- **Instagram Oficial:** [@outlet365__](https://www.instagram.com/outlet365__)
+- **WhatsApp Oficial:** (88) 99275-7076
+- **Chave PIX:** `5588992757076`
+
+---
+
+## ⚙️ Configuração e Execução
+
+### 1. Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto (ou configure no Netlify):
+
+```env
+# Mercado Pago (Produção ou Sandbox)
+MP_ACCESS_TOKEN=TEST-seu_access_token_mercado_pago
+
+# SuperFrete (Token da API)
+SUPERFRETE_TOKEN=seu_token_superfrete
+
+# CEP de Origem da Loja
+STORE_ORIGIN_CEP=63860000
+
+# Porta do servidor local (opcional)
+PORT=3000
+```
+
+### 2. Executando Localmente
+
+1. Instale as dependências:
    ```bash
    npm install
    ```
-3. Inicie o servidor Express local:
+2. Inicie o servidor local:
    ```bash
    npm start
    ```
-4. Acesse `http://localhost:3000/checkout.html`. Ao finalizar a compra, a chamada local será processada pelo `server.js` na porta 3000 e você será redirecionado para a tela de pagamento em modo Sandbox (Ambiente de Testes).
+3. Acesse a loja em: `http://localhost:3000`
+
+### 3. Deploy em Produção (Netlify)
+
+O projeto está configurado para deploy imediato no Netlify com suporte a Serverless Functions:
+1. Conecte o repositório ao Netlify.
+2. Defina as variáveis de ambiente (`MP_ACCESS_TOKEN`, `SUPERFRETE_TOKEN`, `STORE_ORIGIN_CEP`) em **Site settings > Environment variables**.
+3. O arquivo `netlify.toml` gerenciará os redirecionamentos para `/api/*` automaticamente.

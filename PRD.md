@@ -1,315 +1,203 @@
-# PRD — E-commerce Outlet 365
+# PRD — E-commerce & PWA Outlet 365
 
-## 1. Informações gerais do projeto
+## 1. Informações Gerais do Projeto
 
-**Nome do projeto:** E-commerce Outlet 365  
-**Marca:** Outlet 365  
-**Segmento:** Moda masculina, calçados e acessórios  
-**Modelo de negócio:** Loja física + loja online  
-**Canal digital atual principal:** Instagram  
-**Status do projeto:** MVP implementado — aguardando conteúdo real (fotos, domínio, gateway)  
-**Abrangência inicial:** Madalena-CE e região próxima, com operação já iniciando vendas para municípios mais distantes  
-**Stack:** HTML + CSS + Vanilla JS (estático, sem dependências de build)  
-**Objetivo principal:** Criar uma loja virtual profissional para vender online com catálogo organizado, navegação simples, foco em mobile, simulação de frete e escalabilidade regional
-
----
-
-## 2. Resumo executivo
-
-A **Outlet 365** é uma loja de **moda masculina, calçados e acessórios** com presença física em Madalena-CE e comunicação ativa no Instagram. O e-commerce está implementado em HTML/CSS/JS puro, sem frameworks ou build steps, com todas as páginas funcionais e o fluxo completo de compra (catálogo → PDP → carrinho → checkout).
-
-A referência funcional adotada para o projeto é a loja [Floretom](https://floretom.com.br), especialmente pela clareza do menu mobile, estrutura da página de produto e destaque a descrição, frete e produtos similares.
+- **Nome do Projeto:** E-commerce & PWA Outlet 365  
+- **Marca:** Outlet 365  
+- **Segmento:** Moda masculina, calçados e acessórios  
+- **Modelo de Negócio:** Loja física + Loja virtual (Omnichannel regional e nacional)  
+- **Canais Digitais:** Loja Virtual / PWA e Instagram oficial  
+- **Status do Projeto:** **Produção / PWA Integrado** (Supabase + SuperFrete + Mercado Pago + Admin com Autenticação)  
+- **Abrangência:** Madalena-CE, região do Sertão Central e envio para todo o Brasil  
+- **Stack Tecnológica:** 
+  - **Frontend:** HTML5 semântico, CSS3 (Design System modular), Vanilla JS (ES6+ modular).
+  - **PWA:** Service Worker (`sw.js`), Web App Manifest (`manifest.json`), Caching offline.
+  - **Backend & Cloud Database:** [Supabase](https://supabase.com) (PostgreSQL, Row Level Security, RPC Analytics, Supabase Auth).
+  - **Gateway de Pagamento:** [Mercado Pago](https://www.mercadopago.com.br) (Checkout Pro, PIX, Cartão e Boleto via Netlify Functions e Express).
+  - **Cálculo de Frete:** [SuperFrete](https://superfrete.com) (Correios/Jadlog) + Motor de Fallback Regional e Retirada na Loja.
+  - **Hospedagem & Serverless:** [Netlify](https://netlify.com) com Serverless Functions (`netlify/functions/`).
 
 ---
 
-## 3. Dados confirmados da loja
+## 2. Resumo Executivo
 
-| Campo | Informação |
+A **Outlet 365** é uma referência em moda masculina, calçados e acessórios sediada em Madalena-CE. O projeto é uma plataforma de e-commerce completa, de alto desempenho, mobile-first e instalável como aplicativo (PWA).
+
+A plataforma conta com arquitetura escalável e desacoplada: banco de dados em nuvem Supabase com sincronização em tempo real, cálculo de frete oficial via SuperFrete, processamento seguro de pagamentos com Mercado Pago, baixa automática de estoque por variação de tamanho e painel administrativo protegido por autenticação.
+
+---
+
+## 3. Dados Oficiais da Empresa
+
+| Campo | Informação Oficial |
 |---|---|
-| Nome da loja | Outlet 365 |
-| Segmento | Moda masculina, calçados, roupas e acessórios |
-| Tipo de operação | Loja física e online |
-| Cidade | Madalena - CE |
-| Endereço | Santa Terezinha, Rua José Patrício Nogueira, nº 220 |
-| CEP | 63860-000 |
-| Horário de atendimento | Segunda a sábado, 08:30 às 17:30 |
-| Canal social principal | Instagram @outlet365__ |
-| WhatsApp | (88) 99275-7076 |
-| Chave PIX | 5588992757076 |
+| **Razão Social / Nome** | Outlet 365 |
+| **Segmento** | Moda masculina, roupas, calçados e acessórios |
+| **Tipo de Operação** | Loja física e e-commerce |
+| **Endereço** | Santa Terezinha, Rua José Patrício Nogueira, nº 220 |
+| **Cidade / UF** | Madalena - CE |
+| **CEP de Origem** | 63860-000 |
+| **Horário de Atendimento** | Segunda a sábado, 08:30 às 17:30 |
+| **Instagram Oficial** | [@outlet365__](https://www.instagram.com/outlet365__) |
+| **WhatsApp de Vendas** | (88) 99275-7076 |
+| **Chave PIX Oficial** | `5588992757076` |
 
 ---
 
-## 4. Problema de negócio
+## 4. Problemas Resolvidos & Objetivos de Negócio
 
-| Problema | Impacto |
+| Desafio Anterior | Solução Implementada no Projeto |
 |---|---|
-| Catálogo disperso em Instagram e conversa | Cliente demora mais para decidir |
-| Ausência de loja própria | Menor autoridade digital |
-| Processo muito manual | Dificulta escala |
-| Falta de página de produto estruturada | Menor confiança |
-| Falta de frete visível na jornada | Reduz compras de outras cidades |
-| Navegação sem categorias formais | Dificulta exploração do catálogo |
+| Vendas dependentes de catálogo no WhatsApp/Instagram | Catálogo digital dinâmico 24/7 com fotos, descrições e grade de tamanhos |
+| Falta de confiança em fretes para outras regiões | Simulação precisa via SuperFrete (PAC/SEDEX/Jadlog) direto na página de produto |
+| Gestão manual e falhas no controle de estoque | Controle automatizado de estoque por variação/tamanho com baixa automática no pedido |
+| Checkout manual e demorado | Checkout integrado com Mercado Pago (PIX com chave/QR Code, Cartão e Boleto) |
+| Falta de métricas de acesso e vendas | Dashboard analítico com KPIs, visitantes, conversão e relatórios de faturamento |
+| Ausência de aplicativo nas lojas | PWA instalável com carregamento instantâneo e suporte offline |
 
 ---
 
-## 5. Público-alvo
+## 5. Público-Alvo e Persona
 
-**Primário:** Homens que compram roupas, calçados e acessórios masculinos para uso casual, trabalho e lazer.  
-**Secundário:** Mulheres que compram presentes para maridos, namorados, filhos ou familiares.  
-**Recorte geográfico:** Madalena-CE → cidades vizinhas → expansão regional progressiva.
-
----
-
-## 6. Benchmark e referência
-
-- **Referência principal:** [Floretom](https://floretom.com.br)
-- Menu lateral com categorias bem visíveis
-- Página de produto com descrição clara
-- Simulação/opções de frete
-- Seção de produtos similares
-- Experiência mobile-first
+- **Primário:** Homens de 18 a 45 anos que buscam roupas casuais, calçados e acessórios com estilo moderno e excelente custo-benefício.
+- **Secundário:** Mulheres comprando presentes (maridos, namorados, filhos, amigos).
+- **Geografia:** 
+  1. Madalena-CE e cidades vizinhas (Canindé, Boa Viagem, Quixeramobim, Quixadá).
+  2. Estado do Ceará e expansão nacional para todo o Brasil.
 
 ---
 
-## 7. Escopo do MVP
+## 6. Escopo de Funcionalidades Implementadas
 
-### Funcionalidades implementadas ✅
+### ✅ 1. Loja Virtual & PWA
+- [x] **Home Dinâmica:** Hero banner configurável, seções automatizadas (Destaques, Promoções, Novidades), categorias e feed social.
+- [x] **Catálogo & Filtros:** Navegação por categorias, subcategorias dinâmicas, ordenação de produtos e skeleton loading.
+- [x] **Página de Produto (PDP):** Galeria de imagens com zoom, seletor visual de tamanhos com feedback de estoque, simulação de frete por CEP em tempo real, botão de compra rápida e compartilhamento social.
+- [x] **Carrinho:** Drawer lateral com controle de quantidades, persistência em `localStorage` e validação com o estoque do Supabase.
+- [x] **Checkout:** Formulário inteligente com busca automática de CEP (ViaCEP), opções de entrega (SuperFrete / Retirada), múltiplos meios de pagamento e fallback com link direto para o WhatsApp.
+- [x] **PWA (Progressive Web App):** Service Worker para cache offline, manifesto web, instalação em tela inicial (Android/iOS) e favicons em alta definição.
+- [x] **Páginas Institucionais:** Quem Somos, Entrega e Prazos, Trocas e Devoluções e Contato com mapa e horários.
 
-| Área | Funcionalidade | Status |
-|---|---|---|
-| Home | Banner hero slider (3 slides configuráveis), categorias, destaques, promoções, novidades, benefícios, feed do Instagram | ✅ Implementado |
-| Navegação | Menu lateral mobile + nav desktop, busca em tempo real | ✅ Implementado |
-| Catálogo | Listagem por categoria com filtros, skeleton loading | ✅ Implementado |
-| Busca | Busca por nome e categoria com resultados ao vivo | ✅ Implementado |
-| PDP | Galeria com thumbnails, nome/preço/parcelamento, tamanhos, frete por CEP, similares, compartilhar WA/IG | ✅ Implementado |
-| Carrinho | Drawer lateral, adicionar/remover/alterar qtd, total, localStorage | ✅ Implementado |
-| Checkout | Identificação, endereço, frete, pagamento (PIX/Cartão/Boleto), confirmação via WhatsApp | ✅ Implementado |
-| Frete | Simulação por CEP (CE vs nacional), opção de retirada na loja | ✅ Implementado |
-| WhatsApp flutuante | Botão fixo em todas as páginas com número real | ✅ Implementado |
-| Institucional | Quem somos, entregas, trocas e devoluções, contato | ✅ Implementado |
-| Mobile | Menu lateral, botões grandes, layout responsivo mobile-first | ✅ Implementado |
-| Admin | Dashboard KPIs, financeiro, pedidos, produtos, novo produto, hero config | ✅ Implementado |
-| Categorias extras | Perfumes, Promoções (na navegação e catálogo) | ✅ Implementado |
+### ✅ 2. Back-end, Banco de Dados & Integrações
+- [x] **Supabase Database:** Tabelas estruturadas (`products`, `orders`, `site_stats`) com Row Level Security (RLS) e triggers.
+- [x] **Controle de Estoque:** Gestão por variações (grade de tamanhos) e decremento transacional no ato do pedido (`decrementStockForOrder`).
+- [x] **Mercado Pago (Serverless):** Netlify Function (`mp-preference.js` e `process-payment.js`) e Express local para geração segura de pagamentos.
+- [x] **SuperFrete API:** Netlify Function (`calculate-shipping.js`) calculando peso cúbico e medidas de embalagem com fallback regional garantido.
+- [x] **Analytics & Telemetria:** Função RPC (`increment_stat`) no Supabase para rastreamento de acessos únicos, visualizações e pedidos.
 
-### Fora do escopo inicial
-
-- App próprio
-- Área do cliente avançada (login, histórico de pedidos)
-- Programa de fidelidade
-- ERP/CRM avançado
-- Gateway de pagamento real (atualmente redireciona para WhatsApp)
-- API real dos Correios / Melhor Envio (atualmente simula o frete)
+### ✅ 3. Painel Administrativo (`admin.html`)
+- [x] **Autenticação Segura:** Login (`admin-login.html`) e recuperação de senha (`admin-reset.html`) com Supabase Auth.
+- [x] **Dashboard Geral:** Faturamento total, ticket médio, total de pedidos, taxa de conversão, visitantes e gráfico diário.
+- [x] **Gestão de Produtos:** Cadastro, edição e exclusão de produtos com upload de foto (câmera/arquivo), subcategorias dinâmicas, controle de estoque por tamanho, peso/dimensões e destaques.
+- [x] **Gestão de Pedidos:** Acompanhamento de pedidos em tempo real, detalhes do comprador/itens e alteração de status (Pendente, Pago, Enviado, Entregue, Cancelado).
+- [x] **Gestão do Hero / Destaques:** Organização dos banners e produtos em evidência na Home.
 
 ---
 
-## 8. Catálogo atual (17 produtos no data.js)
+## 7. Estrutura do Banco de Dados (Supabase)
 
-### Camisas
+### Tabela: `products`
+- `id` (text, PK)
+- `slug` (text, unique)
+- `name` (text)
+- `category` (text)
+- `subcategory` (text)
+- `price` (numeric), `original_price` (numeric)
+- `installments` (integer)
+- `sizes` (text)
+- `stock` (integer), `variant_stock` (jsonb)
+- `weight` (numeric), `height` (numeric), `width` (numeric), `length` (numeric)
+- `image_url` (text), `image_base64` (text)
+- `featured` (boolean), `new_arrival` (boolean), `weekly_promo` (boolean), `hero_card` (boolean)
+- `active` (boolean)
 
-| Produto | Tamanhos | Preço |
-|---|---|---:|
-| Camisa básica fio 40.1 | P/M/G/GG | R$ 75,00 |
-| Camisa pima peruana | P/M/G/GG | R$ 116,00 |
-| Gola polo | P/M/G/GG | R$ 127,00 |
-| Oversized OWL | P/M/G/GG | R$ 94,84 |
-| Camisa longline | P/M/G/GG | R$ 89,57 |
+### Tabela: `orders`
+- `id` (text, PK)
+- `customer` (jsonb) — nome, email, whatsapp, endereço
+- `items` (jsonb) — lista de itens, tamanhos, quantidades e preços
+- `shipping` (jsonb) — método de envio, valor do frete, prazo estimado
+- `payment` (jsonb) — método (PIX, Cartão, Boleto), status da transação
+- `total` (numeric), `status` (text), `created_at` (timestamp)
 
-### Shorts e Calças
-
-| Produto | Tamanhos | Preço |
-|---|---|---:|
-| Short sarja | P/M/G/GG | R$ 105,37 |
-| Short linho | P/M/G/GG | R$ 52,69 |
-| Short elastano | P/M/G/GG | R$ 42,15 |
-| Short jeans | 38/40/42/44/46/48 | R$ 126,45 |
-| Calça Caunt jeans | 38/40/42/44/46/48 | R$ 189,99 |
-
-### Calçados e Chinelos
-
-| Produto | Numeração | Preço |
-|---|---|---:|
-| Chinelos multimarcas | 37 ao 44 | R$ 54,90 |
-| Chinelo Crocs | 37 ao 44 | R$ 109,00 |
-| Chinelo nuvem | 37 ao 44 | R$ 84,90 |
-| Slide ortopédica | 37 ao 44 | R$ 84,90 |
-| Slide básica | 38-39 / 40-41 / 42-43 | R$ 54,90 |
-| Tênis/sapatos | 37 ao 44 | **preço a definir** |
-
-### Acessórios
-
-| Produto | Variação | Preço |
-|---|---|---:|
-| Cueca | P/M/G/GG | R$ 69,40 |
-| Boné | padrão | R$ 44,90 |
-| Perfumes árabes 100ml | 100ml | **preço a definir** |
+### Tabela: `site_stats`
+- `date` (date, PK)
+- `visitors` (integer), `views` (integer), `orders_count` (integer), `revenue` (numeric)
 
 ---
 
-## 9. Arquitetura de informação
+## 8. Arquitetura de Informação e Arquivos
 
 ```
-Home
-├── Camisas
-│   ├── Camisa básica fio 40.1
-│   ├── Camisa pima peruana
-│   ├── Gola polo
-│   ├── Oversized OWL
-│   └── Camisa longline
-├── Shorts e Calças
-│   ├── Short sarja
-│   ├── Short linho
-│   ├── Short elastano
-│   ├── Short jeans
-│   └── Calça Caunt jeans
-├── Calçados e Chinelos
-│   ├── Chinelos multimarcas
-│   ├── Chinelo Crocs
-│   ├── Chinelo nuvem
-│   ├── Slide ortopédica
-│   ├── Slide básica
-│   └── Tênis e sapatos
-├── Acessórios
-│   ├── Cueca
-│   ├── Boné
-│   └── Perfumes árabes
-├── Promoções (filtro dinâmico via on_sale no data.js)
-├── Quem somos
-├── Entrega e frete
-├── Trocas e devoluções
-└── Contato
-```
-
-### Arquivos do projeto
-
-| Arquivo | Responsabilidade |
-|---|---|
-| `index.html` | Home (hero slider, categorias, destaques, promoções, benefícios, instagram) |
-| `categoria.html` | Catálogo com filtro por categoria |
-| `produto.html` | PDP (galeria, tamanhos, frete por CEP, similares) |
-| `checkout.html` | Formulário de compra + modal de confirmação |
-| `sobre.html`, `entrega.html`, `trocas.html`, `contato.html` | Páginas institucionais |
-| `admin.html` | Painel administrativo completo |
-| `css/style.css` | Todos os estilos |
-| `css/admin.css` | Estilos do admin |
-| `js/data.js` | 17 produtos em `PRODUCTS[]` + helpers |
-| `js/cart.js` | Carrinho com localStorage |
-| `js/main.js` | Menu mobile, slider, busca, toast |
-| `js/catalog.js` / `catalog-dynamic.js` | Listagem de produtos |
-| `js/produto.js` | PDP (galeria, tamanhos, frete, similares) |
-| `js/home-dynamic.js` | Seções dinâmicas da home |
-| `js/admin.js` | Admin panel completo |
-
----
-
-## 10. Requisitos funcionais principais
-
-### Home
-- [x] Banner principal com slider de 3 slides (configurável pelo admin)
-- [x] Categorias em destaque (cards com imagem)
-- [x] Vitrine de destaques (featured: true no data.js)
-- [x] Promoções da semana (on_sale: true no data.js)
-- [x] Novidades (new_arrival: true no data.js)
-- [x] Seção de benefícios (entrega, parcelamento, segurança, troca)
-- [x] Feed do Instagram (visual estático com link para @outlet365__)
-
-### Menu mobile
-- [x] Camisas, Shorts e Calças, Calçados e Chinelos, Acessórios, Perfumes, Promoções
-- [x] Quem somos, Entrega e frete, Trocas e devoluções, Contato, Instagram
-
-### Página de Produto (PDP)
-- [x] Galeria de fotos com thumbnails
-- [x] Nome, preço e parcelamento
-- [x] Seleção de tamanho/numeração
-- [x] Botão comprar (vai direto ao checkout) e adicionar ao carrinho (abre drawer)
-- [x] Simulação de frete por CEP (CE vs nacional + opção de retirada)
-- [x] Descrição do produto
-- [x] Produtos similares
-- [x] Compartilhar no WhatsApp e Instagram
-
-### Carrinho
-- [x] Drawer lateral
-- [x] Adicionar/remover/alterar quantidade
-- [x] Recalcular total
-- [x] Seguir para checkout
-
-### Checkout
-- [x] Formulário completo: nome, e-mail, WhatsApp, endereço completo
-- [x] Cálculo de frete
-- [x] Seleção de pagamento: PIX / Cartão / Boleto
-- [x] PIX com chave copiável (5588992757076)
-- [x] Confirmação do pedido via WhatsApp (sem gateway real)
-
----
-
-## 11. Diretrizes de UI/UX
-
-- Estilo masculino e moderno
-- Visual limpo com contraste forte
-- **Paleta:** Preto (#0A0A0A), Branco (#FFFFFF), Azul Royal (#2452C8)
-- Verde apenas para acentos pontuais (frete, confirmação, PIX)
-- Fonte Inter (Google Fonts)
-- Ícones Font Awesome 6.4
-- Poucos cliques até o produto
-- Botões grandes no celular
-- Preços e parcelamento sempre visíveis nos cards
-- Frete na PDP
-- WhatsApp flutuante em todas as páginas
-
----
-
-## 12. Jornada principal
-
-```
-Instagram / acesso direto
-→ Home
-→ Categoria
-→ Produto
-→ Seleção de tamanho
-→ Simulação de frete
-→ Adicionar ao carrinho
-→ Checkout
-→ Confirmação + WhatsApp
+Outlet 365/
+├── index.html                   # Página principal (Home)
+├── categoria.html               # Catálogo de produtos com filtros
+├── produto.html                 # Página de detalhes do produto (PDP)
+├── checkout.html                # Checkout transparente e integrado
+├── admin.html                   # Dashboard e Painel de Controle
+├── admin-login.html             # Login administrativo
+├── admin-reset.html             # Recuperação de senha do admin
+├── sobre.html                   # Quem somos
+├── entrega.html                 # Prazos e política de entrega
+├── trocas.html                  # Política de trocas e devoluções
+├── contato.html                 # Informações de contato e atendimento
+├── manifest.json                # Configurações PWA
+├── sw.js                        # Service Worker para cache offline
+├── favicon.ico                  # Favicon
+├── server.js                    # Servidor local Express
+├── supabase-schema.sql          # Definições SQL do Supabase
+├── package.json                 # Manifesto Node.js
+│
+├── css/
+│   ├── style.css                # Design System principal da loja
+│   └── admin.css                # Estilos dedicados do painel administrativo
+│
+├── js/
+│   ├── supabase-client.js       # Configuração do cliente Supabase
+│   ├── db.js                    # Camada de dados e regras de negócio do banco
+│   ├── data.js                  # Catálogo de produtos inicial / fallback
+│   ├── cart.js                  # Lógica do carrinho de compras
+│   ├── main.js                  # Comportamentos globais da UI
+│   ├── home-dynamic.js          # Renderizador dinâmico da Home
+│   ├── catalog.js               # Filtros e listagem do catálogo
+│   ├── produto.js               # Interações da PDP e cálculo de frete
+│   ├── pwa.js                   # Gerenciador de ciclo de vida do PWA
+│   └── admin.js                 # Lógica e regras do painel admin
+│
+├── netlify/
+│   └── functions/
+│       ├── calculate-shipping.js# API de frete (SuperFrete + Fallback)
+│       ├── mp-preference.js     # Criação de sessão Mercado Pago
+│       └── process-payment.js   # Processamento de pagamentos
+│
+└── scripts/
+    ├── generate-favicons.js     # Utilitário de assets visuais
+    └── update-html-icons.js     # Inserção automatizada de tags nos HTMLs
 ```
 
 ---
 
-## 13. Métricas de sucesso (90 primeiros dias)
+## 9. Diretrizes de UI / UX & Identidade Visual
 
-- Visitas totais e origem do tráfego
-- Taxa de conversão
-- Abandono de carrinho
-- Produtos mais vistos e mais vendidos
-- Ticket médio
-- Cidades com maior volume de pedidos
-
----
-
-## 14. Pendências para lançamento
-
-| Item | Prioridade | Status |
-|---|---|---|
-| Fotos reais dos produtos | Alta | Pendente — usando Unsplash |
-| Domínio final | Alta | Pendente |
-| Gateway de pagamento real (Mercado Pago recomendado) | Alta | Pendente — checkout redireciona para WhatsApp |
-| API real de frete (Correios / Melhor Envio) | Média | Pendente — usando simulação |
-| Preços de tênis/sapatos | Média | A definir |
-| Preços de perfumes árabes | Média | A definir |
-| Favicon | Baixa | Não implementado |
-| Open Graph tags (preview no WhatsApp/redes) | Baixa | Não implementado |
-| Logo oficial (imagem) | Baixa | Usando texto tipográfico |
-| Política de privacidade | Baixa | Pendente |
+- **Paleta de Cores:**
+  - Cor Primária: Azul Real (`#080ce6` / `#2452c8`)
+  - Acentos de Ação / Sucesso: Verde Esmeralda (`#10B981`)
+  - Fundo & Superfícies: Branco Puro (`#FFFFFF`) e Cinza Claro (`#F8FAFC`)
+  - Modo Escuro / Elementos Noturnos: Preto Grafite (`#0F172A`)
+- **Tipografia:** Família `Inter` (Google Fonts) para máxima legibilidade em dispositivos móveis.
+- **Ícones:** Font Awesome 6.4 + SVG icons customizados.
+- **Responsividade:** Mobile-first rigoroso, otimizado para navegação com uma única mão.
 
 ---
 
-## 15. Critérios de aceite do MVP
+## 10. Checklist de Lançamento & Aceite
 
-1. [x] Site funcional no celular
-2. [x] Categorias principais visíveis
-3. [x] Produtos iniciais cadastrados (17 produtos)
-4. [x] PDP com descrição, frete e similares
-5. [x] Carrinho funcional
-6. [x] Imagem profissional transmitida
-7. [x] Jornada do catálogo ao checkout clara
-8. [ ] Fotos reais dos produtos
-9. [ ] Gateway de pagamento funcional
-10. [ ] Domínio publicado
+- [x] Catálogo completo com suporte a banco de dados em nuvem (Supabase).
+- [x] Painel administrativo com controle de produtos, pedidos, faturamento e autenticação.
+- [x] Gestão de estoque com controle por variação e baixa automática em vendas.
+- [x] Integração de frete oficial (SuperFrete) com fallback regional e retirada na loja.
+- [x] Gateway de pagamento integrado (Mercado Pago Checkout Pro & PIX).
+- [x] Progressive Web App (PWA) habilitado com Service Worker e Manifesto.
+- [x] Responsividade mobile testada em múltiplos tamanhos de tela.
+- [x] Informações cadastrais oficiais (WhatsApp, Endereço, Horário e PIX) padronizadas.
+- [ ] Cadastro das fotos reais dos produtos em alta definição no painel admin.
+- [ ] Configuração do domínio personalizado final (.com.br) no Netlify.

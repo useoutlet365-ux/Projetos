@@ -2,7 +2,7 @@
 // OUTLET 365 — Service Worker (PWA)
 // =====================================================
 
-const CACHE_NAME = 'outlet365-v1.0.0';
+const CACHE_NAME = 'outlet365-v1.0.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,9 @@ const STATIC_ASSETS = [
   './js/admin.js',
   './js/pwa.js',
   './manifest.json',
+  './favicon.ico',
+  './image/favicon-16x16.png',
+  './image/favicon-32x32.png',
   './image/icon-192.png',
   './image/icon-512.png',
   './image/icon.svg',

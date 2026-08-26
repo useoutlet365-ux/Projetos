@@ -298,45 +298,177 @@ async function init() {
 }
 
 // ══════════════════════════════════════════
-// KPIs
+// DATE FILTER HELPERS
 // ══════════════════════════════════════════
-function renderKPIs() {
-  const totalRevenue = allStats.reduce((s, d) => s + (d.revenue || 0), 0);
-  const totalOrders = allOrders.length;
-  const totalVisitors = allStats.reduce((s, d) => s + (d.unique_visitors || 0), 0);
-  const totalCheckouts = allStats.reduce((s, d) => s + (d.checkouts || 0), 0);
-  const convRate = totalVisitors > 0 ? ((totalCheckouts / totalVisitors) * 100).toFixed(1) : '0.0';
-  document.getElementById('kpi-revenue').textContent = fmtCurrency(totalRevenue);
-  document.getElementById('kpi-orders').textContent = totalOrders;
-  document.getElementById('kpi-visitors').textContent = totalVisitors.toLocaleString('pt-BR');
-  document.getElementById('kpi-conversion').textContent = convRate + '%';
-  document.getElementById('kpi-rev-delta').innerHTML = `<i class="fas fa-arrow-up"></i> +18%`;
-  document.getElementById('kpi-ord-delta').innerHTML = `<i class="fas fa-arrow-up"></i> +3`;
+function isDateInPeriod(dateStr, period, customStart = null, customEnd = null) {
+  if (!dateStr) return false;
+  if (period === 'all') return true;
+
+  const d = new Date(dateStr);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const itemDateStr = d.toISOString().slice(0, 10);
+
+  if (period === 'today') {
+    return itemDateStr === todayStr;
+  }
+  if (period === 'yesterday') {
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    return itemDateStr === yest.toISOString().slice(0, 10);
+  }
+  if (period === '7d') {
+    const past7 = new Date(now);
+    past7.setDate(past7.getDate() - 7);
+    return d >= past7;
+  }
+  if (period === '30d') {
+    const past30 = new Date(now);
+    past30.setDate(past30.getDate() - 30);
+    return d >= past30;
+  }
+  if (period === 'month') {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+  if (period === 'last_month') {
+    const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    return d >= lastM && d <= lastMEnd;
+  }
+  if (period === 'custom') {
+    if (customStart && itemDateStr < customStart) return false;
+    if (customEnd && itemDateStr > customEnd) return false;
+    return true;
+  }
+  return true;
+}
+
+function fmtDateTime(str) {
+  if (!str) return '—';
+  try {
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
+           d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  } catch { return str; }
 }
 
 // ══════════════════════════════════════════
-// CHARTS — DASHBOARD
+// DASHBOARD
 // ══════════════════════════════════════════
+let currentDashPeriod = '7d';
+let revChartInstance = null;
+let engageChartInstance = null;
+
+function renderKPIs() {
+  const filteredOrders = allOrders.filter(o => {
+    if (o.status === 'cancelado') return false;
+    return isDateInPeriod(o.created_at, currentDashPeriod);
+  });
+
+  const totalRevenue = filteredOrders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const revOnline = filteredOrders.filter(o => o.channel !== 'pdv').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const revPdv = filteredOrders.filter(o => o.channel === 'pdv').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const totalOrders = filteredOrders.length;
+  const ticketMedio = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  const pendingCount = allOrders.filter(o => o.status === 'pendente' || o.status === 'confirmado').length;
+
+  let lowStockCount = 0;
+  allAdminProducts.forEach(p => {
+    const st = parseInt(p.stock) || 0;
+    if (st < 3) lowStockCount++;
+  });
+
+  const kpiRev = document.getElementById('kpi-revenue');
+  if (kpiRev) kpiRev.textContent = fmtCurrency(totalRevenue);
+
+  const kpiOnline = document.getElementById('kpi-rev-online');
+  if (kpiOnline) kpiOnline.textContent = fmtCurrency(revOnline);
+
+  const kpiPdv = document.getElementById('kpi-rev-pdv');
+  if (kpiPdv) kpiPdv.textContent = fmtCurrency(revPdv);
+
+  const kpiOrd = document.getElementById('kpi-orders');
+  if (kpiOrd) kpiOrd.textContent = totalOrders;
+
+  const kpiTicket = document.getElementById('kpi-ticket-sub');
+  if (kpiTicket) kpiTicket.innerHTML = `Ticket Médio: <strong>${fmtCurrency(ticketMedio)}</strong>`;
+
+  const kpiPending = document.getElementById('kpi-pending');
+  if (kpiPending) kpiPending.textContent = pendingCount;
+
+  const kpiLowStock = document.getElementById('kpi-low-stock');
+  if (kpiLowStock) kpiLowStock.textContent = lowStockCount;
+}
+
 function renderRevenueChart() {
-  const sorted = [...allStats].sort((a, b) => a.date > b.date ? 1 : -1);
   const ctx = document.getElementById('revenueChart');
   if (!ctx) return;
-  new Chart(ctx, {
+
+  if (revChartInstance) {
+    revChartInstance.destroy();
+    revChartInstance = null;
+  }
+
+  // Agrupa pedidos válidos por data de acordo com o período
+  const dailyMap = {};
+  const orders = allOrders.filter(o => o.status !== 'cancelado' && isDateInPeriod(o.created_at, currentDashPeriod));
+
+  // Inicializa últimos 7 ou 30 dias para não ficar vazio
+  if (currentDashPeriod === '7d' || currentDashPeriod === '30d') {
+    const days = currentDashPeriod === '7d' ? 7 : 30;
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      dailyMap[ds] = 0;
+    }
+  }
+
+  orders.forEach(o => {
+    const ds = o.created_at ? o.created_at.slice(0, 10) : '';
+    if (ds) dailyMap[ds] = (dailyMap[ds] || 0) + parseFloat(o.total || 0);
+  });
+
+  const sortedDates = Object.keys(dailyMap).sort();
+  const labels = sortedDates.map(d => fmtDate(d));
+  const data = sortedDates.map(d => dailyMap[d]);
+
+  revChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: sorted.map(d => fmtDate(d.date)),
+      labels: labels.length ? labels : ['Sem dados'],
       datasets: [{
-        label: 'Receita (R$)', data: sorted.map(d => d.revenue || 0),
-        borderColor: '#080ce6', backgroundColor: 'rgba(8,12,230,.1)',
-        borderWidth: 2.5, fill: true, tension: 0.4,
-        pointBackgroundColor: '#080ce6', pointRadius: 4,
+        label: 'Vendas (R$)',
+        data: data.length ? data : [0],
+        borderColor: '#080ce6',
+        backgroundColor: 'rgba(8,12,230,.12)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: '#080ce6',
+        pointRadius: 4,
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `Vendas: ${fmtCurrency(ctx.raw)}`
+          }
+        }
+      },
       scales: {
-        y: { beginAtZero: true, ticks: { callback: v => 'R$' + (v / 1000).toFixed(1) + 'k', font: { size: 11 } }, grid: { color: '#f3f4f6' } },
+        y: {
+          beginAtZero: true,
+          ticks: { callback: v => fmtCurrency(v), font: { size: 11 } },
+          grid: { color: '#f3f4f6' }
+        },
         x: { ticks: { font: { size: 11 } }, grid: { display: false } }
       }
     }
@@ -346,80 +478,209 @@ function renderRevenueChart() {
 function renderEngageChart() {
   const ctx = document.getElementById('engageChart');
   if (!ctx) return;
-  const tv = allStats.reduce((s, d) => s + (d.page_views || 0), 0);
-  const tc = allStats.reduce((s, d) => s + (d.cart_adds || 0), 0);
-  const tco = allStats.reduce((s, d) => s + (d.checkouts || 0), 0);
-  new Chart(ctx, {
+
+  if (engageChartInstance) {
+    engageChartInstance.destroy();
+    engageChartInstance = null;
+  }
+
+  const filteredOrders = allOrders.filter(o => o.status !== 'cancelado' && isDateInPeriod(o.created_at, currentDashPeriod));
+  const onlineCount = filteredOrders.filter(o => o.channel !== 'pdv').length;
+  const pdvCount = filteredOrders.filter(o => o.channel === 'pdv').length;
+
+  engageChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Visualizações', 'Carrinhos', 'Checkouts'],
-      datasets: [{ data: [tv, tc, tco], backgroundColor: ['#080ce6', '#3b82f6', '#f59e0b'], borderWidth: 0, hoverOffset: 6 }]
+      labels: ['Loja Online', 'Balcão / PDV'],
+      datasets: [{
+        data: [onlineCount || 0, pdvCount || 0],
+        backgroundColor: ['#2563eb', '#f59e0b'],
+        borderWidth: 0,
+        hoverOffset: 6
+      }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.raw} vendas`
+          }
+        }
+      },
       cutout: '65%'
     }
   });
 }
 
-// ══════════════════════════════════════════
-// RECENT ORDERS & TOP PRODUCTS (dashboard)
-// ══════════════════════════════════════════
 function renderRecentOrders() {
   const tbody = document.getElementById('recentOrdersBody');
   if (!tbody) return;
-  tbody.innerHTML = [...allOrders].slice(-5).reverse().map(o => `
-    <tr>
-      <td><span class="fw-700">${o.customer_name}</span></td>
-      <td>${o.city}/${o.state}</td>
-      <td class="fw-700 text-green">${fmtCurrency(o.total)}</td>
-      <td><span class="order-status ${o.status}">${o.status}</span></td>
-    </tr>
-  `).join('') || '<tr><td colspan="4" style="text-align:center;color:#9ca3af;">Sem pedidos</td></tr>';
+
+  const recents = [...allOrders].slice(-6).reverse();
+  tbody.innerHTML = recents.map(o => {
+    const isPdv = o.channel === 'pdv';
+    const channelBadge = isPdv
+      ? `<span class="badge-channel pdv"><i class="fas fa-cash-register"></i> PDV</span>`
+      : `<span class="badge-channel online"><i class="fas fa-globe"></i> Online</span>`;
+
+    return `
+      <tr>
+        <td>${channelBadge}</td>
+        <td><span class="fw-700">${o.customer_name || 'Cliente'}</span></td>
+        <td>${o.city || '—'}/${o.state || '—'}</td>
+        <td class="fw-700 text-green">${fmtCurrency(o.total)}</td>
+        <td><span class="order-status ${o.status || 'pendente'}">${o.status || 'pendente'}</span></td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:1.5rem;">Nenhum pedido recente.</td></tr>';
 }
 
 function renderTopProducts() {
   const el = document.getElementById('topProductsList');
   if (!el) return;
+
   const counts = {};
+  const revenueByProd = {};
+
   allOrders.forEach(o => {
-    try { JSON.parse(o.items_json || '[]').forEach(item => { counts[item.name] = (counts[item.name] || 0) + (item.qty || 1); }); } catch { }
+    if (o.status === 'cancelado') return;
+    try {
+      JSON.parse(o.items_json || '[]').forEach(item => {
+        const name = item.name || 'Produto';
+        const qty = parseInt(item.qty) || 1;
+        const pr = parseFloat(item.price) || 0;
+        counts[name] = (counts[name] || 0) + qty;
+        revenueByProd[name] = (revenueByProd[name] || 0) + (pr * qty);
+      });
+    } catch { }
   });
+
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const max = sorted[0]?.[1] || 1;
+
   el.innerHTML = sorted.map(([name, qty], i) => `
     <div style="margin-bottom:.85rem;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;">
-        <span style="font-size:.82rem;font-weight:600;">${i + 1}. ${name}</span>
-        <span style="font-size:.78rem;color:var(--adm-muted);">${qty} vend${qty !== 1 ? 'idos' : 'ido'}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem;">
+        <span style="font-size:.82rem;font-weight:700;color:var(--adm-text);">${i + 1}. ${name}</span>
+        <span style="font-size:.78rem;font-weight:700;color:var(--adm-green);">${fmtCurrency(revenueByProd[name] || 0)} <small style="font-weight:500;color:var(--adm-muted);">(${qty} un)</small></span>
       </div>
       <div style="height:6px;background:#f3f4f6;border-radius:50px;overflow:hidden;">
         <div style="height:100%;width:${(qty / max * 100).toFixed(0)}%;background:var(--adm-green);border-radius:50px;transition:width .6s;"></div>
       </div>
     </div>
-  `).join('') || '<p style="color:#9ca3af;font-size:.85rem;">Sem dados de vendas ainda.</p>';
+  `).join('') || '<p style="color:#9ca3af;font-size:.85rem;padding:.75rem 0;">Sem dados de vendas ainda.</p>';
 }
+
+document.getElementById('dashPeriodSelect')?.addEventListener('change', (e) => {
+  currentDashPeriod = e.target.value;
+  renderKPIs();
+  renderRevenueChart();
+  renderEngageChart();
+});
 
 // ══════════════════════════════════════════
 // FINANCEIRO
 // ══════════════════════════════════════════
+let currentFinPeriod = 'month';
+let finChartInstance = null;
+
 function renderFinanceiro() {
-  const sorted = [...allStats].sort((a, b) => a.date > b.date ? 1 : -1);
-  const totalRev = sorted.reduce((s, d) => s + (d.revenue || 0), 0);
-  const totalCO = allOrders.length;
-  const ticket = totalCO > 0 ? totalRev / totalCO : 0;
-  const bestDay = sorted.reduce((best, d) => d.revenue > (best?.revenue || 0) ? d : best, null);
+  const filteredOrders = allOrders.filter(o => {
+    if (o.status === 'cancelado') return false;
+    return isDateInPeriod(o.created_at, currentFinPeriod);
+  });
+
+  const totalRev = filteredOrders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const totalOrders = filteredOrders.length;
+  const ticket = totalOrders > 0 ? totalRev / totalOrders : 0;
+
+  // Encontrar melhor dia no período
+  const revByDate = {};
+  filteredOrders.forEach(o => {
+    const ds = o.created_at ? o.created_at.slice(0, 10) : '';
+    if (ds) revByDate[ds] = (revByDate[ds] || 0) + parseFloat(o.total || 0);
+  });
+
+  let bestDayDate = '—';
+  let bestDayVal = 0;
+  Object.entries(revByDate).forEach(([ds, val]) => {
+    if (val > bestDayVal) {
+      bestDayVal = val;
+      bestDayDate = fmtDate(ds);
+    }
+  });
 
   document.getElementById('fin-total').textContent = fmtCurrency(totalRev);
-  document.getElementById('fin-total-orders').textContent = `${totalCO} pedidos no período`;
+  document.getElementById('fin-total-orders').textContent = `${totalOrders} pedidos no período`;
   document.getElementById('fin-ticket').textContent = fmtCurrency(ticket);
-  document.getElementById('fin-best-day').textContent = fmtCurrency(bestDay?.revenue || 0);
-  document.getElementById('fin-best-date').textContent = bestDay ? fmtDate(bestDay.date) : '—';
+  document.getElementById('fin-best-day').textContent = fmtCurrency(bestDayVal);
+  document.getElementById('fin-best-date').textContent = bestDayDate !== '—' ? `Recorde em ${bestDayDate}` : '—';
 
+  // Formas de Pagamento
+  let pixTotal = 0, creditTotal = 0, debitTotal = 0, cashTotal = 0;
+  filteredOrders.forEach(o => {
+    const m = (o.payment_method || '').toLowerCase();
+    const val = parseFloat(o.total || 0);
+    if (m.includes('pix')) pixTotal += val;
+    else if (m.includes('crédito') || m.includes('credito') || m.includes('credit')) creditTotal += val;
+    else if (m.includes('débito') || m.includes('debito') || m.includes('debit')) debitTotal += val;
+    else if (m.includes('dinheiro') || m.includes('cash') || m.includes('espécie')) cashTotal += val;
+    else creditTotal += val; // Fallback
+  });
+
+  document.getElementById('fin-pay-pix').textContent = fmtCurrency(pixTotal);
+  document.getElementById('fin-pay-credit').textContent = fmtCurrency(creditTotal);
+  document.getElementById('fin-pay-debit').textContent = fmtCurrency(debitTotal);
+  document.getElementById('fin-pay-cash').textContent = fmtCurrency(cashTotal);
+
+  // Gráfico de barras financeiro
+  const sortedDates = Object.keys(revByDate).sort();
+  const ctx = document.getElementById('finBarChart');
+  if (ctx) {
+    if (finChartInstance) {
+      finChartInstance.destroy();
+      finChartInstance = null;
+    }
+    finChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: sortedDates.map(d => fmtDate(d)),
+        datasets: [{
+          label: 'Receita (R$)',
+          data: sortedDates.map(d => revByDate[d]),
+          backgroundColor: '#080ce6',
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: (c) => `Receita: ${fmtCurrency(c.raw)}` }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => fmtCurrency(v), font: { size: 11 } }, grid: { color: '#f3f4f6' } },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Tabela Extrato
   const tbody = document.getElementById('statsTableBody');
+  const countEl = document.getElementById('statsTableCount');
   if (tbody) {
-    tbody.innerHTML = sorted.map(d => `
+    const statsFiltered = allStats.filter(s => isDateInPeriod(s.date, currentFinPeriod));
+    if (countEl) countEl.textContent = `${statsFiltered.length} registros`;
+
+    tbody.innerHTML = statsFiltered.map(d => `
       <tr>
         <td class="fw-700">${fmtDate(d.date)}</td>
         <td>${d.page_views || 0}</td>
@@ -428,165 +689,576 @@ function renderFinanceiro() {
         <td>${d.checkouts || 0}</td>
         <td class="fw-700 text-green">${fmtCurrency(d.revenue)}</td>
       </tr>
-    `).join('');
+    `).join('') || '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#9ca3af;">Nenhum registro para o período.</td></tr>';
   }
-
-  const cityEl = document.getElementById('cityList');
-  if (cityEl) {
-    const cities = {};
-    allOrders.forEach(o => { const k = `${o.city}/${o.state}`; cities[k] = (cities[k] || 0) + 1; });
-    const sorted2 = Object.entries(cities).sort((a, b) => b[1] - a[1]);
-    const max2 = sorted2[0]?.[1] || 1;
-    cityEl.innerHTML = sorted2.map(([city, count]) => `
-      <div style="margin-bottom:.75rem;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;">
-          <span style="font-size:.82rem;font-weight:600;">${city}</span>
-          <span style="font-size:.78rem;color:var(--adm-muted);">${count} ped${count !== 1 ? 'idos' : 'ido'}</span>
-        </div>
-        <div style="height:5px;background:#f3f4f6;border-radius:50px;overflow:hidden;">
-          <div style="height:100%;width:${(count / max2 * 100).toFixed(0)}%;background:#7c3aed;border-radius:50px;"></div>
-        </div>
-      </div>
-    `).join('') || '<p style="color:#9ca3af;font-size:.85rem;">Sem dados ainda.</p>';
-  }
-
-  setTimeout(() => {
-    const ctx = document.getElementById('finBarChart');
-    if (!ctx || ctx._chartInstance) return;
-    ctx._chartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: sorted.map(d => fmtDate(d.date)),
-        datasets: [{
-          label: 'Receita (R$)', data: sorted.map(d => d.revenue || 0),
-          backgroundColor: sorted.map((_, i) => i === sorted.length - 1 ? 'rgba(8,12,230,.4)' : '#080ce6'),
-          borderRadius: 6, borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR'), font: { size: 11 } }, grid: { color: '#f3f4f6' } },
-          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
-        }
-      }
-    });
-
-    const ctx2 = document.getElementById('funnelChart');
-    if (!ctx2 || ctx2._chartInstance) return;
-    ctx2._chartInstance = new Chart(ctx2, {
-      type: 'bar',
-      data: {
-        labels: ['Visitantes', 'Adicionaram ao Carrinho', 'Checkout'],
-        datasets: [{
-          data: [
-            sorted.reduce((s, d) => s + (d.unique_visitors || 0), 0),
-            sorted.reduce((s, d) => s + (d.cart_adds || 0), 0),
-            sorted.reduce((s, d) => s + (d.checkouts || 0), 0)
-          ],
-          backgroundColor: ['#3b82f6', '#f59e0b', '#080ce6'],
-          borderRadius: 6, borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 } } },
-          y: { ticks: { font: { size: 11 } }, grid: { display: false } }
-        }
-      }
-    });
-  }, 200);
 }
 
+document.getElementById('finPeriodSelect')?.addEventListener('change', (e) => {
+  currentFinPeriod = e.target.value;
+  renderFinanceiro();
+});
+
+// Exportação CSV do Financeiro
+document.getElementById('btnExportFinanceCsv')?.addEventListener('click', () => {
+  const statsFiltered = allStats.filter(s => isDateInPeriod(s.date, currentFinPeriod));
+  if (!statsFiltered.length) {
+    admToast('Nenhum dado financeiro para exportar no período.', 'info');
+    return;
+  }
+
+  const headers = ['Data', 'Visualizacoes', 'Visitantes_Unicos', 'Adicoes_Carrinho', 'Checkouts', 'Receita_Total_BRL'];
+  const rows = statsFiltered.map(s => [
+    s.date,
+    s.page_views || 0,
+    s.unique_visitors || 0,
+    s.cart_adds || 0,
+    s.checkouts || 0,
+    (s.revenue || 0).toFixed(2).replace('.', ',')
+  ]);
+
+  downloadCsv('extrato_financeiro_outlet365.csv', headers, rows);
+  admToast('Extrato financeiro exportado com sucesso!');
+});
+
+// Impressão / PDF do Relatório Financeiro
+document.getElementById('btnPrintFinanceReport')?.addEventListener('click', () => {
+  window.print();
+});
+
 // ══════════════════════════════════════════
-// ORDERS TABLE
+// ORDERS TABLE & ADVANCED MULTI-FILTER ENGINE
 // ══════════════════════════════════════════
-function renderOrdersTable(filter = '') {
+const orderFilterState = {
+  search: '',
+  status: '',
+  period: 'all',
+  startDate: '',
+  endDate: '',
+  payment: '',
+  channel: ''
+};
+
+let currentModalOrderId = null;
+
+function getFilteredOrders() {
+  return allOrders.filter(o => {
+    // 1. Busca textual (nome, telefone, email, id, cidade, cep)
+    if (orderFilterState.search) {
+      const q = orderFilterState.search.toLowerCase().trim();
+      const idMatch = (o.id || '').toLowerCase().includes(q);
+      const nameMatch = (o.customer_name || '').toLowerCase().includes(q);
+      const phoneMatch = (o.customer_phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '')) || (o.customer_phone || '').toLowerCase().includes(q);
+      const emailMatch = (o.customer_email || '').toLowerCase().includes(q);
+      const cityMatch = (o.city || '').toLowerCase().includes(q);
+      const cepMatch = (o.cep || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''));
+      if (!idMatch && !nameMatch && !phoneMatch && !emailMatch && !cityMatch && !cepMatch) return false;
+    }
+
+    // 2. Status
+    if (orderFilterState.status && (o.status || '').toLowerCase() !== orderFilterState.status.toLowerCase()) {
+      return false;
+    }
+
+    // 3. Período / Datas
+    if (!isDateInPeriod(o.created_at, orderFilterState.period, orderFilterState.startDate, orderFilterState.endDate)) {
+      return false;
+    }
+
+    // 4. Forma de Pagamento
+    if (orderFilterState.payment) {
+      const pay = (o.payment_method || '').toLowerCase();
+      if (!pay.includes(orderFilterState.payment.toLowerCase())) return false;
+    }
+
+    // 5. Canal / Origem
+    if (orderFilterState.channel) {
+      if (orderFilterState.channel === 'pdv' && o.channel !== 'pdv') return false;
+      if (orderFilterState.channel === 'online' && o.channel === 'pdv') return false;
+    }
+
+    return true;
+  });
+}
+
+function renderOrdersTable() {
   const tbody = document.getElementById('ordersTableBody');
   if (!tbody) return;
-  let orders = [...allOrders].reverse();
-  if (filter) orders = orders.filter(o => o.status === filter);
-  tbody.innerHTML = orders.map(o => {
+
+  const filtered = getFilteredOrders();
+  const sorted = [...filtered].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+
+  // Atualizar Mini-KPIs
+  const totalVal = sorted.filter(o => o.status !== 'cancelado').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+  const countVal = sorted.length;
+  const ticketVal = countVal > 0 ? totalVal / (sorted.filter(o => o.status !== 'cancelado').length || 1) : 0;
+  const pendingVal = sorted.filter(o => o.status === 'pendente' || o.status === 'confirmado').length;
+
+  document.getElementById('ordKpiCount').textContent = countVal;
+  document.getElementById('ordKpiTotal').textContent = fmtCurrency(totalVal);
+  document.getElementById('ordKpiTicket').textContent = fmtCurrency(ticketVal);
+  document.getElementById('ordKpiPending').textContent = pendingVal;
+
+  const countText = document.getElementById('orderFilterCountText');
+  if (countText) {
+    countText.textContent = `Exibindo ${sorted.length} de ${allOrders.length} pedido${allOrders.length !== 1 ? 's' : ''}`;
+  }
+
+  tbody.innerHTML = sorted.map(o => {
     let items = [];
     try { items = JSON.parse(o.items_json || '[]'); } catch { }
+
+    const isPdv = o.channel === 'pdv';
+    const channelBadge = isPdv
+      ? `<span class="badge-channel pdv"><i class="fas fa-cash-register"></i> Balcão</span>`
+      : `<span class="badge-channel online"><i class="fas fa-globe"></i> Online</span>`;
+
+    const payMethod = o.payment_method || 'PIX';
+    let payIcon = 'fas fa-bolt';
+    if (payMethod.toLowerCase().includes('crédito') || payMethod.toLowerCase().includes('credito')) payIcon = 'fas fa-credit-card';
+    else if (payMethod.toLowerCase().includes('débito') || payMethod.toLowerCase().includes('debito')) payIcon = 'far fa-credit-card';
+    else if (payMethod.toLowerCase().includes('dinheiro')) payIcon = 'fas fa-money-bill-wave';
+    else if (payMethod.toLowerCase().includes('boleto')) payIcon = 'fas fa-barcode';
+
     return `
       <tr>
-        <td><span class="fw-700" style="font-size:.75rem;color:var(--adm-muted);">#${(o.id || '').slice(-4).toUpperCase()}</span></td>
         <td>
-          <div class="fw-700" style="font-size:.85rem;">${o.customer_name}</div>
+          <div class="fw-700" style="font-size:.82rem;color:var(--adm-text);">#${(o.id || '').slice(-6).toUpperCase()}</div>
+          <div style="font-size:.72rem;color:var(--adm-muted);">${fmtDateTime(o.created_at)}</div>
+        </td>
+        <td>${channelBadge}</td>
+        <td>
+          <div class="fw-700" style="font-size:.84rem;">${o.customer_name || 'Cliente Balcão'}</div>
           <div style="font-size:.73rem;color:var(--adm-muted);">${o.customer_phone || '—'}</div>
         </td>
-        <td>${o.city}/${o.state}</td>
-        <td style="font-size:.78rem;">${items.length} item${items.length !== 1 ? 's' : ''}</td>
+        <td>${o.city ? `${o.city}/${o.state || 'CE'}` : 'Madalena/CE'}</td>
+        <td style="font-size:.78rem;">
+          <strong>${items.reduce((s, x) => s + (parseInt(x.qty) || 1), 0)}</strong> un
+          <span style="color:var(--adm-muted);font-size:.72rem;">(${items.length} item${items.length !== 1 ? 's' : ''})</span>
+        </td>
         <td class="fw-700 text-green">${fmtCurrency(o.total)}</td>
-        <td style="font-size:.8rem;">${o.payment_method || '—'}</td>
         <td>
-          <select class="status-select" data-id="${o.id}" style="padding:.3rem .5rem;border:1.5px solid var(--adm-border);border-radius:6px;font-size:.74rem;font-weight:700;background:#fff;cursor:pointer;" onchange="changeOrderStatus(this)">
-            ${['pendente', 'confirmado', 'enviado', 'entregue', 'cancelado'].map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-          </select>
+          <span class="badge-pay"><i class="${payIcon}"></i> ${payMethod}</span>
         </td>
         <td>
-          <button class="adm-btn-sm adm-btn-edit" style="width:auto;padding:.4rem .65rem;" onclick="viewOrder('${o.id}')">
+          <select class="status-select" data-id="${o.id}" style="padding:.32rem .55rem;border:1.5px solid var(--adm-border);border-radius:6px;font-size:.74rem;font-weight:700;background:#fff;cursor:pointer;" onchange="changeOrderStatus(this)">
+            ${['pendente', 'confirmado', 'enviado', 'entregue', 'cancelado'].map(s => `
+              <option value="${s}" ${o.status === s ? 'selected' : ''}>
+                ${s === 'pendente' ? '⏳ Pendente' : s === 'confirmado' ? '✅ Confirmado' : s === 'enviado' ? '📦 Enviado' : s === 'entregue' ? '🎉 Entregue' : '❌ Cancelado'}
+              </option>
+            `).join('')}
+          </select>
+        </td>
+        <td style="text-align:center;white-space:nowrap;">
+          <button class="adm-btn-sm adm-btn-edit" style="width:auto;padding:.4rem .65rem;" onclick="viewOrder('${o.id}')" title="Ver Detalhes">
             <i class="fas fa-eye"></i>
+          </button>
+          <button class="adm-btn-sm" style="width:auto;padding:.4rem .65rem;background:#25D366;color:#fff;border:none;" onclick="quickNotifyWhatsApp('${o.id}')" title="Notificar WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+          </button>
+          <button class="adm-btn-sm adm-btn-secondary" style="width:auto;padding:.4rem .65rem;" onclick="printOrderReceipt('${o.id}')" title="Imprimir Comprovante">
+            <i class="fas fa-print"></i>
           </button>
         </td>
       </tr>
     `;
-  }).join('') || '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#9ca3af;">Nenhum pedido encontrado.</td></tr>';
+  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:2.5rem;color:#9ca3af;">Nenhum pedido encontrado com os filtros selecionados.</td></tr>';
 }
 
-document.getElementById('statusFilter')?.addEventListener('change', e => renderOrdersTable(e.target.value));
+// Eventos de Filtro dos Pedidos
+document.getElementById('orderSearchInput')?.addEventListener('input', (e) => {
+  orderFilterState.search = e.target.value;
+  renderOrdersTable();
+});
 
+document.getElementById('orderStatusFilter')?.addEventListener('change', (e) => {
+  orderFilterState.status = e.target.value;
+  renderOrdersTable();
+});
+
+document.getElementById('orderPeriodFilter')?.addEventListener('change', (e) => {
+  orderFilterState.period = e.target.value;
+  const customRow = document.getElementById('orderCustomDateRow');
+  if (customRow) {
+    customRow.style.display = e.target.value === 'custom' ? 'grid' : 'none';
+  }
+  renderOrdersTable();
+});
+
+document.getElementById('orderStartDate')?.addEventListener('change', (e) => {
+  orderFilterState.startDate = e.target.value;
+  renderOrdersTable();
+});
+
+document.getElementById('orderEndDate')?.addEventListener('change', (e) => {
+  orderFilterState.endDate = e.target.value;
+  renderOrdersTable();
+});
+
+document.getElementById('orderPaymentFilter')?.addEventListener('change', (e) => {
+  orderFilterState.payment = e.target.value;
+  renderOrdersTable();
+});
+
+document.getElementById('orderChannelFilter')?.addEventListener('change', (e) => {
+  orderFilterState.channel = e.target.value;
+  renderOrdersTable();
+});
+
+document.getElementById('btnClearOrderFilters')?.addEventListener('click', () => {
+  orderFilterState.search = '';
+  orderFilterState.status = '';
+  orderFilterState.period = 'all';
+  orderFilterState.startDate = '';
+  orderFilterState.endDate = '';
+  orderFilterState.payment = '';
+  orderFilterState.channel = '';
+
+  const searchInput = document.getElementById('orderSearchInput');
+  if (searchInput) searchInput.value = '';
+  const statusSelect = document.getElementById('orderStatusFilter');
+  if (statusSelect) statusSelect.value = '';
+  const periodSelect = document.getElementById('orderPeriodFilter');
+  if (periodSelect) periodSelect.value = 'all';
+  const paySelect = document.getElementById('orderPaymentFilter');
+  if (paySelect) paySelect.value = '';
+  const channelSelect = document.getElementById('orderChannelFilter');
+  if (channelSelect) channelSelect.value = '';
+
+  const customRow = document.getElementById('orderCustomDateRow');
+  if (customRow) customRow.style.display = 'none';
+
+  renderOrdersTable();
+  admToast('Filtros limpos com sucesso!', 'info');
+});
+
+// Atualização de Status
 async function changeOrderStatus(sel) {
-  const { id, value: status } = sel.dataset;
   const selId = sel.dataset.id;
+  const status = sel.value;
   await updateRecord('orders', selId, { status });
   const ord = allOrders.find(o => o.id === selId);
   if (ord) ord.status = status;
-  admToast(`Status atualizado para "${status}"`);
+  renderOrdersTable();
+  renderKPIs();
+  admToast(`Status do pedido #${selId.slice(-4).toUpperCase()} alterado para "${status}"!`);
 }
 
+// ══════════════════════════════════════════
+// EXPORTAÇÃO CSV & PDF DE PEDIDOS
+// ══════════════════════════════════════════
+function downloadCsv(filename, headers, rows) {
+  // UTF-8 BOM para garantir acentos corretos no Excel
+  const bom = '\uFEFF';
+  const csvContent = [
+    headers.join(';'),
+    ...rows.map(row => row.map(cell => {
+      const str = String(cell ?? '').replace(/"/g, '""');
+      return `"${str}"`;
+    }).join(';'))
+  ].join('\r\n');
+
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+document.getElementById('btnExportOrdersCsv')?.addEventListener('click', () => {
+  const filtered = getFilteredOrders();
+  if (!filtered.length) {
+    admToast('Nenhum pedido para exportar com os filtros atuais.', 'info');
+    return;
+  }
+
+  const headers = [
+    'ID_Pedido', 'Data_Hora', 'Canal_Origem', 'Cliente_Nome', 'WhatsApp', 'Email',
+    'Cidade', 'UF', 'CEP', 'Forma_Pagamento', 'Status', 'Qtd_Itens', 'Itens_Detalhados',
+    'Subtotal_BRL', 'Frete_BRL', 'Total_BRL', 'Codigo_Rastreio', 'Observacoes'
+  ];
+
+  const rows = filtered.map(o => {
+    let itemsStr = '';
+    let totalQty = 0;
+    try {
+      const items = JSON.parse(o.items_json || '[]');
+      itemsStr = items.map(i => `${i.name} (Tam: ${i.size}, Qtd: ${i.qty}, R$ ${i.price})`).join(' | ');
+      totalQty = items.reduce((s, x) => s + (parseInt(x.qty) || 1), 0);
+    } catch { }
+
+    return [
+      o.id,
+      fmtDateTime(o.created_at),
+      o.channel === 'pdv' ? 'Balcao / PDV' : 'Loja Online',
+      o.customer_name || 'Cliente Balcao',
+      o.customer_phone || '',
+      o.customer_email || '',
+      o.city || 'Madalena',
+      o.state || 'CE',
+      o.cep || '',
+      o.payment_method || 'PIX',
+      o.status || 'pendente',
+      totalQty,
+      itemsStr,
+      (parseFloat(o.subtotal) || 0).toFixed(2).replace('.', ','),
+      (parseFloat(o.shipping) || 0).toFixed(2).replace('.', ','),
+      (parseFloat(o.total) || 0).toFixed(2).replace('.', ','),
+      o.tracking_code || '',
+      o.notes || ''
+    ];
+  });
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  downloadCsv(`pedidos_outlet365_${dateStr}.csv`, headers, rows);
+  admToast(`Exportados ${filtered.length} pedidos em planilha Excel/CSV!`);
+});
+
+document.getElementById('btnPrintOrdersReport')?.addEventListener('click', () => {
+  window.print();
+});
+
+// ══════════════════════════════════════════
+// MODAL DE DETALHES DO PEDIDO
+// ══════════════════════════════════════════
 function viewOrder(id) {
   const o = allOrders.find(x => x.id === id);
   if (!o) return;
+  currentModalOrderId = id;
+
   let items = [];
   try { items = JSON.parse(o.items_json || '[]'); } catch { }
+
+  const isPdv = o.channel === 'pdv';
+
   document.getElementById('orderModalBody').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
-      <div>
-        <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">Cliente</p>
-        <p class="fw-700">${o.customer_name}</p>
-        <p style="font-size:.82rem;">${o.customer_phone || '—'}</p>
-        <p style="font-size:.82rem;">${o.customer_email || '—'}</p>
-      </div>
-      <div>
-        <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">Entrega</p>
-        <p class="fw-700">${o.city}/${o.state}</p>
-        <p style="font-size:.82rem;">Pagamento: ${o.payment_method || '—'}</p>
-      </div>
-    </div>
-    <hr style="border:none;border-top:1px solid var(--adm-border);margin:1rem 0;"/>
-    <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">Itens do Pedido</p>
-    ${items.map(item => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid #f3f4f6;">
-        <div>
-          <span class="fw-700" style="font-size:.88rem;">${item.name}</span>
-          <span style="font-size:.78rem;color:var(--adm-muted);margin-left:.5rem;">Tam: ${item.size} · Qtd: ${item.qty}</span>
+    <div class="order-detail-grid" style="margin-bottom:1rem;">
+      <div class="order-box-section">
+        <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">
+          <i class="fas fa-user" style="color:var(--adm-blue);"></i> Dados do Cliente
+        </p>
+        <p class="fw-700" style="font-size:.95rem;">${o.customer_name || 'Cliente Balcão'}</p>
+        <p style="font-size:.82rem;color:var(--adm-muted);"><i class="fas fa-phone-alt" style="font-size:.75rem;"></i> ${o.customer_phone || 'Não informado'}</p>
+        <p style="font-size:.82rem;color:var(--adm-muted);"><i class="fas fa-envelope" style="font-size:.75rem;"></i> ${o.customer_email || 'Não informado'}</p>
+        <div style="margin-top:.4rem;">
+          <span class="badge-channel ${isPdv ? 'pdv' : 'online'}">${isPdv ? '🏬 Balcão / Loja Física' : '🌐 Loja Online (Site)'}</span>
         </div>
-        <span class="fw-700 text-green">${fmtCurrency(item.price * item.qty)}</span>
       </div>
-    `).join('')}
-    <div style="margin-top:1rem;text-align:right;">
-      <div style="font-size:.82rem;color:var(--adm-muted);">Subtotal: ${fmtCurrency(o.subtotal)}</div>
-      <div style="font-size:.82rem;color:var(--adm-muted);">Frete: ${o.shipping > 0 ? fmtCurrency(o.shipping) : 'Grátis'}</div>
-      <div class="fw-700" style="font-size:1.1rem;color:var(--adm-green);margin-top:.25rem;">Total: ${fmtCurrency(o.total)}</div>
+
+      <div class="order-box-section">
+        <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">
+          <i class="fas fa-truck" style="color:var(--adm-yellow);"></i> Entrega & Pagamento
+        </p>
+        <p class="fw-700" style="font-size:.85rem;">${o.city || 'Madalena'}/${o.state || 'CE'}</p>
+        <p style="font-size:.82rem;color:var(--adm-muted);">Forma: <strong>${o.payment_method || 'PIX'}</strong></p>
+        <p style="font-size:.82rem;color:var(--adm-muted);">Data: ${fmtDateTime(o.created_at)}</p>
+
+        <!-- Código de Rastreio -->
+        <div style="margin-top:.5rem;">
+          <label style="font-size:.72rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;">Código de Rastreio</label>
+          <div class="order-tracking-input-group">
+            <input type="text" id="modalTrackingCode" placeholder="Ex: BR123456789CE" value="${o.tracking_code || ''}" />
+            <button class="adm-btn adm-btn-secondary" style="padding:.35rem .65rem;font-size:.75rem;" onclick="saveTrackingCode('${o.id}')" title="Salvar Rastreio">Salvar</button>
+          </div>
+        </div>
+      </div>
     </div>
-    ${o.notes ? `<div style="margin-top:.75rem;padding:.65rem;background:#fef9ec;border-radius:6px;font-size:.82rem;"><i class="fas fa-sticky-note" style="color:var(--adm-yellow);margin-right:.35rem;"></i>${o.notes}</div>` : ''}
+
+    <!-- Status do Pedido Selector -->
+    <div style="background:#fff;border:1.5px solid var(--adm-border);border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">
+      <label style="font-size:.82rem;font-weight:700;">Status Atual:</label>
+      <select id="modalStatusSelect" style="padding:.4rem .8rem;border:1.5px solid var(--adm-border);border-radius:6px;font-weight:700;background:#fff;font-size:.85rem;">
+        <option value="pendente" ${o.status === 'pendente' ? 'selected' : ''}>⏳ Pendente</option>
+        <option value="confirmado" ${o.status === 'confirmado' ? 'selected' : ''}>✅ Confirmado / Pago</option>
+        <option value="enviado" ${o.status === 'enviado' ? 'selected' : ''}>📦 Enviado / Em trânsito</option>
+        <option value="entregue" ${o.status === 'entregue' ? 'selected' : ''}>🎉 Entregue</option>
+        <option value="cancelado" ${o.status === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
+      </select>
+    </div>
+
+    <!-- Itens do Pedido -->
+    <div style="background:#fff;border:1px solid var(--adm-border);border-radius:8px;padding:1rem;">
+      <p style="font-size:.72rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">
+        <i class="fas fa-tshirt" style="color:var(--adm-green);"></i> Itens Comprados (${items.length})
+      </p>
+      ${items.map(item => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid #f3f4f6;">
+          <div>
+            <span class="fw-700" style="font-size:.88rem;color:var(--adm-text);">${item.name}</span>
+            <div style="font-size:.76rem;color:var(--adm-muted);">Tamanho: <strong>${item.size || 'Único'}</strong> · Quantidade: <strong>${item.qty || 1}</strong></div>
+          </div>
+          <span class="fw-700 text-green" style="font-size:.9rem;">${fmtCurrency((parseFloat(item.price) || 0) * (parseInt(item.qty) || 1))}</span>
+        </div>
+      `).join('')}
+
+      <div style="margin-top:.85rem;text-align:right;">
+        <div style="font-size:.82rem;color:var(--adm-muted);">Subtotal: ${fmtCurrency(o.subtotal || o.total)}</div>
+        ${o.shipping > 0 ? `<div style="font-size:.82rem;color:var(--adm-muted);">Frete: ${fmtCurrency(o.shipping)}</div>` : ''}
+        <div class="fw-700" style="font-size:1.2rem;color:var(--adm-green);margin-top:.3rem;">Total: ${fmtCurrency(o.total)}</div>
+      </div>
+    </div>
+
+    ${o.notes ? `
+      <div style="margin-top:.75rem;padding:.75rem;background:#fef9ec;border:1px solid #fef08a;border-radius:6px;font-size:.82rem;color:#854d0e;">
+        <i class="fas fa-sticky-note" style="margin-right:.35rem;"></i><strong>Obs:</strong> ${o.notes}
+      </div>
+    ` : ''}
   `;
+
+  // Configura botões do footer do modal
+  const updateBtn = document.getElementById('updateStatusBtn');
+  if (updateBtn) {
+    updateBtn.onclick = async () => {
+      const newStatus = document.getElementById('modalStatusSelect').value;
+      await updateRecord('orders', o.id, { status: newStatus });
+      o.status = newStatus;
+      renderOrdersTable();
+      renderKPIs();
+      admToast(`Status atualizado para "${newStatus}"!`);
+      closeModal('orderModal');
+    };
+  }
+
+  const wappBtn = document.getElementById('orderModalWappBtn');
+  if (wappBtn) {
+    wappBtn.onclick = () => quickNotifyWhatsApp(o.id);
+  }
+
+  const printBtn = document.getElementById('orderModalPrintBtn');
+  if (printBtn) {
+    printBtn.onclick = () => printOrderReceipt(o.id);
+  }
+
   document.getElementById('orderModal').classList.add('active');
+}
+
+async function saveTrackingCode(orderId) {
+  const code = (document.getElementById('modalTrackingCode')?.value || '').trim();
+  const o = allOrders.find(x => x.id === orderId);
+  if (o) {
+    o.tracking_code = code;
+    try {
+      await supabaseClient.from('orders').update({ tracking_code: code }).eq('id', orderId);
+    } catch { }
+    admToast('Código de rastreio salvo com sucesso!');
+  }
+}
+
+// WhatsApp Notifier
+function quickNotifyWhatsApp(orderId) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+
+  const phone = (o.customer_phone || '').replace(/\D/g, '');
+  if (!phone) {
+    admToast('Cliente não possui telefone cadastrado.', 'error');
+    return;
+  }
+
+  const cleanPhone = phone.length <= 11 ? '55' + phone : phone;
+  const status = (o.status || 'pendente').toLowerCase();
+  const name = (o.customer_name || 'Cliente').split(' ')[0];
+  const orderNum = (o.id || '').slice(-6).toUpperCase();
+
+  let msg = `Olá, ${name}! Tudo bem?\nAqui é da *Outlet 365* 👕👟\n\n`;
+
+  if (status === 'confirmado') {
+    msg += `Passando para confirmar que recebemos seu pedido *#${orderNum}* no valor de *${fmtCurrency(o.total)}*.\nJá estamos preparando seus produtos para envio! 📦✨`;
+  } else if (status === 'enviado') {
+    msg += `Boas notícias! Seu pedido *#${orderNum}* foi *ENVIADO*! 🚀📦\n`;
+    if (o.tracking_code) msg += `Código de rastreamento: *${o.tracking_code}*\n`;
+    msg += `Em breve chegará até você. Qualquer dúvida estamos à disposição!`;
+  } else if (status === 'entregue') {
+    msg += `Seu pedido *#${orderNum}* consta como *ENTREGUE*! 🎉\nEsperamos que você ame suas peças! Se puder, tire uma foto e marque a gente no Instagram! 📸👕`;
+  } else {
+    msg += `Atualização sobre seu pedido *#${orderNum}*:\nStatus atual: *${o.status.toUpperCase()}*\nValor: *${fmtCurrency(o.total)}*\nEstamos à disposição para qualquer dúvida!`;
+  }
+
+  const wappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+  window.open(wappUrl, '_blank');
+}
+
+// Impressão de Cupom do Pedido
+function printOrderReceipt(orderId) {
+  const o = allOrders.find(x => x.id === orderId);
+  if (!o) return;
+
+  let items = [];
+  try { items = JSON.parse(o.items_json || '[]'); } catch { }
+
+  const printWindow = window.open('', '_blank', 'width=420,height=600');
+  if (!printWindow) {
+    admToast('Por favor, permita pop-ups para imprimir o cupom.', 'error');
+    return;
+  }
+
+  const isPdv = o.channel === 'pdv';
+
+  const receiptHtml = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8" />
+      <title>Comprovante Pedido #${(o.id || '').slice(-6).toUpperCase()}</title>
+      <style>
+        body {
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 12px;
+          margin: 0;
+          padding: 15px;
+          color: #000;
+          background: #fff;
+        }
+        .header { text-align: center; margin-bottom: 12px; }
+        .logo { font-size: 18px; font-weight: bold; }
+        .divider { border-top: 1px dashed #000; margin: 8px 0; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .bold { font-weight: bold; }
+        .total-row { font-size: 15px; font-weight: bold; margin: 8px 0; }
+        .footer { text-align: center; margin-top: 15px; font-size: 11px; }
+      </style>
+    </head>
+    <body onload="window.print();">
+      <div class="header">
+        <div class="logo">OUTLET 365</div>
+        <div>Moda Masculina, Calçados & Acessórios</div>
+        <div>Loja Física: Madalena - CE</div>
+        <div class="bold">COMPROVANTE DE PEDIDO</div>
+      </div>
+      <div class="divider"></div>
+      <div class="row"><span>PEDIDO:</span><span class="bold">#${(o.id || '').slice(-6).toUpperCase()}</span></div>
+      <div class="row"><span>DATA:</span><span>${fmtDateTime(o.created_at)}</span></div>
+      <div class="row"><span>ORIGEM:</span><span>${isPdv ? 'Balcão / Loja Física' : 'Loja Online (Site)'}</span></div>
+      <div class="row"><span>CLIENTE:</span><span>${o.customer_name || 'Cliente Balcão'}</span></div>
+      ${o.customer_phone ? `<div class="row"><span>FONE:</span><span>${o.customer_phone}</span></div>` : ''}
+      <div class="divider"></div>
+      <div class="bold" style="margin-bottom:6px;">ITENS:</div>
+      ${items.map(it => `
+        <div class="row">
+          <span>${it.qty || 1}x ${it.name} (${it.size || 'Único'})</span>
+          <span>${fmtCurrency((parseFloat(it.price) || 0) * (parseInt(it.qty) || 1))}</span>
+        </div>
+      `).join('')}
+      <div class="divider"></div>
+      <div class="row"><span>SUBTOTAL:</span><span>${fmtCurrency(o.subtotal || o.total)}</span></div>
+      ${o.shipping > 0 ? `<div class="row"><span>FRETE:</span><span>${fmtCurrency(o.shipping)}</span></div>` : ''}
+      <div class="row total-row"><span>TOTAL:</span><span>${fmtCurrency(o.total)}</span></div>
+      <div class="row"><span>PAGAMENTO:</span><span class="bold">${o.payment_method || 'PIX'}</span></div>
+      <div class="row"><span>STATUS:</span><span class="bold">${(o.status || 'pendente').toUpperCase()}</span></div>
+      <div class="divider"></div>
+      <div class="footer">
+        <div>Obrigado pela preferência!</div>
+        <div>Instagram: @outlet365</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(receiptHtml);
+  printWindow.document.close();
 }
 
 // ══════════════════════════════════════════

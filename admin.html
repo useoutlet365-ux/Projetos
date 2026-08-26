@@ -9,13 +9,17 @@
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#080ce6" />
+  <!-- Favicon & App Icons -->
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="image/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="image/favicon-16x16.png" />
+  <link rel="icon" type="image/svg+xml" href="image/icon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="image/apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Outlet 365 Admin" />
-  <link rel="apple-touch-icon" href="image/apple-touch-icon.png" />
-  <link rel="icon" type="image/svg+xml" href="image/icon.svg" />
-  <link rel="icon" type="image/png" sizes="192x192" href="image/icon-192.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -113,69 +117,82 @@
 
       <!-- ═══════════════ DASHBOARD ═══════════════ -->
       <section class="adm-section active" id="sec-dashboard">
+        <div class="adm-toolbar-header" style="margin-bottom:1rem;">
+          <div>
+            <h2 style="font-size:1.35rem;font-weight:800;color:var(--adm-text);">Visão Geral da Loja</h2>
+            <p style="font-size:.8rem;color:var(--adm-muted);">Métricas e desempenho em tempo real</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            <label for="dashPeriodSelect" style="font-size:.78rem;font-weight:700;color:var(--adm-muted);white-space:nowrap;"><i class="fas fa-calendar-alt"></i> Período:</label>
+            <select id="dashPeriodSelect" style="padding:.45rem .8rem;border:1.5px solid var(--adm-border);border-radius:8px;font-size:.82rem;font-weight:700;background:#fff;cursor:pointer;">
+              <option value="7d" selected>Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="month">Este Mês</option>
+              <option value="all">Todo o Histórico</option>
+            </select>
+          </div>
+        </div>
+
         <!-- KPIs -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span class="kpi-label">Faturamento (7d)</span>
+              <span class="kpi-label">Faturamento Total</span>
               <span class="kpi-icon green"><i class="fas fa-dollar-sign"></i></span>
             </div>
-            <div class="kpi-value text-green" id="kpi-revenue">—</div>
-            <div style="display:flex;align-items:center;gap:.4rem;">
-              <span class="kpi-delta up" id="kpi-rev-delta"><i class="fas fa-arrow-up"></i> —</span>
-              <span class="kpi-period">vs semana anterior</span>
+            <div class="kpi-value text-green" id="kpi-revenue">R$ 0,00</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:.75rem;color:var(--adm-muted);margin-top:.3rem;">
+              <span>Online: <strong id="kpi-rev-online" style="color:var(--adm-blue);">R$ 0</strong></span>
+              <span>PDV: <strong id="kpi-rev-pdv" style="color:#b45309;">R$ 0</strong></span>
             </div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span class="kpi-label">Pedidos (7d)</span>
+              <span class="kpi-label">Pedidos Concluídos</span>
               <span class="kpi-icon blue"><i class="fas fa-shopping-bag"></i></span>
             </div>
-            <div class="kpi-value" id="kpi-orders">—</div>
+            <div class="kpi-value" id="kpi-orders">0</div>
             <div style="display:flex;align-items:center;gap:.4rem;">
-              <span class="kpi-delta up" id="kpi-ord-delta"><i class="fas fa-arrow-up"></i> —</span>
-              <span class="kpi-period">vs semana anterior</span>
+              <span class="kpi-period" id="kpi-ticket-sub">Ticket Médio: <strong>R$ 0,00</strong></span>
             </div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span class="kpi-label">Visitantes (7d)</span>
-              <span class="kpi-icon yellow"><i class="fas fa-users"></i></span>
+              <span class="kpi-label">Pendentes de Envio</span>
+              <span class="kpi-icon yellow"><i class="fas fa-clock"></i></span>
             </div>
-            <div class="kpi-value" id="kpi-visitors">—</div>
+            <div class="kpi-value" id="kpi-pending" style="color:var(--adm-yellow);">0</div>
             <div style="display:flex;align-items:center;gap:.4rem;">
-              <span class="kpi-delta up"><i class="fas fa-arrow-up"></i> +12%</span>
-              <span class="kpi-period">vs semana anterior</span>
+              <span class="kpi-period" id="kpi-pending-sub">Aguardando separação/envio</span>
             </div>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span class="kpi-label">Conversão</span>
-              <span class="kpi-icon purple"><i class="fas fa-percent"></i></span>
+              <span class="kpi-label">Estoque Baixo (< 3)</span>
+              <span class="kpi-icon purple"><i class="fas fa-exclamation-triangle"></i></span>
             </div>
-            <div class="kpi-value" id="kpi-conversion">—</div>
+            <div class="kpi-value" id="kpi-low-stock">0</div>
             <div style="display:flex;align-items:center;gap:.4rem;">
-              <span class="kpi-delta up"><i class="fas fa-arrow-up"></i> +0.8%</span>
-              <span class="kpi-period">vs semana anterior</span>
+              <span class="kpi-period">Produtos precisam de reposição</span>
             </div>
           </div>
         </div>
 
         <!-- Charts -->
         <div class="charts-row">
-          <div class="adm-card">
+          <div class="adm-card" style="flex:2;">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-chart-area"
-                  style="color:var(--adm-green);margin-right:.4rem"></i>Faturamento Diário (R$)</span>
+              <span class="adm-card-title"><i class="fas fa-chart-line"
+                  style="color:var(--adm-green);margin-right:.4rem"></i>Evolução de Vendas (R$)</span>
             </div>
             <div class="adm-card-body">
               <div class="chart-container"><canvas id="revenueChart"></canvas></div>
             </div>
           </div>
-          <div class="adm-card">
+          <div class="adm-card" style="flex:1;">
             <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-chart-donut"
-                  style="color:var(--adm-blue);margin-right:.4rem"></i>Visitas vs Carrinho</span>
+              <span class="adm-card-title"><i class="fas fa-chart-pie"
+                  style="color:var(--adm-blue);margin-right:.4rem"></i>Vendas por Canal</span>
             </div>
             <div class="adm-card-body">
               <div class="chart-container"><canvas id="engageChart"></canvas></div>
@@ -185,7 +202,7 @@
 
         <!-- Últimos Pedidos + Top Produtos -->
         <div class="charts-row">
-          <div class="adm-card">
+          <div class="adm-card" style="flex:1.5;">
             <div class="adm-card-header">
               <span class="adm-card-title"><i class="fas fa-list"
                   style="color:var(--adm-blue);margin-right:.4rem"></i>Últimos Pedidos</span>
@@ -197,6 +214,7 @@
                 <table class="adm-table" id="recentOrdersTable">
                   <thead>
                     <tr>
+                      <th>Canal</th>
                       <th>Cliente</th>
                       <th>Cidade</th>
                       <th>Total</th>
@@ -208,10 +226,10 @@
               </div>
             </div>
           </div>
-          <div class="adm-card">
+          <div class="adm-card" style="flex:1;">
             <div class="adm-card-header">
               <span class="adm-card-title"><i class="fas fa-fire"
-                  style="color:var(--adm-yellow);margin-right:.4rem"></i>Top Produtos</span>
+                  style="color:var(--adm-yellow);margin-right:.4rem"></i>Top Produtos Mais Vendidos</span>
             </div>
             <div class="adm-card-body">
               <div id="topProductsList"></div>
@@ -222,27 +240,72 @@
 
       <!-- ═══════════════ FINANCEIRO ═══════════════ -->
       <section class="adm-section" id="sec-financeiro">
-        <div class="section-head">
-          <h2>Dashboard Financeiro</h2>
-          <span style="font-size:.8rem;color:var(--adm-muted);">Últimos 7 dias</span>
+        <div class="adm-toolbar-header" style="margin-bottom:1rem;">
+          <div>
+            <h2 style="font-size:1.35rem;font-weight:800;color:var(--adm-text);">Relatório & Controle Financeiro</h2>
+            <p style="font-size:.8rem;color:var(--adm-muted);">Acompanhe fluxo de caixa, métodos de pagamento e extrato diário</p>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <select id="finPeriodSelect" style="padding:.45rem .8rem;border:1.5px solid var(--adm-border);border-radius:8px;font-size:.82rem;font-weight:700;background:#fff;cursor:pointer;">
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="month" selected>Este Mês</option>
+              <option value="last_month">Mês Anterior</option>
+              <option value="all">Todo o Histórico</option>
+            </select>
+            <button class="adm-btn-export-csv" id="btnExportFinanceCsv" title="Exportar Extrato em Planilha CSV"><i class="fas fa-file-excel"></i> Exportar CSV</button>
+            <button class="adm-btn-export-pdf" id="btnPrintFinanceReport" title="Imprimir Relatório Financeiro"><i class="fas fa-print"></i> Imprimir / PDF</button>
+          </div>
         </div>
 
-        <!-- Cards de resumo -->
+        <!-- Cards de resumo financeiro -->
         <div class="finance-summary">
           <div class="finance-card">
-            <div class="finance-card-label">Receita Total</div>
-            <div class="finance-card-value green" id="fin-total">—</div>
-            <div class="finance-card-sub" id="fin-total-orders">— pedidos no período</div>
+            <div class="finance-card-label">Receita Bruta Total</div>
+            <div class="finance-card-value green" id="fin-total">R$ 0,00</div>
+            <div class="finance-card-sub" id="fin-total-orders">0 pedidos no período</div>
           </div>
           <div class="finance-card">
             <div class="finance-card-label">Ticket Médio</div>
-            <div class="finance-card-value blue" id="fin-ticket">—</div>
-            <div class="finance-card-sub">Valor médio por pedido</div>
+            <div class="finance-card-value blue" id="fin-ticket">R$ 0,00</div>
+            <div class="finance-card-sub">Valor médio por venda</div>
           </div>
           <div class="finance-card">
-            <div class="finance-card-label">Melhor Dia</div>
-            <div class="finance-card-value yellow" id="fin-best-day">—</div>
+            <div class="finance-card-label">Melhor Dia de Vendas</div>
+            <div class="finance-card-value yellow" id="fin-best-day">R$ 0,00</div>
             <div class="finance-card-sub" id="fin-best-date">—</div>
+          </div>
+        </div>
+
+        <!-- Resumo por Forma de Pagamento e Canais -->
+        <div class="adm-mini-kpis" id="finPaymentBreakdown">
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon green"><i class="fas fa-bolt"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">PIX</span>
+              <span class="adm-mini-kpi-val" id="fin-pay-pix">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon blue"><i class="fas fa-credit-card"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Cartão de Crédito</span>
+              <span class="adm-mini-kpi-val" id="fin-pay-credit">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon purple"><i class="far fa-credit-card"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Cartão de Débito</span>
+              <span class="adm-mini-kpi-val" id="fin-pay-debit">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon yellow"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Dinheiro (Espécie)</span>
+              <span class="adm-mini-kpi-val" id="fin-pay-cash">R$ 0,00</span>
+            </div>
           </div>
         </div>
 
@@ -250,40 +313,19 @@
         <div class="adm-card" style="margin-bottom:1.25rem;">
           <div class="adm-card-header">
             <span class="adm-card-title"><i class="fas fa-chart-bar"
-                style="color:var(--adm-green);margin-right:.4rem"></i>Receita por Dia</span>
+                style="color:var(--adm-green);margin-right:.4rem"></i>Receita Diária no Período</span>
           </div>
           <div class="adm-card-body">
             <div class="chart-container" style="height:260px;"><canvas id="finBarChart"></canvas></div>
           </div>
         </div>
 
-        <!-- Gráficos menores -->
-        <div class="charts-row">
-          <div class="adm-card">
-            <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-shopping-cart"
-                  style="color:var(--adm-blue);margin-right:.4rem"></i>Funil de Conversão</span>
-            </div>
-            <div class="adm-card-body">
-              <div class="chart-container"><canvas id="funnelChart"></canvas></div>
-            </div>
-          </div>
-          <div class="adm-card">
-            <div class="adm-card-header">
-              <span class="adm-card-title"><i class="fas fa-map-marker-alt"
-                  style="color:var(--adm-purple);margin-right:.4rem"></i>Pedidos por Cidade</span>
-            </div>
-            <div class="adm-card-body">
-              <div id="cityList"></div>
-            </div>
-          </div>
-        </div>
-
         <!-- Tabela detalhada -->
         <div class="adm-card" style="margin-top:1.25rem;">
-          <div class="adm-card-header">
+          <div class="adm-card-header" style="justify-content:space-between;">
             <span class="adm-card-title"><i class="fas fa-table"
-                style="color:var(--adm-muted);margin-right:.4rem"></i>Extrato Diário</span>
+                style="color:var(--adm-muted);margin-right:.4rem"></i>Extrato Diário Consolidado</span>
+            <span style="font-size:.78rem;color:var(--adm-muted);" id="statsTableCount">— registros</span>
           </div>
           <div class="adm-card-body" style="padding:0;">
             <div class="adm-table-wrap">
@@ -293,9 +335,9 @@
                     <th>Data</th>
                     <th>Visualizações</th>
                     <th>Visitantes</th>
-                    <th>Adições ao Carrinho</th>
+                    <th>Adições Carrinho</th>
                     <th>Checkouts</th>
-                    <th>Receita</th>
+                    <th>Receita Total</th>
                   </tr>
                 </thead>
                 <tbody id="statsTableBody"></tbody>
@@ -307,34 +349,145 @@
 
       <!-- ═══════════════ PEDIDOS ═══════════════ -->
       <section class="adm-section" id="sec-pedidos">
-        <div class="section-head">
-          <h2>Gerenciar Pedidos</h2>
-          <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-            <select id="statusFilter" title="Filtrar por status"
-              style="padding:.4rem .8rem;border:1.5px solid var(--adm-border);border-radius:8px;font-size:.82rem;outline:none;">
-              <option value="">Todos os status</option>
-              <option value="pendente">Pendente</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="enviado">Enviado</option>
-              <option value="entregue">Entregue</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
+        <div class="adm-toolbar-header" style="margin-bottom:1rem;">
+          <div>
+            <h2 style="font-size:1.35rem;font-weight:800;color:var(--adm-text);">Gerenciar Pedidos</h2>
+            <p style="font-size:.8rem;color:var(--adm-muted);">Consulte, filtre, atualize status e emita relatórios de pedidos</p>
+          </div>
+          <div class="adm-filter-actions">
+            <button class="adm-btn-export-csv" id="btnExportOrdersCsv" title="Exportar pedidos filtrados para planilha Excel"><i class="fas fa-file-excel"></i> Exportar CSV</button>
+            <button class="adm-btn-export-pdf" id="btnPrintOrdersReport" title="Imprimir relatório de pedidos"><i class="fas fa-print"></i> Imprimir / PDF</button>
           </div>
         </div>
+
+        <!-- MINI KPIS DINÂMICOS DE PEDIDOS -->
+        <div class="adm-mini-kpis">
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon blue"><i class="fas fa-shopping-bag"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Pedidos Filtrados</span>
+              <span class="adm-mini-kpi-val" id="ordKpiCount">0</span>
+            </div>
+          </div>
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon green"><i class="fas fa-dollar-sign"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Faturamento Filtrado</span>
+              <span class="adm-mini-kpi-val" id="ordKpiTotal">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon purple"><i class="fas fa-calculator"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Ticket Médio</span>
+              <span class="adm-mini-kpi-val" id="ordKpiTicket">R$ 0,00</span>
+            </div>
+          </div>
+          <div class="adm-mini-kpi-card">
+            <div class="adm-mini-kpi-icon yellow"><i class="fas fa-box"></i></div>
+            <div class="adm-mini-kpi-info">
+              <span class="adm-mini-kpi-label">Pendentes de Envio</span>
+              <span class="adm-mini-kpi-val" id="ordKpiPending">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BARRA DE FILTROS AVANÇADOS -->
+        <div class="adm-toolbar-box">
+          <div class="adm-filter-grid">
+            <!-- Busca Textual -->
+            <div class="adm-filter-group" style="grid-column: span 2;">
+              <label><i class="fas fa-search"></i> Busca (Cliente, Telefone, #ID, Cidade)</label>
+              <input type="text" id="orderSearchInput" placeholder="Ex: João Silva, (88) 99999, #1234, Fortaleza..." />
+            </div>
+
+            <!-- Status -->
+            <div class="adm-filter-group">
+              <label><i class="fas fa-tasks"></i> Status</label>
+              <select id="orderStatusFilter">
+                <option value="">Todos os Status</option>
+                <option value="pendente">⏳ Pendente</option>
+                <option value="confirmado">✅ Confirmado / Pago</option>
+                <option value="enviado">📦 Enviado / Em trânsito</option>
+                <option value="entregue">🎉 Entregue</option>
+                <option value="cancelado">❌ Cancelado</option>
+              </select>
+            </div>
+
+            <!-- Período -->
+            <div class="adm-filter-group">
+              <label><i class="fas fa-calendar-alt"></i> Período</label>
+              <select id="orderPeriodFilter">
+                <option value="all">Todo o Histórico</option>
+                <option value="today">Hoje</option>
+                <option value="yesterday">Ontem</option>
+                <option value="7d">Últimos 7 dias</option>
+                <option value="30d">Últimos 30 dias</option>
+                <option value="month">Este Mês</option>
+                <option value="last_month">Mês Passado</option>
+                <option value="custom">📅 Personalizado...</option>
+              </select>
+            </div>
+
+            <!-- Forma de Pagamento -->
+            <div class="adm-filter-group">
+              <label><i class="fas fa-credit-card"></i> Pagamento</label>
+              <select id="orderPaymentFilter">
+                <option value="">Todas as Formas</option>
+                <option value="PIX">⚡ PIX</option>
+                <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+                <option value="Cartão de Débito">💳 Cartão de Débito</option>
+                <option value="Dinheiro">💵 Dinheiro</option>
+                <option value="Boleto">📄 Boleto</option>
+              </select>
+            </div>
+
+            <!-- Origem / Canal -->
+            <div class="adm-filter-group">
+              <label><i class="fas fa-store"></i> Canal / Origem</label>
+              <select id="orderChannelFilter">
+                <option value="">Todos os Canais</option>
+                <option value="online">🌐 Loja Online (Site)</option>
+                <option value="pdv">🏬 Balcão / PDV (Física)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Linha de Datas Personalizadas (Opcional) -->
+          <div id="orderCustomDateRow" style="display:none;padding-top:.5rem;border-top:1px dashed var(--adm-border);" class="adm-filter-grid">
+            <div class="adm-filter-group">
+              <label>Data Início</label>
+              <input type="date" id="orderStartDate" />
+            </div>
+            <div class="adm-filter-group">
+              <label>Data Fim</label>
+              <input type="date" id="orderEndDate" />
+            </div>
+          </div>
+
+          <!-- Rodapé dos Filtros -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:.35rem;">
+            <span style="font-size:.78rem;font-weight:600;color:var(--adm-muted);" id="orderFilterCountText">Exibindo todos os pedidos</span>
+            <button class="adm-btn-clear-filter" id="btnClearOrderFilters"><i class="fas fa-times-circle"></i> Limpar Filtros</button>
+          </div>
+        </div>
+
+        <!-- TABELA DE PEDIDOS -->
         <div class="adm-card">
           <div class="adm-card-body" style="padding:0;">
             <div class="adm-table-wrap">
               <table class="adm-table">
                 <thead>
                   <tr>
-                    <th>Pedido</th>
+                    <th>Pedido / Data</th>
+                    <th>Origem</th>
                     <th>Cliente</th>
                     <th>Cidade/UF</th>
                     <th>Itens</th>
                     <th>Total</th>
                     <th>Pagamento</th>
                     <th>Status</th>
-                    <th>Ações</th>
+                    <th style="text-align:center;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="ordersTableBody"></tbody>
@@ -785,16 +938,22 @@
 
   <!-- ORDER DETAIL MODAL -->
   <div class="adm-modal-overlay" id="orderModal">
-    <div class="adm-modal">
+    <div class="adm-modal" style="max-width:620px;">
       <div class="adm-modal-header">
-        <h2>Detalhes do Pedido</h2>
+        <h2><i class="fas fa-shopping-bag" style="color:var(--adm-blue);margin-right:.4rem;"></i>Detalhes do Pedido</h2>
         <button class="adm-modal-close" onclick="closeModal('orderModal')" title="Fechar" aria-label="Fechar"><i
             class="fas fa-times"></i></button>
       </div>
       <div class="adm-modal-body" id="orderModalBody"></div>
-      <div class="adm-modal-footer">
-        <button class="adm-btn adm-btn-secondary" onclick="closeModal('orderModal')">Fechar</button>
-        <button class="adm-btn adm-btn-primary" id="updateStatusBtn">Atualizar Status</button>
+      <div class="adm-modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+        <div style="display:flex;gap:.4rem;">
+          <button class="adm-btn adm-btn-secondary" onclick="closeModal('orderModal')">Fechar</button>
+          <button class="adm-btn adm-btn-secondary" id="orderModalPrintBtn" title="Imprimir Cupom do Pedido"><i class="fas fa-print"></i> Imprimir</button>
+        </div>
+        <div style="display:flex;gap:.4rem;">
+          <button class="adm-btn" id="orderModalWappBtn" style="background:#25D366;color:#fff;border:none;" title="Enviar mensagem no WhatsApp do cliente"><i class="fab fa-whatsapp"></i> Notificar Cliente</button>
+          <button class="adm-btn adm-btn-primary" id="updateStatusBtn"><i class="fas fa-check"></i> Salvar Status</button>
+        </div>
       </div>
     </div>
   </div>
