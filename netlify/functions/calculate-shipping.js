@@ -165,8 +165,8 @@ exports.handler = async (event) => {
   try {
     const isSandbox = process.env.SUPERFRETE_ENVIRONMENT === 'sandbox';
     const apiUrl = isSandbox
-      ? 'https://sandbox.superfrete.com/v1/shipping/calculate'
-      : 'https://api.superfrete.com/v1/shipping/calculate';
+      ? 'https://sandbox.superfrete.com/api/v0/calculator'
+      : 'https://api.superfrete.com/api/v0/calculator';
 
     const sfPayload = {
       from: {
