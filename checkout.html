@@ -276,67 +276,101 @@
       document.getElementById('cidade').value = 'Buscando...';
       document.getElementById('estado').value = '...';
 
+      // 1. Auto-preencher endereço via ViaCEP
       try {
         const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
         const data = await response.json();
+        if (!data.erro) {
+          document.getElementById('cidade').value = data.localidade || '';
+          document.getElementById('estado').value = data.uf || '';
+          if (data.logradouro) {
+            document.getElementById('endereco').value = data.logradouro;
+          }
+        }
+      } catch (err) {
+        console.warn('ViaCEP lookup warning:', err);
+      }
 
-        if (data.erro) {
-          throw new Error('CEP não encontrado');
+      // 2. Calcular frete dinâmico com peso e medidas de todos os itens do carrinho
+      const cartItems = Cart.getItems();
+      const shippingItems = cartItems.map(item => {
+        const p = (typeof PRODUCTS !== 'undefined' && PRODUCTS.find(prod => prod.id === item.id)) || item;
+        return {
+          id: item.id,
+          weight: p.weight || 0.3,
+          height: p.height || 5,
+          width: p.width || 15,
+          length: p.length || 20,
+          qty: item.qty || 1
+        };
+      });
+
+      if (shippingSection) shippingSection.style.display = 'block';
+      if (shippingOptionsList) {
+        shippingOptionsList.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--gray-600);"><i class="fas fa-spinner fa-spin"></i> Calculando opções de frete (SuperFrete)...</div>';
+      }
+
+      try {
+        const calcRes = await fetch('/api/calculate-shipping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cep: cleanCep,
+            items: shippingItems
+          })
+        });
+
+        if (!calcRes.ok) throw new Error('Falha ao calcular frete');
+
+        const calcData = await calcRes.json();
+        const options = calcData.options || [];
+
+        if (options.length === 0) {
+          shippingOptionsList.innerHTML = '<p style="color:#ef4444;font-size:.85rem;padding:.5rem;">Nenhuma opção de frete encontrada para este CEP.</p>';
+          return;
         }
 
-        document.getElementById('cidade').value = data.localidade || '';
-        document.getElementById('estado').value = data.uf || '';
-        if (data.logradouro) {
-          document.getElementById('endereco').value = data.logradouro;
-        }
-
-        const uf = data.uf || 'CE';
-        renderShippingOptions(uf);
+        renderCalculatedShippingOptions(options);
 
       } catch (err) {
-        console.error('Erro ao buscar CEP via API:', err);
-        showToast('CEP não encontrado via API. Calculando de forma estimada...');
-
-        // Fallback local vs national calculation
+        console.error('Erro ao calcular frete:', err);
+        showToast('Erro ao consultar SuperFrete. Utilizando estimativa regional.');
+        // Fallback local
         const isLocal = cleanCep.startsWith('63') || cleanCep.startsWith('60') || cleanCep.startsWith('62') || cleanCep.startsWith('61');
-        renderShippingOptions(isLocal ? 'CE' : 'Nacional');
+        const fallbackOpts = isLocal
+          ? [
+              { id: '1', name: 'PAC Correios', price: 18.50, description: '3 a 5 dias úteis' },
+              { id: '2', name: 'SEDEX', price: 28.90, description: '1 a 2 dias úteis' },
+              { id: 'retirada', name: 'Retirada na Loja', price: 0, description: 'Disponível seg–sáb 08:30–17:30' }
+            ]
+          : [
+              { id: '1', name: 'PAC Correios', price: 26.90, description: '7 a 12 dias úteis' },
+              { id: '2', name: 'SEDEX', price: 48.50, description: '3 a 5 dias úteis' }
+            ];
+        renderCalculatedShippingOptions(fallbackOpts);
       }
     }
 
-    function renderShippingOptions(region) {
+    function renderCalculatedShippingOptions(options) {
       const shippingSection = document.getElementById('shippingSection');
       const shippingOptionsList = document.getElementById('shippingOptionsList');
-
-      let options = [];
-      if (region === 'CE') {
-        options = [
-          { id: 'pac', label: 'PAC Correios', price: 18.50, days: '3 a 5 dias úteis' },
-          { id: 'sedex', label: 'SEDEX', price: 28.90, days: '1 a 2 dias úteis' },
-          { id: 'retirada', label: 'Retirada na Loja', price: 0, days: 'Disponível seg–sáb 08:30–17:30' }
-        ];
-      } else {
-        options = [
-          { id: 'pac', label: 'PAC Correios', price: 26.90, days: '7 a 12 dias úteis' },
-          { id: 'sedex', label: 'SEDEX', price: 48.50, days: '3 a 5 dias úteis' }
-        ];
-      }
 
       shippingSection.style.display = 'block';
       shippingOptionsList.innerHTML = options.map((o, idx) => `
         <label class="frete-option" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1.5px solid var(--gray-200); border-radius: var(--radius); transition: all 0.2s; margin-bottom: 0.5rem;" id="label-${o.id}">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <input type="radio" name="shipping_option" value="${o.id}" data-price="${o.price}" data-label="${o.label}" ${idx === 0 ? 'checked' : ''} style="accent-color: var(--green);" onchange="selectShippingOption('${o.id}', ${o.price}, '${o.label}')" />
+            <input type="radio" name="shipping_option" value="${o.id}" data-price="${o.price}" data-label="${o.name || o.label}" ${idx === 0 ? 'checked' : ''} style="accent-color: var(--green);" onchange="selectShippingOption('${o.id}', ${o.price}, '${o.name || o.label}')" />
             <div class="frete-option-info">
-              <p style="margin:0; font-size:.82rem; font-weight:600;">${o.label}</p>
-              <span style="font-size:.75rem; color:var(--gray-400);">${o.days}</span>
+              <p style="margin:0; font-size:.85rem; font-weight:700;">${o.name || o.label}</p>
+              <span style="font-size:.75rem; color:var(--gray-400);">${o.description || (o.delivery_time ? `${o.delivery_time} dias úteis` : o.days)}</span>
             </div>
           </div>
-          <span class="frete-option-price" style="font-size:.9rem; font-weight:800; color:var(--green);">${o.price === 0 ? 'Grátis' : formatPrice(o.price)}</span>
+          <span class="frete-option-price" style="font-size:.92rem; font-weight:800; color:var(--green);">${o.price === 0 ? 'Grátis' : formatPrice(o.price)}</span>
         </label>
       `).join('');
 
       // Auto-select first option
-      selectShippingOption(options[0].id, options[0].price, options[0].label);
+      selectShippingOption(options[0].id, options[0].price, options[0].name || options[0].label);
     }
 
     window.selectShippingOption = function (id, price, label) {

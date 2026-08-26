@@ -69,12 +69,11 @@ exports.handler = async (event, context) => {
     }
 
     // 3. Validar valor do frete
-    const allowedShippingCosts = [0, 18.5, 28.9, 26.9, 48.5];
     const clientShippingCost = parseFloat(order.shipping ?? 0);
-    if (!allowedShippingCosts.includes(clientShippingCost)) {
+    if (isNaN(clientShippingCost) || clientShippingCost < 0 || clientShippingCost > 600) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Opção de frete inválida ou adulterada." }),
+        body: JSON.stringify({ error: "Opção de frete inválida." }),
       };
     }
 
@@ -83,7 +82,7 @@ exports.handler = async (event, context) => {
     const clientTotal = parseFloat(order.total ?? 0);
     const mpTotal = parseFloat(paymentFormData.transaction_amount ?? 0);
 
-    if (Math.abs(expectedTotal - clientTotal) > 0.01 || Math.abs(expectedTotal - mpTotal) > 0.01) {
+    if (Math.abs(expectedTotal - clientTotal) > 0.05 || Math.abs(expectedTotal - mpTotal) > 0.05) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: "Valor total divergente do calculado pelo servidor." }),

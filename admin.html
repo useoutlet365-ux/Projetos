@@ -450,6 +450,35 @@
                 </div>
               </div>
 
+              <!-- FRETE: PESO E DIMENSÕES -->
+              <div style="margin-top:1.25rem;background:#f8fafc;padding:1rem;border-radius:8px;border:1px solid var(--adm-border);">
+                <label style="font-size:.75rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--adm-text);display:block;margin-bottom:.6rem;">
+                  <i class="fas fa-truck" style="margin-right:.35rem;color:var(--adm-green);"></i>Frete & Embalagem (Cálculo SuperFrete / Correios)
+                </label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:.75rem;">
+                  <div class="adm-form-group" style="margin-bottom:0;">
+                    <label style="font-size:.78rem;">Peso (kg) *</label>
+                    <input type="number" id="prodWeight" placeholder="0.300" step="0.001" min="0.01" value="0.300" required />
+                    <small style="font-size:.7rem;color:var(--adm-muted);">Ex: 0.300 = 300g</small>
+                  </div>
+                  <div class="adm-form-group" style="margin-bottom:0;">
+                    <label style="font-size:.78rem;">Altura (cm) *</label>
+                    <input type="number" id="prodHeight" placeholder="5" step="0.1" min="1" value="5" required />
+                    <small style="font-size:.7rem;color:var(--adm-muted);">Mín. 2 cm</small>
+                  </div>
+                  <div class="adm-form-group" style="margin-bottom:0;">
+                    <label style="font-size:.78rem;">Largura (cm) *</label>
+                    <input type="number" id="prodWidth" placeholder="15" step="0.1" min="1" value="15" required />
+                    <small style="font-size:.7rem;color:var(--adm-muted);">Mín. 11 cm</small>
+                  </div>
+                  <div class="adm-form-group" style="margin-bottom:0;">
+                    <label style="font-size:.78rem;">Comprimento (cm) *</label>
+                    <input type="number" id="prodLength" placeholder="20" step="0.1" min="1" value="20" required />
+                    <small style="font-size:.7rem;color:var(--adm-muted);">Mín. 16 cm</small>
+                  </div>
+                </div>
+              </div>
+
               <!-- TAMANHOS E ESTOQUE POR VARIAÇÃO -->
               <div class="adm-form-group" style="margin-top:1.25rem;">
                 <label>Tamanhos / Numeração disponíveis *</label>
@@ -518,6 +547,15 @@
                     <span class="adm-toggle-label">
                       Promoção da Semana 🔥
                       <small>Seção especial na home</small>
+                    </span>
+                  </label>
+                  <!-- Capa da Categoria -->
+                  <label class="adm-toggle-item">
+                    <input type="checkbox" id="prodCategoryCover" />
+                    <span class="adm-toggle-switch"></span>
+                    <span class="adm-toggle-label">
+                      🏷️ Capa da Categoria
+                      <small>Foto de capa da categoria na home</small>
                     </span>
                   </label>
                 </div>

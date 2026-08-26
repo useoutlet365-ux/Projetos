@@ -597,6 +597,7 @@ async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder =
           </div>
           <div class="adm-product-meta">
             <span class="adm-tag cat">${catLabels[p.category] || p.category}</span>
+            ${p.category_cover ? '<span class="adm-tag" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🏷️ Capa</span>' : ''}
             ${p.weekly_promo ? '<span class="adm-tag promo">🔥 Promo</span>' : ''}
             ${p.hero_card ? '<span class="adm-tag hero">⭐ Card</span>' : ''}
             <span class="adm-tag ${p.active !== false ? 'active' : 'inactive'}">${p.active !== false ? 'Ativo' : 'Inativo'}</span>
@@ -693,12 +694,17 @@ async function editProduct(id) {
   document.getElementById('prodOriginalPrice').value = p.original_price || '';
   document.getElementById('prodInstallments').value = p.installments || 3;
   document.getElementById('prodStock').value = p.stock || 0;
+  document.getElementById('prodWeight').value = p.weight !== undefined ? p.weight : 0.300;
+  document.getElementById('prodHeight').value = p.height !== undefined ? p.height : 5;
+  document.getElementById('prodWidth').value = p.width !== undefined ? p.width : 15;
+  document.getElementById('prodLength').value = p.length !== undefined ? p.length : 20;
   document.getElementById('prodDescription').value = p.description || '';
   document.getElementById('prodActive').checked = p.active !== false;
   document.getElementById('prodFeatured').checked = !!p.featured;
   document.getElementById('prodNew').checked = !!p.new_arrival;
   document.getElementById('prodPromo').checked = !!p.weekly_promo;
   document.getElementById('prodHeroCard').checked = !!p.hero_card;
+  if (document.getElementById('prodCategoryCover')) document.getElementById('prodCategoryCover').checked = !!p.category_cover;
   photosData = [];
   const prev = document.getElementById('photoPreviews');
   if (p.image_base64) {
@@ -759,12 +765,17 @@ async function duplicateProduct(id) {
   document.getElementById('prodOriginalPrice').value = p.original_price || '';
   document.getElementById('prodInstallments').value = p.installments || 3;
   document.getElementById('prodStock').value = p.stock || 0;
+  document.getElementById('prodWeight').value = p.weight !== undefined ? p.weight : 0.300;
+  document.getElementById('prodHeight').value = p.height !== undefined ? p.height : 5;
+  document.getElementById('prodWidth').value = p.width !== undefined ? p.width : 15;
+  document.getElementById('prodLength').value = p.length !== undefined ? p.length : 20;
   document.getElementById('prodDescription').value = p.description || '';
   document.getElementById('prodActive').checked = true;
   document.getElementById('prodFeatured').checked = !!p.featured;
   document.getElementById('prodNew').checked = !!p.new_arrival;
   document.getElementById('prodPromo').checked = !!p.weekly_promo;
   document.getElementById('prodHeroCard').checked = false;
+  if (document.getElementById('prodCategoryCover')) document.getElementById('prodCategoryCover').checked = false;
 
   photosData = [];
   const prev = document.getElementById('photoPreviews');
@@ -1112,6 +1123,11 @@ async function saveProduct(event) {
       new_arrival: document.getElementById('prodNew').checked,
       weekly_promo: document.getElementById('prodPromo').checked,
       hero_card: heroChecked,
+      category_cover: document.getElementById('prodCategoryCover')?.checked || false,
+      weight: parseFloat(document.getElementById('prodWeight')?.value) || 0.3,
+      height: parseFloat(document.getElementById('prodHeight')?.value) || 5,
+      width: parseFloat(document.getElementById('prodWidth')?.value) || 15,
+      length: parseFloat(document.getElementById('prodLength')?.value) || 20,
       active: document.getElementById('prodActive').checked,
       slug: finalSlug,
       sales_count: 0
@@ -1138,6 +1154,11 @@ function resetForm() {
   document.getElementById('photoPreviews').innerHTML = '';
   document.getElementById('sizesSelector').innerHTML = '';
   document.getElementById('prodSubcategory').innerHTML = '<option value="">Selecione a categoria primeiro</option>';
+  if (document.getElementById('prodCategoryCover')) document.getElementById('prodCategoryCover').checked = false;
+  if (document.getElementById('prodWeight')) document.getElementById('prodWeight').value = '0.300';
+  if (document.getElementById('prodHeight')) document.getElementById('prodHeight').value = '5';
+  if (document.getElementById('prodWidth')) document.getElementById('prodWidth').value = '15';
+  if (document.getElementById('prodLength')) document.getElementById('prodLength').value = '20';
   updateHeroCounter();
 }
 

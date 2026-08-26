@@ -190,77 +190,53 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    freteNote.textContent = 'Buscando CEP...';
+    freteNote.textContent = 'Calculando frete com SuperFrete...';
     freteOptions.style.display = 'none';
 
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await response.json();
+      const response = await fetch('/api/calculate-shipping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cep,
+          package: {
+            weight: product.weight || 0.3,
+            height: product.height || 5,
+            width: product.width || 15,
+            length: product.length || 20
+          }
+        })
+      });
 
-      if (data.erro) {
-        throw new Error('CEP não encontrado');
+      if (!response.ok) {
+        throw new Error('Falha ao calcular frete');
       }
 
-      const uf = data.uf || 'CE';
-      const cidade = data.localidade || 'Sua cidade';
+      const data = await response.json();
+      const options = data.options || [];
 
-      let options;
-      // Local (CE) vs nacional
-      if (uf === 'CE') {
-        options = [
-          { label: 'PAC Correios', price: 18.50, days: '3 a 5 dias úteis' },
-          { label: 'SEDEX', price: 28.90, days: '1 a 2 dias úteis' },
-          { label: 'Retirada na Loja', price: 0, days: 'Disponível seg–sáb 08:30–17:30' }
-        ];
-      } else {
-        options = [
-          { label: 'PAC Correios', price: 26.90, days: '7 a 12 dias úteis' },
-          { label: 'SEDEX', price: 48.50, days: '3 a 5 dias úteis' }
-        ];
+      if (options.length === 0) {
+        freteNote.textContent = 'Nenhuma opção de frete disponível para este CEP.';
+        return;
       }
 
       freteOptions.style.display = 'flex';
       freteOptions.innerHTML = options.map(o => `
         <div class="frete-option">
           <div class="frete-option-info">
-            <p>${o.label}</p>
-            <span>${o.days}</span>
+            <p>${o.name || o.label}</p>
+            <span>${o.description || (o.delivery_time ? `${o.delivery_time} dias úteis` : o.days)}</span>
           </div>
           <span class="frete-option-price">${o.price === 0 ? 'Grátis' : formatPrice(o.price)}</span>
         </div>
       `).join('');
-      freteNote.innerHTML = `<i class="fas fa-map-marker-alt" style="color:var(--green)"></i> Frete para <strong>${cidade} - ${uf}</strong>. O prazo não contabiliza feriados.`;
+
+      const locationText = data.city && data.state ? ` para <strong>${data.city} - ${data.state}</strong>` : '';
+      freteNote.innerHTML = `<i class="fas fa-map-marker-alt" style="color:var(--green)"></i> Frete calculado${locationText}. O prazo de entrega não contabiliza feriados.`;
 
     } catch (error) {
       console.error('Erro ao calcular frete:', error);
-      // Fallback
-      freteNote.textContent = 'Calculando...';
-      setTimeout(() => {
-        let options;
-        if (cep.startsWith('63') || cep.startsWith('60') || cep.startsWith('62') || cep.startsWith('61')) {
-          options = [
-            { label: 'PAC Correios', price: 18.50, days: '3 a 5 dias úteis' },
-            { label: 'SEDEX', price: 28.90, days: '1 a 2 dias úteis' },
-            { label: 'Retirada na Loja', price: 0, days: 'Disponível seg–sáb 08:30–17:30' }
-          ];
-        } else {
-          options = [
-            { label: 'PAC Correios', price: 26.90, days: '7 a 12 dias úteis' },
-            { label: 'SEDEX', price: 48.50, days: '3 a 5 dias úteis' }
-          ];
-        }
-        freteOptions.style.display = 'flex';
-        freteOptions.innerHTML = options.map(o => `
-          <div class="frete-option">
-            <div class="frete-option-info">
-              <p>${o.label}</p>
-              <span>${o.days}</span>
-            </div>
-            <span class="frete-option-price">${o.price === 0 ? 'Grátis' : formatPrice(o.price)}</span>
-          </div>
-        `).join('');
-        freteNote.textContent = 'O prazo de entrega não contabiliza feriados.';
-      }, 500);
+      freteNote.textContent = 'Não foi possível calcular o frete para este CEP no momento.';
     }
   };
 

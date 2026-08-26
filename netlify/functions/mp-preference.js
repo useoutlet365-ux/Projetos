@@ -71,13 +71,12 @@ exports.handler = async (event, context) => {
       calculatedSubtotal += dbPrice * item.quantity;
     }
 
-    // 3. Validar frete (deve bater com as regras estabelecidas no checkout: 0, 18.5, 28.9, 26.9 ou 48.5)
-    const allowedShippingCosts = [0, 18.5, 28.9, 26.9, 48.5];
+    // 3. Validar frete não-negativo
     const clientShippingCost = parseFloat(payload.shipments?.cost ?? 0);
-    if (!allowedShippingCosts.includes(clientShippingCost)) {
+    if (isNaN(clientShippingCost) || clientShippingCost < 0 || clientShippingCost > 600) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Opção de frete inválida ou adulterada." }),
+        body: JSON.stringify({ error: "Opção de frete inválida." }),
       };
     }
 

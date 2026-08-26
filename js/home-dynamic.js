@@ -1,20 +1,114 @@
 // =====================================================
 // OUTLET 365 — Home Dynamic Sections (Supabase)
-// Carrega Card Principal e Promoções da Semana
+// Carrega Categorias Dinâmicas, Card Principal, Promoções e Instagram Feed
 // =====================================================
+
+const CAT_ICONS = {
+  'camisas': 'fas fa-tshirt',
+  'shorts-calcas': 'fas fa-vest',
+  'calcados-chinelos': 'fas fa-shoe-prints',
+  'acessorios': 'fas fa-glasses',
+  'perfumes': 'fas fa-spray-can-sparkles'
+};
+
+const CAT_GRADIENTS = {
+  'camisas': 'linear-gradient(135deg, #1e3a29 0%, #0f172a 100%)',
+  'shorts-calcas': 'linear-gradient(135deg, #1e293b 0%, #172554 100%)',
+  'calcados-chinelos': 'linear-gradient(135deg, #312e81 0%, #0f172a 100%)',
+  'acessorios': 'linear-gradient(135deg, #3730a3 0%, #18181b 100%)',
+  'perfumes': 'linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%)'
+};
 
 function formatPriceFn(value) {
   return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function addHeroToCart(id, name, price, image, size) {
-  const product = PRODUCTS.find(p => p.id === id) || { id, slug: id, name: decodeURIComponent(name), price, image, sizes: [size] };
-  Cart.addItem(product, size);
+  const product = (window.PRODUCTS || []).find(p => p.id === id) || { id, slug: id, name: decodeURIComponent(name), price, image, sizes: [size] };
+  if (typeof Cart !== 'undefined' && Cart.addItem) {
+    Cart.addItem(product, size);
+  }
   if (typeof showToast === 'function') showToast(`✓ ${decodeURIComponent(name)} adicionado ao carrinho!`);
 }
 
+// ── 1. CARREGA FOTOS REAIS DAS CATEGORIAS ──
+function loadCategoryImages() {
+  const products = (window.PRODUCTS || []).filter(p => p.active !== false);
+  const catCards = document.querySelectorAll('[data-cat-img]');
+
+  catCards.forEach(imgEl => {
+    const cat = imgEl.getAttribute('data-cat-img');
+    if (!cat) return;
+
+    // Filtra produtos desta categoria
+    const catProducts = products.filter(p => p.category === cat);
+
+    // Prioridade:
+    // 1. Produto marcado como capa da categoria (category_cover)
+    // 2. Produto em destaque (featured)
+    // 3. Produto no card principal (hero_card)
+    // 4. Primeiro produto cadastrado com imagem na categoria
+    const chosen = catProducts.find(p => p.category_cover && (p.image || p.image_base64 || p.image_url))
+      || catProducts.find(p => p.featured && (p.image || p.image_base64 || p.image_url))
+      || catProducts.find(p => p.hero_card && (p.image || p.image_base64 || p.image_url))
+      || catProducts.find(p => (p.image || p.image_base64 || p.image_url))
+      || catProducts[0];
+
+    if (chosen) {
+      const imgUrl = chosen.image_base64 || chosen.image_url || chosen.image;
+      if (imgUrl) {
+        imgEl.style.backgroundImage = `url('${imgUrl}')`;
+        imgEl.style.backgroundSize = 'cover';
+        imgEl.style.backgroundPosition = 'center';
+        imgEl.style.backgroundColor = 'transparent';
+        imgEl.innerHTML = '';
+      } else {
+        const iconClass = CAT_ICONS[cat] || 'fas fa-tag';
+        imgEl.style.backgroundImage = 'none';
+        imgEl.style.background = CAT_GRADIENTS[cat] || 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
+        imgEl.innerHTML = `<i class="${iconClass} category-placeholder-icon"></i>`;
+      }
+    } else {
+      // Categoria ainda sem produtos cadastrados
+      const iconClass = CAT_ICONS[cat] || 'fas fa-tag';
+      imgEl.style.backgroundImage = 'none';
+      imgEl.style.background = CAT_GRADIENTS[cat] || 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
+      imgEl.innerHTML = `<i class="${iconClass} category-placeholder-icon"></i>`;
+    }
+  });
+}
+
+// ── 2. CARREGA FEED DO INSTAGRAM COM PRODUTOS REAIS ──
+function loadInstagramFeed() {
+  const instaGrid = document.getElementById('instagramGrid');
+  if (!instaGrid) return;
+
+  const products = (window.PRODUCTS || []).filter(p => p.active !== false);
+  const productsWithImg = products.filter(p => p.image_base64 || p.image_url || p.image);
+
+  if (productsWithImg.length > 0) {
+    const displayItems = productsWithImg.slice(0, 6);
+    instaGrid.innerHTML = displayItems.map(p => {
+      const img = p.image_base64 || p.image_url || p.image;
+      return `
+        <a href="produto.html?slug=${p.slug}" class="insta-cell" title="${p.name}">
+          <img src="${img}" alt="${p.name}" loading="lazy" />
+          <div class="insta-overlay"><i class="fas fa-shopping-bag"></i></div>
+        </a>
+      `;
+    }).join('');
+  }
+}
+
+// ── 3. CARREGA TODAS AS SEÇÕES DINÂMICAS ──
 function loadDynamicSections() {
   const products = (window.PRODUCTS || []).filter(p => p.active !== false);
+
+  // ── Atualiza Capas das Categorias ──
+  loadCategoryImages();
+
+  // ── Atualiza Feed Instagram ──
+  loadInstagramFeed();
 
   // ── CARD PRINCIPAL ──
   const heroProducts = products.filter(p => p.hero_card);
@@ -25,12 +119,12 @@ function loadDynamicSections() {
     heroSection.style.display = 'block';
     heroGrid.innerHTML = heroProducts.slice(0, 5).map(p => {
       const hasDiscount = p.original_price && p.original_price > p.price;
-      const imgSrc = p.image || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80';
-      const firstSize = Array.isArray(p.sizes) ? p.sizes[0] : 'Único';
+      const imgSrc = p.image || p.image_base64 || p.image_url || '';
+      const firstSize = Array.isArray(p.sizes) ? p.sizes[0] : (p.sizes ? p.sizes.split(',')[0].trim() : 'Único');
       return `
         <div class="hero-card-item" onclick="window.location.href='produto.html?slug=${p.slug}'">
           <div class="hero-card-img-wrap">
-            <img src="${imgSrc}" alt="${p.name}" class="hero-card-img" loading="lazy"/>
+            ${imgSrc ? `<img src="${imgSrc}" alt="${p.name}" class="hero-card-img" loading="lazy"/>` : '<div class="hero-card-img" style="background:#2d3748;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="fas fa-tshirt"></i></div>'}
             ${hasDiscount ? `<span class="promo-discount-badge">-${Math.round((1-p.price/p.original_price)*100)}%</span>` : ''}
           </div>
           <div class="hero-card-info">
@@ -58,12 +152,12 @@ function loadDynamicSections() {
     promoGrid.innerHTML = promoProducts.slice(0, 8).map(p => {
       const hasDiscount = p.original_price && p.original_price > p.price;
       const discPct     = hasDiscount ? Math.round((1 - p.price / p.original_price) * 100) : 0;
-      const imgSrc      = p.image || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80';
-      const firstSize   = Array.isArray(p.sizes) ? p.sizes[0] : 'Único';
+      const imgSrc      = p.image || p.image_base64 || p.image_url || '';
+      const firstSize   = Array.isArray(p.sizes) ? p.sizes[0] : (p.sizes ? p.sizes.split(',')[0].trim() : 'Único');
       return `
         <article class="product-card" onclick="window.location.href='produto.html?slug=${p.slug}'">
           <div class="product-card-img-wrap">
-            <img src="${imgSrc}" alt="${p.name}" class="product-card-img" loading="lazy"/>
+            ${imgSrc ? `<img src="${imgSrc}" alt="${p.name}" class="product-card-img" loading="lazy"/>` : '<div class="product-card-img" style="background:#2d3748;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="fas fa-tshirt"></i></div>'}
             ${discPct>0 ? `<span class="promo-discount-badge">-${discPct}%</span>` : '<span class="product-badge new">🔥 Promo</span>'}
           </div>
           <div class="product-card-info">
@@ -82,6 +176,8 @@ function loadDynamicSections() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await DB.loadProducts(); // retorna do cache se já iniciado por main.js
+  if (typeof DB !== 'undefined') {
+    await DB.loadProducts();
+  }
   loadDynamicSections();
 });

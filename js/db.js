@@ -7,7 +7,7 @@ const DB = (() => {
   let _promise = null;
 
   function normalizeProduct(p) {
-    const img = p.image_base64 || p.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80';
+    const img = p.image_base64 || p.image_url || '';
     let vStock = {};
     if (p.variant_stock) {
       try {
@@ -31,13 +31,18 @@ const DB = (() => {
       sizes:          sizesArr,
       description:    p.description || '',
       image:          img,
-      images:         [img],
+      images:         img ? [img] : [],
       image_base64:   p.image_base64 || '',
       image_url:      p.image_url || '',
       featured:       !!p.featured,
       new_arrival:    !!p.new_arrival,
       weekly_promo:   !!p.weekly_promo,
       hero_card:      !!p.hero_card,
+      category_cover: !!p.category_cover,
+      weight:         parseFloat(p.weight) || 0.3,
+      height:         parseFloat(p.height) || 5,
+      width:          parseFloat(p.width) || 15,
+      length:         parseFloat(p.length) || 20,
       stock:          computedStock,
       variant_stock:  vStock,
       active:         p.active !== false,
@@ -93,12 +98,30 @@ const DB = (() => {
         new_arrival:    !!raw.new_arrival,
         weekly_promo:   !!raw.weekly_promo,
         hero_card:      !!raw.hero_card,
+        category_cover: !!raw.category_cover,
+        weight:         parseFloat(raw.weight) || 0.3,
+        height:         parseFloat(raw.height) || 5,
+        width:          parseFloat(raw.width) || 15,
+        length:         parseFloat(raw.length) || 20,
         stock:          parseInt(raw.stock) || 0,
         variant_stock:  raw.variant_stock || {},
         active:         raw.active !== false,
         sales_count:    0,
       };
-      const { data, error } = await supabaseClient.from('products').insert(row).select().single();
+      let { data, error } = await supabaseClient.from('products').insert(row).select().single();
+      if (error && error.message) {
+        const copy = { ...row };
+        let modified = false;
+        ['category_cover', 'weight', 'height', 'width', 'length'].forEach(col => {
+          if (error.message.includes(col)) { delete copy[col]; modified = true; }
+        });
+        if (modified) {
+          const retry = await supabaseClient.from('products').insert(copy).select().single();
+          if (retry.error) throw retry.error;
+          data = retry.data;
+          error = null;
+        }
+      }
       if (error) throw error;
       _loaded = false; // invalidate cache
       return data;
@@ -108,9 +131,21 @@ const DB = (() => {
       const updates = {};
       const allowed = ['name','category','subcategory','price','original_price','installments',
         'sizes','description','image_base64','image_url','featured','new_arrival',
-        'weekly_promo','hero_card','stock','variant_stock','active','slug'];
+        'weekly_promo','hero_card','category_cover','weight','height','width','length','stock','variant_stock','active','slug'];
       allowed.forEach(k => { if (k in raw) updates[k] = raw[k]; });
-      const { data, error } = await supabaseClient.from('products').update(updates).eq('id', id).select().single();
+      let { data, error } = await supabaseClient.from('products').update(updates).eq('id', id).select().single();
+      if (error && error.message) {
+        let modified = false;
+        ['category_cover', 'weight', 'height', 'width', 'length'].forEach(col => {
+          if (error.message.includes(col)) { delete updates[col]; modified = true; }
+        });
+        if (modified) {
+          const retry = await supabaseClient.from('products').update(updates).eq('id', id).select().single();
+          if (retry.error) throw retry.error;
+          data = retry.data;
+          error = null;
+        }
+      }
       if (error) throw error;
       _loaded = false;
       return data;

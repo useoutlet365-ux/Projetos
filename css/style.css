@@ -375,7 +375,21 @@ input { font-family: var(--font); }
 .category-img {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
-  transition: transform .5s ease;
+  background-color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .5s ease, filter .3s ease;
+}
+.category-placeholder-icon {
+  font-size: 3.5rem;
+  color: rgba(255, 255, 255, 0.2);
+  transition: transform 0.4s ease, color 0.4s ease;
+  margin-bottom: 2rem;
+}
+.category-card:hover .category-placeholder-icon {
+  transform: scale(1.15);
+  color: rgba(255, 255, 255, 0.35);
 }
 .category-card::before {
   content: ''; position: absolute; inset: 0; z-index: 1;
@@ -979,8 +993,3 @@ input { font-family: var(--font); }
 .hero-slide-2 { background-image: url('../image/capa site - OUTLET365 02.png'); }
 .hero-slide-3 { background-image: url('../image/capa site - OUTLET365 03.png'); }
 
-.cat-img-camisas { background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80'); }
-.cat-img-shorts { background-image: url('https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=600&q=80'); }
-.cat-img-calcados { background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80'); }
-.cat-img-acessorios { background-image: url('https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80'); }
-.cat-img-perfumes { background-image: url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80'); }
