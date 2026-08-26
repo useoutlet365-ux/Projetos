@@ -18,6 +18,20 @@ if (!SUPERFRETE_TOKEN) {
 
 app.use(cors());
 app.use(express.json());
+
+// PWA: Headers recomendados para Service Worker e Manifest
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'sw.js'));
+});
+
+app.get('/manifest.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.sendFile(path.join(__dirname, 'manifest.json'));
+});
+
 app.use(express.static(path.join(__dirname)));
 
 // ── CÁLCULO DE FRETE (SuperFrete + Fallback) ──

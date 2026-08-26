@@ -127,21 +127,70 @@ function navigateTo(section) {
   if (section === 'produtos') renderAdminProducts();
   if (section === 'hero-config') renderHeroConfig();
   if (section === 'novo-produto') { resetForm(); updateHeroCounter(); }
-  document.getElementById('admSidebar').classList.remove('mobile-open');
-  document.getElementById('sidebarOverlay').classList.remove('active');
+  document.getElementById('admSidebar')?.classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay')?.classList.remove('active');
 }
+
+// ── CONTROLE DA BARRA LATERAL (MINIMIZAR / EXPANDIR / GAVETA MOBILE) ──
+function toggleAdminSidebar(forceState = null) {
+  const isMobile = window.innerWidth <= 768;
+  const sidebar = document.getElementById('admSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (isMobile) {
+    if (forceState !== null) {
+      if (forceState) {
+        sidebar?.classList.add('mobile-open');
+        overlay?.classList.add('active');
+      } else {
+        sidebar?.classList.remove('mobile-open');
+        overlay?.classList.remove('active');
+      }
+    } else {
+      sidebar?.classList.toggle('mobile-open');
+      overlay?.classList.toggle('active');
+    }
+  } else {
+    const isCurrentlyCollapsed = document.body.classList.contains('adm-sidebar-collapsed');
+    const shouldCollapse = forceState !== null ? forceState : !isCurrentlyCollapsed;
+
+    if (shouldCollapse) {
+      document.body.classList.add('adm-sidebar-collapsed');
+      sidebar?.classList.add('collapsed');
+      localStorage.setItem('outlet365_adm_sidebar_collapsed', '1');
+    } else {
+      document.body.classList.remove('adm-sidebar-collapsed');
+      sidebar?.classList.remove('collapsed');
+      localStorage.setItem('outlet365_adm_sidebar_collapsed', '0');
+    }
+
+    // Dispara evento de redimensionamento para ajustar gráficos Chart.js
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 280);
+  }
+}
+
+function initSidebarPreference() {
+  if (window.innerWidth > 768) {
+    const saved = localStorage.getItem('outlet365_adm_sidebar_collapsed');
+    if (saved === '1') {
+      document.body.classList.add('adm-sidebar-collapsed');
+      document.getElementById('admSidebar')?.classList.add('collapsed');
+    }
+  }
+}
+
+// Inicializa preferência imediatamente
+initSidebarPreference();
 
 document.querySelectorAll('.adm-nav-item').forEach(btn => {
   btn.addEventListener('click', () => navigateTo(btn.dataset.section));
 });
-document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
-  document.getElementById('admSidebar').classList.toggle('mobile-open');
-  document.getElementById('sidebarOverlay').classList.toggle('active');
-});
-document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
-  document.getElementById('admSidebar').classList.remove('mobile-open');
-  document.getElementById('sidebarOverlay').classList.remove('active');
-});
+document.getElementById('sidebarToggleBtn')?.addEventListener('click', () => toggleAdminSidebar());
+document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => toggleAdminSidebar());
+document.getElementById('mobileMenuBtn')?.addEventListener('click', () => toggleAdminSidebar());
+document.getElementById('sidebarOverlay')?.addEventListener('click', () => toggleAdminSidebar(false));
 
 // ── TOAST ──
 function admToast(msg, type = 'success') {
