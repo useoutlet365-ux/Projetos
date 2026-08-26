@@ -278,9 +278,9 @@ function renderRevenueChart() {
       labels: sorted.map(d => fmtDate(d.date)),
       datasets: [{
         label: 'Receita (R$)', data: sorted.map(d => d.revenue || 0),
-        borderColor: '#1a6b3c', backgroundColor: 'rgba(26,107,60,.1)',
+        borderColor: '#080ce6', backgroundColor: 'rgba(8,12,230,.1)',
         borderWidth: 2.5, fill: true, tension: 0.4,
-        pointBackgroundColor: '#1a6b3c', pointRadius: 4,
+        pointBackgroundColor: '#080ce6', pointRadius: 4,
       }]
     },
     options: {
@@ -304,7 +304,7 @@ function renderEngageChart() {
     type: 'doughnut',
     data: {
       labels: ['Visualizações', 'Carrinhos', 'Checkouts'],
-      datasets: [{ data: [tv, tc, tco], backgroundColor: ['#1a6b3c', '#2563eb', '#f59e0b'], borderWidth: 0, hoverOffset: 6 }]
+      datasets: [{ data: [tv, tc, tco], backgroundColor: ['#080ce6', '#3b82f6', '#f59e0b'], borderWidth: 0, hoverOffset: 6 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -410,7 +410,7 @@ function renderFinanceiro() {
         labels: sorted.map(d => fmtDate(d.date)),
         datasets: [{
           label: 'Receita (R$)', data: sorted.map(d => d.revenue || 0),
-          backgroundColor: sorted.map((_, i) => i === sorted.length - 1 ? 'rgba(26,107,60,.4)' : '#1a6b3c'),
+          backgroundColor: sorted.map((_, i) => i === sorted.length - 1 ? 'rgba(8,12,230,.4)' : '#080ce6'),
           borderRadius: 6, borderSkipped: false
         }]
       },
@@ -436,7 +436,7 @@ function renderFinanceiro() {
             sorted.reduce((s, d) => s + (d.cart_adds || 0), 0),
             sorted.reduce((s, d) => s + (d.checkouts || 0), 0)
           ],
-          backgroundColor: ['#2563eb', '#f59e0b', '#1a6b3c'],
+          backgroundColor: ['#3b82f6', '#f59e0b', '#080ce6'],
           borderRadius: 6, borderSkipped: false
         }]
       },
@@ -718,7 +718,7 @@ async function editProduct(id) {
     const buttons = document.querySelectorAll('.size-option-btn');
     sizesStr.split(',').map(s => s.trim()).forEach(s => {
       const btn = [...buttons].find(b => b.dataset.size === s);
-      if (btn) { btn.classList.add('selected'); btn.style.background = '#1a6b3c'; btn.style.color = '#fff'; btn.style.borderColor = '#1a6b3c'; }
+      if (btn) { btn.classList.add('selected'); btn.style.background = '#080ce6'; btn.style.color = '#fff'; btn.style.borderColor = '#080ce6'; }
     });
     renderVariantStockFields();
   }, 200);
@@ -791,7 +791,7 @@ async function duplicateProduct(id) {
     const buttons = document.querySelectorAll('.size-option-btn');
     sizesStr.split(',').map(s => s.trim()).forEach(s => {
       const btn = [...buttons].find(b => b.dataset.size === s);
-      if (btn) { btn.classList.add('selected'); btn.style.background = '#1a6b3c'; btn.style.color = '#fff'; btn.style.borderColor = '#1a6b3c'; }
+      if (btn) { btn.classList.add('selected'); btn.style.background = '#080ce6'; btn.style.color = '#fff'; btn.style.borderColor = '#080ce6'; }
     });
     renderVariantStockFields();
   }, 200);
@@ -885,7 +885,7 @@ function updateSubcategory() {
 function toggleSizeBtn(btn) {
   btn.classList.toggle('selected');
   if (btn.classList.contains('selected')) {
-    btn.style.background = '#1a6b3c'; btn.style.color = '#fff'; btn.style.borderColor = '#1a6b3c';
+    btn.style.background = '#080ce6'; btn.style.color = '#fff'; btn.style.borderColor = '#080ce6';
   } else {
     btn.style.background = '#fff'; btn.style.color = ''; btn.style.borderColor = 'var(--adm-border)';
   }

@@ -7,8 +7,8 @@
   --adm-sidebar: #0a0a0a;
   --adm-sidebar-w: 240px;
   --adm-header-h: 60px;
-  --adm-green: #1a6b3c;
-  --adm-green-light: #e8f5ee;
+  --adm-green: #080ce6;
+  --adm-green-light: #eff2ff;
   --adm-red: #e53935;
   --adm-red-light: #fdecea;
   --adm-yellow: #f59e0b;
@@ -57,7 +57,7 @@ img { display: block; max-width: 100%; }
   font-size: 1.3rem; font-weight: 900;
   letter-spacing: .05em; color: #fff;
 }
-.adm-sidebar-logo .logo-accent { color: #2dc75e; }
+.adm-sidebar-logo .logo-accent { color: #080ce6; }
 .adm-sidebar-logo p {
   font-size: .68rem; color: rgba(255,255,255,.4);
   margin-top: .15rem; letter-spacing: .05em; text-transform: uppercase;
@@ -82,8 +82,8 @@ img { display: block; max-width: 100%; }
 .adm-nav-item i { width: 18px; text-align: center; font-size: .9rem; }
 .adm-nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
 .adm-nav-item.active {
-  background: rgba(26,107,60,.25); color: #2dc75e;
-  border-left-color: #2dc75e;
+  background: rgba(8,12,230,.2); color: #6d70ff;
+  border-left-color: #080ce6;
 }
 .adm-sidebar-footer {
   padding: 1rem 1.5rem;
@@ -293,7 +293,7 @@ img { display: block; max-width: 100%; }
 .adm-form-group select:focus,
 .adm-form-group textarea:focus {
   border-color: var(--adm-green);
-  box-shadow: 0 0 0 3px rgba(26,107,60,.1);
+  box-shadow: 0 0 0 3px rgba(8,12,230,.1);
 }
 .adm-form-group textarea { resize: vertical; min-height: 90px; }
 
@@ -380,7 +380,7 @@ img { display: block; max-width: 100%; }
   letter-spacing: .02em;
 }
 .adm-btn-primary { background: var(--adm-green); color: #fff; }
-.adm-btn-primary:hover { background: #104d2a; }
+.adm-btn-primary:hover { background: #0508b8; }
 .adm-btn-secondary { background: #f3f4f6; color: var(--adm-text); }
 .adm-btn-secondary:hover { background: #e5e7eb; }
 .adm-btn-danger { background: var(--adm-red-light); color: var(--adm-red); }

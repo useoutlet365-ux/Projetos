@@ -64,7 +64,7 @@ js/
 
 ## 🎨 Design
 
-- **Cor primária:** Verde escuro `#1a6b3c`
+- **Cor primária:** Azul `#080ce6`
 - **Tipografia:** Inter (Google Fonts)
 - **Estilo:** Masculino, moderno, limpo
 - **Abordagem:** Mobile-first
