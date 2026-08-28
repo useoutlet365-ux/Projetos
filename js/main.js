@@ -1,6 +1,17 @@
 // =====================================================
-// OUTLET 365 — Main JS
+// OUTLET 365 — Main JS (Seguro contra XSS)
 // =====================================================
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Carrega produtos do Supabase antes de renderizar seções dinâmicas
@@ -64,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   cartOverlay?.addEventListener('click', closeCart);
   continueShopping?.addEventListener('click', closeCart);
 
-  // ── SEARCH ──
+  // ── SEARCH (Protegido contra DOM XSS) ──
   const searchToggle = document.getElementById('searchToggle');
   const searchBar = document.getElementById('searchBar');
   const searchInput = document.getElementById('searchInput');
@@ -81,15 +92,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!q || !searchResults) return;
     const results = searchProducts(q);
     if (results.length === 0) {
-      searchResults.innerHTML = `<div class="search-result-item"><div class="search-result-info"><p>Nenhum produto encontrado para "${q}"</p></div></div>`;
+      const box = document.createElement('div');
+      box.className = 'search-result-item';
+      const info = document.createElement('div');
+      info.className = 'search-result-info';
+      const p = document.createElement('p');
+      p.textContent = `Nenhum produto encontrado para "${q}"`;
+      info.appendChild(p);
+      box.appendChild(info);
+      searchResults.replaceChildren(box);
       searchResults.classList.add('active');
       return;
     }
     searchResults.innerHTML = results.map(p => `
-      <div class="search-result-item" onclick="window.location.href='produto.html?slug=${p.slug}'">
-        <img src="${p.image}" alt="${p.name}" class="search-result-img" loading="lazy"/>
+      <div class="search-result-item" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
+        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="search-result-img" loading="lazy"/>
         <div class="search-result-info">
-          <p>${p.name}</p>
+          <p>${escapeHtml(p.name)}</p>
           <span>${formatPrice(p.price)}</span>
         </div>
       </div>
@@ -173,23 +192,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 });
 
-// ── PRODUCT CARD RENDERER ──
+// ── PRODUCT CARD RENDERER (Sanitizado contra XSS) ──
 function renderProductCards(products) {
   if (!products || products.length === 0) {
     return '<p style="color:#888;text-align:center;padding:2rem">Nenhum produto encontrado.</p>';
   }
   return products.map(p => `
-    <article class="product-card" onclick="window.location.href='produto.html?slug=${p.slug}'">
+    <article class="product-card" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
       <div class="product-card-img-wrap">
-        <img src="${p.image}" alt="${p.name}" class="product-card-img" loading="lazy"/>
+        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="product-card-img" loading="lazy"/>
         ${p.new_arrival ? '<span class="product-badge new">Novo</span>' : ''}
         ${p.featured && !p.new_arrival ? '<span class="product-badge">Destaque</span>' : ''}
       </div>
       <div class="product-card-info">
-        <h3 class="product-card-name">${p.name}</h3>
+        <h3 class="product-card-name">${escapeHtml(p.name)}</h3>
         <p class="product-card-price">${formatPrice(p.price)}</p>
         <p class="product-card-installments">${formatInstallments(p.price, p.installments)}</p>
-        <button class="btn-add-card" onclick="event.stopPropagation(); quickAddToCart('${p.id}')">
+        <button class="btn-add-card" onclick="event.stopPropagation(); quickAddToCart('${escapeHtml(p.id)}')">
           <i class="fas fa-shopping-bag"></i> Adicionar
         </button>
       </div>
@@ -199,9 +218,17 @@ function renderProductCards(products) {
 
 // ── QUICK ADD TO CART ──
 function quickAddToCart(productId) {
-  const product = PRODUCTS.find(p => p.id === productId);
+  const product = (window.PRODUCTS || []).find(p => String(p.id) === String(productId));
   if (!product) return;
-  const size = product.sizes[0];
+  const vStock = product.variant_stock || {};
+  let size = null;
+  if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+    size = product.sizes.find(s => {
+      const q = vStock[s] !== undefined ? parseInt(vStock[s]) : (product.stock || 0);
+      return q > 0;
+    }) || product.sizes[0];
+  } else {
+    size = 'Único';
+  }
   Cart.addItem(product, size);
-  showToast(`✓ ${product.name} adicionado ao carrinho!`);
 }

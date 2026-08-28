@@ -345,7 +345,7 @@ app.post('/api/process-payment', async (req, res) => {
   }
 
   const { order, cartItems, paymentFormData } = req.body;
-  if (!order || !cartItems || !paymentFormData) {
+  if (!order || !cartItems || !paymentFormData || !Array.isArray(cartItems) || cartItems.length === 0) {
     return res.status(400).json({ error: 'Payload inválido ou incompleto.' });
   }
 
@@ -374,13 +374,17 @@ app.post('/api/process-payment', async (req, res) => {
     for (const item of cartItems) {
       const dbProd = productsMap.get(item.id);
       if (!dbProd) {
-        return res.status(400).json({ error: `Produto inválido ou inexistente: ${item.name}` });
+        return res.status(400).json({ error: `Produto inválido ou inexistente: ${item.name || item.id}` });
       }
       if (!dbProd.active) {
-        return res.status(400).json({ error: `Produto indisponível: ${item.name}` });
+        return res.status(400).json({ error: `Produto indisponível: ${item.name || item.id}` });
+      }
+      const qty = parseInt(item.qty) || 0;
+      if (qty <= 0 || qty > 100) {
+        return res.status(400).json({ error: "Quantidade de produto inválida." });
       }
       const dbPrice = parseFloat(dbProd.price);
-      calculatedSubtotal += dbPrice * item.qty;
+      calculatedSubtotal += dbPrice * qty;
     }
 
     // 3. Validar valor do frete
@@ -399,11 +403,12 @@ app.post('/api/process-payment', async (req, res) => {
     }
 
     // 5. Preparar chamada para o Mercado Pago
+    const cleanPhone = (order.customer_phone || '').replace(/\D/g, '');
     const payerPhone = {
-      area_code: order.customer_phone.replace(/\D/g, '').slice(0, 2),
-      number: order.customer_phone.replace(/\D/g, '').slice(2)
+      area_code: cleanPhone.slice(0, 2) || '88',
+      number: cleanPhone.slice(2) || '999999999'
     };
-    const [street, number] = order.address.split(',').map(part => part.trim());
+    const [street, number] = (order.address || '').split(',').map(part => part.trim());
 
     const paymentPayload = {
       transaction_amount: mpTotal,
@@ -413,17 +418,17 @@ app.post('/api/process-payment', async (req, res) => {
       payment_method_id: paymentFormData.payment_method_id,
       issuer_id: paymentFormData.issuer_id,
       payer: {
-        email: paymentFormData.payer.email || order.customer_email,
-        identification: paymentFormData.payer.identification,
-        first_name: order.customer_name.split(' ')[0],
-        last_name: order.customer_name.split(' ').slice(1).join(' ') || 'Silva',
+        email: paymentFormData.payer?.email || order.customer_email,
+        identification: paymentFormData.payer?.identification,
+        first_name: (order.customer_name || 'Cliente').split(' ')[0],
+        last_name: (order.customer_name || '').split(' ').slice(1).join(' ') || 'Silva',
         phone: payerPhone,
         address: {
-          zip_code: order.cep.replace(/\D/g, ''),
+          zip_code: (order.cep || '').replace(/\D/g, ''),
           street_name: street || '',
           street_number: (number && !isNaN(Number(number))) ? Number(number) : 0,
-          city: order.city,
-          state: order.state
+          city: order.city || 'Madalena',
+          state: order.state || 'CE'
         }
       },
       metadata: {
@@ -436,7 +441,7 @@ app.post('/api/process-payment', async (req, res) => {
       headers: {
         Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': order.id
+        'X-Idempotency-Key': String(order.id)
       },
       body: JSON.stringify(paymentPayload)
     });
@@ -467,6 +472,30 @@ app.post('/api/process-payment', async (req, res) => {
 
     if (!updateRes.ok) {
       console.error("Erro ao atualizar status do pedido no Supabase:", await updateRes.text());
+    }
+
+    // Baixa de estoque atômica no servidor se pagamento foi aprovado
+    if (paymentData.status === 'approved') {
+      for (const item of cartItems) {
+        if (!item.id) continue;
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/rpc/decrement_product_stock`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              item_id: item.id,
+              qty_to_sub: parseInt(item.qty) || 1,
+              item_size: item.size || null
+            })
+          });
+        } catch (e) {
+          console.error(`Erro ao baixar estoque do item ${item.id}:`, e);
+        }
+      }
     }
 
     return res.json(paymentData);

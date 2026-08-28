@@ -156,25 +156,32 @@ const DB = (() => {
       for (const item of items) {
         if (!item.id) continue;
         try {
-          const { data: prod } = await supabaseClient.from('products').select('stock, variant_stock').eq('id', item.id).single();
-          if (!prod) continue;
-          let vStock = prod.variant_stock || {};
-          if (typeof vStock === 'string') {
-            try { vStock = JSON.parse(vStock); } catch (e) { vStock = {}; }
-          }
-          const currentTotal = prod.stock || 0;
-          const qtyToSub = parseInt(item.qty) || 1;
-          const newTotal = Math.max(0, currentTotal - qtyToSub);
+          const { error: rpcErr } = await supabaseClient.rpc('decrement_product_stock', {
+            item_id: item.id,
+            qty_to_sub: parseInt(item.qty) || 1,
+            item_size: item.size || null
+          });
+          if (rpcErr) {
+            const { data: prod } = await supabaseClient.from('products').select('stock, variant_stock').eq('id', item.id).single();
+            if (!prod) continue;
+            let vStock = prod.variant_stock || {};
+            if (typeof vStock === 'string') {
+              try { vStock = JSON.parse(vStock); } catch (e) { vStock = {}; }
+            }
+            const currentTotal = prod.stock || 0;
+            const qtyToSub = parseInt(item.qty) || 1;
+            const newTotal = Math.max(0, currentTotal - qtyToSub);
 
-          if (item.size && vStock && (item.size in vStock)) {
-            const currentSizeQty = parseInt(vStock[item.size]) || 0;
-            vStock[item.size] = Math.max(0, currentSizeQty - qtyToSub);
-          }
+            if (item.size && vStock && (item.size in vStock)) {
+              const currentSizeQty = parseInt(vStock[item.size]) || 0;
+              vStock[item.size] = Math.max(0, currentSizeQty - qtyToSub);
+            }
 
-          await supabaseClient.from('products').update({
-            stock: newTotal,
-            variant_stock: vStock
-          }).eq('id', item.id);
+            await supabaseClient.from('products').update({
+              stock: newTotal,
+              variant_stock: vStock
+            }).eq('id', item.id);
+          }
         } catch (err) {
           console.error(`Erro ao dar baixa no estoque do produto ${item.id}:`, err);
         }

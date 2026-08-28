@@ -1,6 +1,17 @@
 // =====================================================
-// OUTLET 365 — Product Detail Page (PDP)
+// OUTLET 365 — Product Detail Page (PDP - Seguro contra XSS)
 // =====================================================
+
+function _escape(str) {
+  if (typeof escapeHtml === 'function') return escapeHtml(str);
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
@@ -26,29 +37,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Page meta
   document.getElementById('pageTitle').textContent = `${product.name} — Outlet 365`;
-  document.getElementById('pageDesc').setAttribute('content', product.description);
+  document.getElementById('pageDesc').setAttribute('content', product.description || '');
 
-  // Breadcrumb
+  // Breadcrumb & Botão Voltar
   const catInfo = CATEGORIES[product.category] || { label: 'Produtos' };
-  document.getElementById('pdpBreadCat').textContent = catInfo.label;
-  document.getElementById('pdpBreadCat').href = `categoria.html?cat=${product.category}`;
-  document.getElementById('pdpBreadName').textContent = product.name;
+  const catUrl = `categoria.html?cat=${encodeURIComponent(product.category)}`;
 
-  let selectedSize = product.sizes[0];
+  const backBtn = document.getElementById('pdpBackBtn');
+  const backText = document.getElementById('pdpBackText');
+  if (backBtn) {
+    backBtn.href = catUrl;
+    backBtn.onclick = (e) => {
+      if (document.referrer && document.referrer.includes('categoria.html')) {
+        e.preventDefault();
+        window.history.back();
+      }
+    };
+  }
+  if (backText) backText.textContent = `Voltar para ${catInfo.label}`;
+
+  const breadCat = document.getElementById('pdpBreadCat');
+  if (breadCat) {
+    breadCat.textContent = catInfo.label;
+    breadCat.href = catUrl;
+  }
+  const breadName = document.getElementById('pdpBreadName');
+  if (breadName) breadName.textContent = product.name;
+
+  // Encontra primeiro tamanho disponível em estoque
+  const vStockInit = product.variant_stock || {};
+  let selectedSize = product.sizes.find(s => {
+    const qty = vStockInit[s] !== undefined ? parseInt(vStockInit[s]) : (product.stock || 0);
+    return qty > 0;
+  }) || (product.sizes.length > 0 ? product.sizes[0] : 'Único');
+
   let currentImgIndex = 0;
+
+  const safeName = _escape(product.name);
+  const safeCatLabel = _escape(catInfo.label);
+  const safeSubcat = _escape(product.subcategory || '');
+  const safeDesc = _escape(product.description || '');
+  const mainImage = _escape(product.images[0] || product.image || '');
+  const isEntirelyOutOfStock = (product.stock !== undefined && product.stock <= 0);
 
   // Build PDP
   document.getElementById('pdpContent').innerHTML = `
     <!-- Gallery -->
     <div class="pdp-gallery">
       <div class="pdp-main-img">
-        <img src="${product.images[0]}" alt="${product.name}" id="mainImg" />
+        <img src="${mainImage}" alt="${safeName}" id="mainImg" />
       </div>
       ${product.images.length > 1 ? `
       <div class="pdp-thumbs" id="pdpThumbs">
         ${product.images.map((img, i) => `
           <div class="pdp-thumb ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="switchImage(${i})">
-            <img src="${img}" alt="${product.name} ${i + 1}" loading="lazy"/>
+            <img src="${_escape(img)}" alt="${safeName} ${i + 1}" loading="lazy"/>
           </div>
         `).join('')}
       </div>` : ''}
@@ -56,8 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     <!-- Info -->
     <div class="pdp-info">
-      <p class="pdp-category">${catInfo.label} · ${product.subcategory}</p>
-      <h1 class="pdp-name">${product.name}</h1>
+      <p class="pdp-category">${safeCatLabel} · ${safeSubcat}</p>
+      <h1 class="pdp-name">${safeName}</h1>
       <p class="pdp-price">${formatPrice(product.price)}</p>
       <p class="pdp-installments">${formatInstallments(product.price, product.installments)}</p>
 
@@ -68,13 +111,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="size-grid" id="sizeGrid">
         ${product.sizes.map(s => {
           const vStock = product.variant_stock || {};
-          const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (product.stock || 999);
+          const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (product.stock !== undefined ? product.stock : 999);
           const isOut = qty <= 0;
+          const safeS = _escape(s);
           return `
             <button class="size-btn ${s === selectedSize ? 'selected' : ''} ${isOut ? 'disabled' : ''}"
-              data-size="${s}" ${isOut ? 'disabled title="Tamanho esgotado"' : `onclick="selectSize('${s}')"`}
+              data-size="${safeS}" ${isOut ? 'disabled title="Tamanho esgotado"' : `onclick="selectSize('${safeS}')"`}
               style="${isOut ? 'opacity:0.4;cursor:not-allowed;text-decoration:line-through;' : ''}">
-              ${s}
+              ${safeS} ${isOut ? '(Esgotado)' : ''}
             </button>
           `;
         }).join('')}
@@ -82,11 +126,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       <!-- Ações -->
       <div class="pdp-actions">
-        <button class="btn-pdp-buy" id="btnBuy" onclick="handleBuy()">
-          <i class="fas fa-bolt"></i> COMPRAR AGORA
+        <button class="btn-pdp-buy" id="btnBuy" ${isEntirelyOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="handleBuy()">
+          <i class="fas fa-bolt"></i> ${isEntirelyOutOfStock ? 'ESGOTADO' : 'COMPRAR AGORA'}
         </button>
-        <button class="btn-pdp-cart" id="btnCart" onclick="handleAddToCart()">
-          <i class="fas fa-shopping-bag"></i> ADICIONAR AO CARRINHO
+        <button class="btn-pdp-cart" id="btnCart" ${isEntirelyOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="handleAddToCart()">
+          <i class="fas fa-shopping-bag"></i> ${isEntirelyOutOfStock ? 'PRODUTO ESGOTADO' : 'ADICIONAR AO CARRINHO'}
         </button>
       </div>
 
@@ -107,13 +151,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       <!-- Descrição -->
       <div class="pdp-description">
         <h3>Descrição</h3>
-        <p>${product.description}</p>
+        <p>${safeDesc}</p>
       </div>
 
       <!-- Compartilhar -->
       <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
         <span style="font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Compartilhar:</span>
-        <a href="https://wa.me/?text=Confira ${encodeURIComponent(product.name)} na Outlet 365!" target="_blank"
+        <a href="https://wa.me/?text=${encodeURIComponent(`Confira ${product.name} na Outlet 365!`)}" target="_blank"
           style="color:#25D366;font-size:1.2rem;"><i class="fab fa-whatsapp"></i></a>
         <a href="https://www.instagram.com/outlet365__" target="_blank"
           style="color:#e1306c;font-size:1.2rem;"><i class="fab fa-instagram"></i></a>
@@ -128,16 +172,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const grid = document.getElementById('similaresGrid');
     sec.style.display = 'block';
     grid.innerHTML = similares.map(p => `
-      <article class="product-card" onclick="window.location.href='produto.html?slug=${p.slug}'">
+      <article class="product-card" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
         <div class="product-card-img-wrap">
-          <img src="${p.image}" alt="${p.name}" class="product-card-img" loading="lazy"/>
+          <img src="${_escape(p.image)}" alt="${_escape(p.name)}" class="product-card-img" loading="lazy"/>
           ${p.new_arrival ? '<span class="product-badge new">Novo</span>' : ''}
         </div>
         <div class="product-card-info">
-          <h3 class="product-card-name">${p.name}</h3>
+          <h3 class="product-card-name">${_escape(p.name)}</h3>
           <p class="product-card-price">${formatPrice(p.price)}</p>
           <p class="product-card-installments">${formatInstallments(p.price, p.installments)}</p>
-          <button class="btn-add-card" onclick="event.stopPropagation(); quickAddToCart('${p.id}')">
+          <button class="btn-add-card" onclick="event.stopPropagation(); quickAddToCart('${_escape(p.id)}')">
             <i class="fas fa-shopping-bag"></i> Adicionar
           </button>
         </div>
@@ -150,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.switchImage = function(index) {
     currentImgIndex = index;
     const mainImg = document.getElementById('mainImg');
-    if (mainImg) mainImg.src = product.images[index];
+    if (mainImg && product.images[index]) mainImg.src = product.images[index];
     document.querySelectorAll('.pdp-thumb').forEach((t, i) => {
       t.classList.toggle('active', i === index);
     });
@@ -164,19 +208,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   window.handleAddToCart = function() {
-    if (!selectedSize) { showToast('Selecione um tamanho'); return; }
-    Cart.addItem(product, selectedSize);
-    showToast(`✓ ${product.name} (${selectedSize}) adicionado ao carrinho!`);
-    // Open cart drawer
-    document.getElementById('cartDrawer')?.classList.add('active');
-    document.getElementById('cartOverlay')?.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    if (!selectedSize) { showToast('Selecione um tamanho disponível'); return; }
+    const success = Cart.addItem(product, selectedSize);
+    if (success) {
+      document.getElementById('cartDrawer')?.classList.add('active');
+      document.getElementById('cartOverlay')?.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
   };
 
   window.handleBuy = function() {
-    if (!selectedSize) { showToast('Selecione um tamanho'); return; }
-    Cart.addItem(product, selectedSize);
-    window.location.href = 'checkout.html';
+    if (!selectedSize) { showToast('Selecione um tamanho disponível'); return; }
+    const success = Cart.addItem(product, selectedSize);
+    if (success) {
+      window.location.href = 'checkout.html';
+    }
   };
 
   window.calcularFrete = async function() {
@@ -224,14 +270,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       freteOptions.innerHTML = options.map(o => `
         <div class="frete-option">
           <div class="frete-option-info">
-            <p>${o.name || o.label}</p>
-            <span>${o.description || (o.delivery_time ? `${o.delivery_time} dias úteis` : o.days)}</span>
+            <p>${_escape(o.name || o.label || '')}</p>
+            <span>${_escape(o.description || (o.delivery_time ? `${o.delivery_time} dias úteis` : o.days) || '')}</span>
           </div>
           <span class="frete-option-price">${o.price === 0 ? 'Grátis' : formatPrice(o.price)}</span>
         </div>
       `).join('');
 
-      const locationText = data.city && data.state ? ` para <strong>${data.city} - ${data.state}</strong>` : '';
+      const safeCity = _escape(data.city || '');
+      const safeState = _escape(data.state || '');
+      const locationText = safeCity && safeState ? ` para <strong>${safeCity} - ${safeState}</strong>` : '';
       freteNote.innerHTML = `<i class="fas fa-map-marker-alt" style="color:var(--green)"></i> Frete calculado${locationText}. O prazo de entrega não contabiliza feriados.`;
 
     } catch (error) {

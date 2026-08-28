@@ -1,5 +1,5 @@
 // =====================================================
-// OUTLET 365 — Home Dynamic Sections (Supabase)
+// OUTLET 365 — Home Dynamic Sections (Seguro contra XSS)
 // Carrega Categorias Dinâmicas, Card Principal, Promoções e Instagram Feed
 // =====================================================
 
@@ -19,16 +19,26 @@ const CAT_GRADIENTS = {
   'perfumes': 'linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%)'
 };
 
+function _escape(str) {
+  if (typeof escapeHtml === 'function') return escapeHtml(str);
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function formatPriceFn(value) {
   return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function addHeroToCart(id, name, price, image, size) {
-  const product = (window.PRODUCTS || []).find(p => p.id === id) || { id, slug: id, name: decodeURIComponent(name), price, image, sizes: [size] };
+  const product = (window.PRODUCTS || []).find(p => String(p.id) === String(id)) || { id, slug: id, name: decodeURIComponent(name), price, image, sizes: [size] };
   if (typeof Cart !== 'undefined' && Cart.addItem) {
     Cart.addItem(product, size);
   }
-  if (typeof showToast === 'function') showToast(`✓ ${decodeURIComponent(name)} adicionado ao carrinho!`);
 }
 
 // ── 1. CARREGA FOTOS REAIS DAS CATEGORIAS ──
@@ -43,11 +53,6 @@ function loadCategoryImages() {
     // Filtra produtos desta categoria
     const catProducts = products.filter(p => p.category === cat);
 
-    // Prioridade:
-    // 1. Produto marcado como capa da categoria (category_cover)
-    // 2. Produto em destaque (featured)
-    // 3. Produto no card principal (hero_card)
-    // 4. Primeiro produto cadastrado com imagem na categoria
     const chosen = catProducts.find(p => p.category_cover && (p.image || p.image_base64 || p.image_url))
       || catProducts.find(p => p.featured && (p.image || p.image_base64 || p.image_url))
       || catProducts.find(p => p.hero_card && (p.image || p.image_base64 || p.image_url))
@@ -57,7 +62,7 @@ function loadCategoryImages() {
     if (chosen) {
       const imgUrl = chosen.image_base64 || chosen.image_url || chosen.image;
       if (imgUrl) {
-        imgEl.style.backgroundImage = `url('${imgUrl}')`;
+        imgEl.style.backgroundImage = `url('${encodeURI(imgUrl)}')`;
         imgEl.style.backgroundSize = 'cover';
         imgEl.style.backgroundPosition = 'center';
         imgEl.style.backgroundColor = 'transparent';
@@ -69,7 +74,6 @@ function loadCategoryImages() {
         imgEl.innerHTML = `<i class="${iconClass} category-placeholder-icon"></i>`;
       }
     } else {
-      // Categoria ainda sem produtos cadastrados
       const iconClass = CAT_ICONS[cat] || 'fas fa-tag';
       imgEl.style.backgroundImage = 'none';
       imgEl.style.background = CAT_GRADIENTS[cat] || 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)';
@@ -89,10 +93,11 @@ function loadInstagramFeed() {
   if (productsWithImg.length > 0) {
     const displayItems = productsWithImg.slice(0, 6);
     instaGrid.innerHTML = displayItems.map(p => {
-      const img = p.image_base64 || p.image_url || p.image;
+      const img = _escape(p.image_base64 || p.image_url || p.image);
+      const safeName = _escape(p.name);
       return `
-        <a href="produto.html?slug=${p.slug}" class="insta-cell" title="${p.name}">
-          <img src="${img}" alt="${p.name}" loading="lazy" />
+        <a href="produto.html?slug=${encodeURIComponent(p.slug)}" class="insta-cell" title="${safeName}">
+          <img src="${img}" alt="${safeName}" loading="lazy" />
           <div class="insta-overlay"><i class="fas fa-shopping-bag"></i></div>
         </a>
       `;
@@ -104,10 +109,7 @@ function loadInstagramFeed() {
 function loadDynamicSections() {
   const products = (window.PRODUCTS || []).filter(p => p.active !== false);
 
-  // ── Atualiza Capas das Categorias ──
   loadCategoryImages();
-
-  // ── Atualiza Feed Instagram ──
   loadInstagramFeed();
 
   // ── CARD PRINCIPAL ──
@@ -119,22 +121,24 @@ function loadDynamicSections() {
     heroSection.style.display = 'block';
     heroGrid.innerHTML = heroProducts.slice(0, 5).map(p => {
       const hasDiscount = p.original_price && p.original_price > p.price;
-      const imgSrc = p.image || p.image_base64 || p.image_url || '';
+      const imgSrc = _escape(p.image || p.image_base64 || p.image_url || '');
+      const safeName = _escape(p.name);
       const firstSize = Array.isArray(p.sizes) ? p.sizes[0] : (p.sizes ? p.sizes.split(',')[0].trim() : 'Único');
+      const safeFirstSize = _escape(firstSize);
       return `
-        <div class="hero-card-item" onclick="window.location.href='produto.html?slug=${p.slug}'">
+        <div class="hero-card-item" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
           <div class="hero-card-img-wrap">
-            ${imgSrc ? `<img src="${imgSrc}" alt="${p.name}" class="hero-card-img" loading="lazy"/>` : '<div class="hero-card-img" style="background:#2d3748;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="fas fa-tshirt"></i></div>'}
+            ${imgSrc ? `<img src="${imgSrc}" alt="${safeName}" class="hero-card-img" loading="lazy"/>` : '<div class="hero-card-img" style="background:#2d3748;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="fas fa-tshirt"></i></div>'}
             ${hasDiscount ? `<span class="promo-discount-badge">-${Math.round((1-p.price/p.original_price)*100)}%</span>` : ''}
           </div>
           <div class="hero-card-info">
-            <p class="hero-card-name">${p.name}</p>
+            <p class="hero-card-name">${safeName}</p>
             <p class="hero-card-price">
               ${formatPriceFn(p.price)}
               ${hasDiscount ? `<span class="hero-card-orig">${formatPriceFn(p.original_price)}</span>` : ''}
             </p>
           </div>
-          <button class="hero-card-btn" onclick="event.stopPropagation();addHeroToCart('${p.id}','${encodeURIComponent(p.name)}',${p.price},'${imgSrc}','${firstSize}')">
+          <button class="hero-card-btn" onclick="event.stopPropagation();addHeroToCart('${_escape(p.id)}','${encodeURIComponent(p.name)}',${p.price},'${imgSrc}','${safeFirstSize}')">
             <i class="fas fa-shopping-bag"></i> Adicionar
           </button>
         </div>
@@ -152,20 +156,22 @@ function loadDynamicSections() {
     promoGrid.innerHTML = promoProducts.slice(0, 8).map(p => {
       const hasDiscount = p.original_price && p.original_price > p.price;
       const discPct     = hasDiscount ? Math.round((1 - p.price / p.original_price) * 100) : 0;
-      const imgSrc      = p.image || p.image_base64 || p.image_url || '';
+      const imgSrc      = _escape(p.image || p.image_base64 || p.image_url || '');
+      const safeName    = _escape(p.name);
       const firstSize   = Array.isArray(p.sizes) ? p.sizes[0] : (p.sizes ? p.sizes.split(',')[0].trim() : 'Único');
+      const safeFirstSize = _escape(firstSize);
       return `
-        <article class="product-card" onclick="window.location.href='produto.html?slug=${p.slug}'">
+        <article class="product-card" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
           <div class="product-card-img-wrap">
-            ${imgSrc ? `<img src="${imgSrc}" alt="${p.name}" class="product-card-img" loading="lazy"/>` : '<div class="product-card-img" style="background:#2d3748;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="fas fa-tshirt"></i></div>'}
+            ${imgSrc ? `<img src="${imgSrc}" alt="${safeName}" class="product-card-img" loading="lazy"/>` : '<div class="product-card-img" style="background:#2d3748;display:flex;align-items:center;justify-content:center;color:#fff;"><i class="fas fa-tshirt"></i></div>'}
             ${discPct>0 ? `<span class="promo-discount-badge">-${discPct}%</span>` : '<span class="product-badge new">🔥 Promo</span>'}
           </div>
           <div class="product-card-info">
-            <h3 class="product-card-name">${p.name}</h3>
+            <h3 class="product-card-name">${safeName}</h3>
             <p class="product-card-price" style="color:#ef4444;">${formatPriceFn(p.price)}</p>
             ${hasDiscount ? `<p class="promo-original-price">${formatPriceFn(p.original_price)}</p>` : ''}
             <p class="product-card-installments">${p.installments>1 ? `ou ${p.installments}x de ${formatPriceFn(p.price/p.installments)}` : 'À vista'}</p>
-            <button class="btn-add-card" onclick="event.stopPropagation();addHeroToCart('${p.id}','${encodeURIComponent(p.name)}',${p.price},'${imgSrc}','${firstSize}')">
+            <button class="btn-add-card" onclick="event.stopPropagation();addHeroToCart('${_escape(p.id)}','${encodeURIComponent(p.name)}',${p.price},'${imgSrc}','${safeFirstSize}')">
               <i class="fas fa-shopping-bag"></i> Adicionar
             </button>
           </div>

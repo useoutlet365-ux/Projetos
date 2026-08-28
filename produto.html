@@ -125,13 +125,19 @@
   <main>
     <!-- Breadcrumb -->
     <div class="pdp-layout">
-      <nav class="breadcrumb" style="margin-bottom:1.5rem;" id="pdpBreadcrumb">
-        <a href="index.html">Início</a>
-        <i class="fas fa-chevron-right" style="font-size:.6rem"></i>
-        <a href="categoria.html" id="pdpBreadCat">Produtos</a>
-        <i class="fas fa-chevron-right" style="font-size:.6rem"></i>
-        <span id="pdpBreadName">—</span>
-      </nav>
+      <!-- Navegação Superior / Botão Voltar -->
+      <div class="pdp-top-nav">
+        <a href="categoria.html" id="pdpBackBtn" class="btn-pdp-back">
+          <i class="fas fa-arrow-left"></i> <span id="pdpBackText">Voltar para Categoria</span>
+        </a>
+        <nav class="pdp-breadcrumb" id="pdpBreadcrumb">
+          <a href="index.html">Início</a>
+          <i class="fas fa-chevron-right" style="font-size:.55rem"></i>
+          <a href="categoria.html" id="pdpBreadCat">Produtos</a>
+          <i class="fas fa-chevron-right" style="font-size:.55rem"></i>
+          <span id="pdpBreadName">—</span>
+        </nav>
+      </div>
 
       <!-- PDP GRID -->
       <div class="pdp-grid" id="pdpContent">
@@ -202,7 +208,7 @@
     <i class="fab fa-whatsapp"></i>
   </a>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/db.js"></script>
   <script src="js/data.js"></script>

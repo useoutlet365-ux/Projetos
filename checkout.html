@@ -236,13 +236,24 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/db.js"></script>
   <script src="js/data.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/pwa.js"></script>
   <script>
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+    window.escapeHtml = escapeHtml;
+
     function showToast(msg, duration = 2800) {
       const toast = document.getElementById('toast');
       if (!toast) return;
@@ -373,18 +384,22 @@
       const shippingOptionsList = document.getElementById('shippingOptionsList');
 
       shippingSection.style.display = 'block';
-      shippingOptionsList.innerHTML = options.map((o, idx) => `
-        <label class="frete-option" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1.5px solid var(--gray-200); border-radius: var(--radius); transition: all 0.2s; margin-bottom: 0.5rem;" id="label-${o.id}">
+      shippingOptionsList.innerHTML = options.map((o, idx) => {
+        const safeId = escapeHtml(o.id);
+        const safeName = escapeHtml(o.name || o.label || '');
+        const safeDesc = escapeHtml(o.description || (o.delivery_time ? `${o.delivery_time} dias úteis` : o.days) || '');
+        return `
+        <label class="frete-option" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1.5px solid var(--gray-200); border-radius: var(--radius); transition: all 0.2s; margin-bottom: 0.5rem;" id="label-${safeId}">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <input type="radio" name="shipping_option" value="${o.id}" data-price="${o.price}" data-label="${o.name || o.label}" ${idx === 0 ? 'checked' : ''} style="accent-color: var(--green);" onchange="selectShippingOption('${o.id}', ${o.price}, '${o.name || o.label}')" />
+            <input type="radio" name="shipping_option" value="${safeId}" data-price="${o.price}" data-label="${safeName}" ${idx === 0 ? 'checked' : ''} style="accent-color: var(--green);" onchange="selectShippingOption('${safeId}', ${o.price}, '${safeName}')" />
             <div class="frete-option-info">
-              <p style="margin:0; font-size:.85rem; font-weight:700;">${o.name || o.label}</p>
-              <span style="font-size:.75rem; color:var(--gray-400);">${o.description || (o.delivery_time ? `${o.delivery_time} dias úteis` : o.days)}</span>
+              <p style="margin:0; font-size:.85rem; font-weight:700;">${safeName}</p>
+              <span style="font-size:.75rem; color:var(--gray-400);">${safeDesc}</span>
             </div>
           </div>
           <span class="frete-option-price" style="font-size:.92rem; font-weight:800; color:var(--green);">${o.price === 0 ? 'Grátis' : formatPrice(o.price)}</span>
         </label>
-      `).join('');
+      `;}).join('');
 
       // Auto-select first option
       selectShippingOption(options[0].id, options[0].price, options[0].name || options[0].label);
@@ -415,11 +430,6 @@
     async function saveOrderToSupabase(order) {
       try {
         await DB.createOrder(order);
-        let items = [];
-        try { items = JSON.parse(order.items_json || '[]'); } catch (e) { }
-        if (items.length > 0) {
-          await DB.decrementStockForOrder(items);
-        }
       } catch (err) {
         console.error('Erro ao salvar pedido no Supabase:', err);
       }
@@ -616,9 +626,10 @@
 
       let message = '';
       let waText = '';
+      const safeOrderId = escapeHtml(order.id);
 
       if (paymentData.payment_method_id === 'pix' || paymentData.payment_type_id === 'bank_transfer') {
-        message = `Seu pedido <strong>#${order.id}</strong> foi registrado! Pague utilizando o QR Code ou código copia e cola abaixo para aprovação imediata.`;
+        message = `Seu pedido <strong>#${safeOrderId}</strong> foi registrado! Pague utilizando o QR Code ou código copia e cola abaixo para aprovação imediata.`;
         
         if (pixPaymentInfo) {
           pixPaymentInfo.style.display = 'block';
@@ -634,7 +645,7 @@
         waText = `Olá! Fiz o pedido ${order.id} via PIX e gostaria de confirmar o pagamento.`;
 
       } else if (paymentData.payment_type_id === 'ticket' || paymentData.payment_method_id.includes('bol')) {
-        message = `Seu pedido <strong>#${order.id}</strong> foi gerado com sucesso! Efetue o pagamento do boleto bancário em até 2 dias úteis.`;
+        message = `Seu pedido <strong>#${safeOrderId}</strong> foi gerado com sucesso! Efetue o pagamento do boleto bancário em até 2 dias úteis.`;
         
         if (boletoPaymentInfo) {
           boletoPaymentInfo.style.display = 'block';
@@ -651,10 +662,11 @@
 
       } else {
         if (paymentData.status === 'approved') {
-          message = `Seu pagamento foi <strong>aprovado com sucesso</strong>! O número do seu pedido é <strong>#${order.id}</strong>. Obrigado pela compra!`;
+          message = `Seu pagamento foi <strong>aprovado com sucesso</strong>! O número do seu pedido é <strong>#${safeOrderId}</strong>. Obrigado pela compra!`;
           waText = `Olá! Fiz o pedido ${order.id} via Cartão de Crédito e o pagamento já foi aprovado.`;
         } else {
-          message = `Seu pedido <strong>#${order.id}</strong> foi registrado com status: <strong>${paymentData.status_detail || paymentData.status}</strong>. Estaremos acompanhando.`;
+          const safeStatus = escapeHtml(paymentData.status_detail || paymentData.status || '');
+          message = `Seu pedido <strong>#${safeOrderId}</strong> foi registrado com status: <strong>${safeStatus}</strong>. Estaremos acompanhando.`;
           waText = `Olá! Fiz o pedido ${order.id} e gostaria de confirmar o status do pagamento.`;
         }
       }
@@ -685,7 +697,14 @@
       showToast('✓ Linha digitável copiada!');
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (typeof DB !== 'undefined') {
+        await DB.loadProducts();
+        if (typeof Cart.validateStock === 'function') {
+          Cart.validateStock();
+        }
+      }
+
       const items = Cart.getItems();
       const checkoutEmpty = document.getElementById('checkoutEmpty');
       const checkoutGrid = document.getElementById('checkoutGrid');
@@ -702,16 +721,22 @@
 
       const orderItems = document.getElementById('orderItems');
       if (orderItems) {
-        orderItems.innerHTML = items.map(item => `
+        orderItems.innerHTML = items.map(item => {
+          const safeName = escapeHtml(item.name || '');
+          const safeSize = escapeHtml(item.size || '');
+          const safeImg = escapeHtml(item.image || '');
+          const qty = parseInt(item.qty) || 1;
+          const price = parseFloat(item.price) || 0;
+          return `
           <div class="order-item">
-            <img src="${item.image}" alt="${item.name}" class="order-item-img" loading="lazy"/>
+            <img src="${safeImg}" alt="${safeName}" class="order-item-img" loading="lazy"/>
             <div class="order-item-info">
-              <p>${item.name}</p>
-              <span>Tam: ${item.size} · Qtd: ${item.qty}</span>
-              <p style="font-weight:700;color:var(--green);margin-top:.25rem;">${formatPrice(item.price * item.qty)}</p>
+              <p>${safeName}</p>
+              <span>Tam: ${safeSize} · Qtd: ${qty}</span>
+              <p style="font-weight:700;color:var(--green);margin-top:.25rem;">${formatPrice(price * qty)}</p>
             </div>
           </div>
-        `).join('');
+        `;}).join('');
       }
 
       updateTotals(0);

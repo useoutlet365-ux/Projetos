@@ -666,7 +666,54 @@ input { font-family: var(--font); }
 /* =====================================================
    PRODUCT PAGE (produto.html)
    ===================================================== */
-.pdp-layout { max-width: 1200px; margin: 0 auto; padding: 2rem 1.25rem; }
+.pdp-layout { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1.25rem 2.5rem; }
+.pdp-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+.btn-pdp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--dark);
+  background: var(--gray-100);
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--gray-200);
+  text-decoration: none;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+.btn-pdp-back:hover {
+  background: var(--green);
+  color: var(--white);
+  border-color: var(--green);
+  transform: translateX(-2px);
+}
+.pdp-breadcrumb {
+  font-size: 0.8rem;
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.pdp-breadcrumb a {
+  color: var(--gray-600);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+.pdp-breadcrumb a:hover {
+  color: var(--green);
+}
 .pdp-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
 @media (min-width: 768px) { .pdp-grid { grid-template-columns: 1fr 1fr; gap: 2.5rem; } }
 @media (min-width: 1024px) { .pdp-grid { grid-template-columns: 55% 1fr; } }

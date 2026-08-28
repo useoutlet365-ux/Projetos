@@ -1,5 +1,5 @@
 -- =====================================================
--- OUTLET 365 — Supabase Schema (Produção)
+-- OUTLET 365 — Supabase Schema Seguro (Produção)
 -- Execute no SQL Editor do painel Supabase
 -- =====================================================
 
@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS products (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Garante que colunas adicionadas recentemente existam se a tabela já foi criada antes
 ALTER TABLE products ADD COLUMN IF NOT EXISTS category_cover BOOLEAN DEFAULT false;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS weight DECIMAL(10,3) DEFAULT 0.300;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS height DECIMAL(10,2) DEFAULT 5.0;
@@ -78,35 +77,61 @@ ALTER TABLE products   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_stats ENABLE ROW LEVEL SECURITY;
 
--- Products
+-- 1. Permissões de Products
+-- Visitantes públicos (anon) podem APENAS consultar produtos ativos
 DROP POLICY IF EXISTS "anon_select_products" ON products;
 CREATE POLICY "anon_select_products" ON products
   FOR SELECT TO anon USING (active = true);
 
+-- Usuários autenticados (Admin) têm acesso completo a produtos
 DROP POLICY IF EXISTS "auth_all_products" ON products;
 CREATE POLICY "auth_all_products" ON products
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- Orders
+-- 2. Permissões de Orders
+-- Visitantes públicos (anon) podem APENAS INSERIR novos pedidos
 DROP POLICY IF EXISTS "anon_insert_orders" ON orders;
 CREATE POLICY "anon_insert_orders" ON orders
   FOR INSERT TO anon WITH CHECK (true);
 
+-- Visitantes NÃO podem consultar, atualizar ou apagar pedidos
+DROP POLICY IF EXISTS "anon_select_orders" ON orders;
+DROP POLICY IF EXISTS "anon_update_orders" ON orders;
+DROP POLICY IF EXISTS "anon_delete_orders" ON orders;
+
+-- Usuários autenticados (Admin) têm acesso a gerenciar pedidos
 DROP POLICY IF EXISTS "auth_all_orders" ON orders;
 CREATE POLICY "auth_all_orders" ON orders
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- Site Stats
+-- 3. Permissões de Site Stats
+-- Visitantes NÃO podem ler nem alterar site_stats diretamente via REST
+DROP POLICY IF EXISTS "anon_select_site_stats" ON site_stats;
+DROP POLICY IF EXISTS "anon_all_site_stats" ON site_stats;
+
+-- Apenas usuários autenticados (Admin) podem ler estatísticas
 DROP POLICY IF EXISTS "auth_all_site_stats" ON site_stats;
 CREATE POLICY "auth_all_site_stats" ON site_stats
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- ─── RPC FUNCTION: increment_stat ───────────────────
+-- Revoga permissões diretas de tabela do anon em site_stats para garantir
+REVOKE SELECT, UPDATE, DELETE, INSERT ON site_stats FROM anon;
+
+-- ─── RPC FUNCTION: increment_stat (Validada e Segura) ───────────────────
 CREATE OR REPLACE FUNCTION increment_stat(stat_col TEXT, is_new_visitor BOOLEAN DEFAULT false)
-RETURNS VOID AS $$
+RETURNS VOID 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   today DATE := CURRENT_DATE;
 BEGIN
+  -- Validação estrita por whitelist para prevenir qualquer injeção
+  IF stat_col NOT IN ('page_views', 'cart_adds', 'checkouts') THEN
+    RAISE EXCEPTION 'Coluna de estatística inválida: %', stat_col;
+  END IF;
+
   -- Garante que o registro do dia de hoje existe
   INSERT INTO site_stats (date)
   VALUES (today)
@@ -124,4 +149,43 @@ BEGIN
     UPDATE site_stats SET checkouts = checkouts + 1 WHERE date = today;
   END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
+
+-- Concede execução da RPC aos papéis anon e authenticated
+GRANT EXECUTE ON FUNCTION increment_stat(TEXT, BOOLEAN) TO anon, authenticated;
+
+-- ─── RPC FUNCTION: decrement_product_stock (Baixa de Estoque Segura) ───────
+CREATE OR REPLACE FUNCTION decrement_product_stock(item_id TEXT, qty_to_sub INT, item_size TEXT DEFAULT NULL)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  current_total INT;
+  v_stock JSONB;
+  current_size_qty INT;
+BEGIN
+  SELECT stock, variant_stock INTO current_total, v_stock
+  FROM products
+  WHERE id = item_id;
+
+  IF FOUND THEN
+    current_total := COALESCE(current_total, 0);
+    v_stock := COALESCE(v_stock, '{}'::jsonb);
+
+    IF item_size IS NOT NULL AND item_size <> '' AND (v_stock ? item_size) THEN
+      current_size_qty := COALESCE((v_stock->>item_size)::INT, 0);
+      v_stock := jsonb_set(v_stock, ARRAY[item_size], to_jsonb(GREATEST(0, current_size_qty - qty_to_sub)));
+    END IF;
+
+    UPDATE products
+    SET stock = GREATEST(0, current_total - qty_to_sub),
+        variant_stock = v_stock,
+        sales_count = COALESCE(sales_count, 0) + qty_to_sub
+    WHERE id = item_id;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) TO authenticated, service_role, anon;

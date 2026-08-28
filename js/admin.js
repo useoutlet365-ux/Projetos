@@ -1,6 +1,17 @@
 // =====================================================
-// OUTLET 365 — Admin Panel JS (localStorage)
+// OUTLET 365 — Admin Panel JS (Seguro contra XSS)
 // =====================================================
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
 
 // ── STORAGE (site_stats em localStorage — dados de demo) ──
 const STORE = {
@@ -111,7 +122,7 @@ let editingProductId = null;
 let photosData = [];
 
 // ── NAVIGATION ──
-function navigateTo(section) {
+function navigateTo(section, shouldReset = true) {
   document.querySelectorAll('.adm-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.adm-nav-item').forEach(i => i.classList.remove('active'));
   const sec = document.getElementById(`sec-${section}`);
@@ -126,7 +137,10 @@ function navigateTo(section) {
   if (section === 'pdv') renderPdvCatalog();
   if (section === 'produtos') renderAdminProducts();
   if (section === 'hero-config') renderHeroConfig();
-  if (section === 'novo-produto') { resetForm(); updateHeroCounter(); }
+  if (section === 'novo-produto') {
+    if (shouldReset) resetForm();
+    updateHeroCounter();
+  }
   document.getElementById('admSidebar')?.classList.remove('mobile-open');
   document.getElementById('sidebarOverlay')?.classList.remove('active');
 }
@@ -349,7 +363,7 @@ function fmtDateTime(str) {
     const d = new Date(str);
     if (isNaN(d.getTime())) return str;
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
-           d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   } catch { return str; }
 }
 
@@ -526,13 +540,18 @@ function renderRecentOrders() {
       ? `<span class="badge-channel pdv"><i class="fas fa-cash-register"></i> PDV</span>`
       : `<span class="badge-channel online"><i class="fas fa-globe"></i> Online</span>`;
 
+    const safeName = escapeHtml(o.customer_name || 'Cliente');
+    const safeCity = escapeHtml(o.city || '—');
+    const safeState = escapeHtml(o.state || '—');
+    const safeStatus = escapeHtml(o.status || 'pendente');
+
     return `
       <tr>
         <td>${channelBadge}</td>
-        <td><span class="fw-700">${o.customer_name || 'Cliente'}</span></td>
-        <td>${o.city || '—'}/${o.state || '—'}</td>
+        <td><span class="fw-700">${safeName}</span></td>
+        <td>${safeCity}/${safeState}</td>
         <td class="fw-700 text-green">${fmtCurrency(o.total)}</td>
-        <td><span class="order-status ${o.status || 'pendente'}">${o.status || 'pendente'}</span></td>
+        <td><span class="order-status ${safeStatus}">${safeStatus}</span></td>
       </tr>
     `;
   }).join('') || '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:1.5rem;">Nenhum pedido recente.</td></tr>';
@@ -564,7 +583,7 @@ function renderTopProducts() {
   el.innerHTML = sorted.map(([name, qty], i) => `
     <div style="margin-bottom:.85rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem;">
-        <span style="font-size:.82rem;font-weight:700;color:var(--adm-text);">${i + 1}. ${name}</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--adm-text);">${i + 1}. ${escapeHtml(name)}</span>
         <span style="font-size:.78rem;font-weight:700;color:var(--adm-green);">${fmtCurrency(revenueByProd[name] || 0)} <small style="font-weight:500;color:var(--adm-muted);">(${qty} un)</small></span>
       </div>
       <div style="height:6px;background:#f3f4f6;border-radius:50px;overflow:hidden;">
@@ -819,28 +838,36 @@ function renderOrdersTable() {
     else if (payMethod.toLowerCase().includes('dinheiro')) payIcon = 'fas fa-money-bill-wave';
     else if (payMethod.toLowerCase().includes('boleto')) payIcon = 'fas fa-barcode';
 
+    const safeId = escapeHtml(o.id || '');
+    const safeCustName = escapeHtml(o.customer_name || 'Cliente Balcão');
+    const safePhone = escapeHtml(o.customer_phone || '—');
+    const safeCity = escapeHtml(o.city || 'Madalena');
+    const safeState = escapeHtml(o.state || 'CE');
+    const safePayMethod = escapeHtml(payMethod);
+    const safeStatus = escapeHtml(o.status || 'pendente');
+
     return `
       <tr>
         <td>
-          <div class="fw-700" style="font-size:.82rem;color:var(--adm-text);">#${(o.id || '').slice(-6).toUpperCase()}</div>
+          <div class="fw-700" style="font-size:.82rem;color:var(--adm-text);">#${safeId.slice(-6).toUpperCase()}</div>
           <div style="font-size:.72rem;color:var(--adm-muted);">${fmtDateTime(o.created_at)}</div>
         </td>
         <td>${channelBadge}</td>
         <td>
-          <div class="fw-700" style="font-size:.84rem;">${o.customer_name || 'Cliente Balcão'}</div>
-          <div style="font-size:.73rem;color:var(--adm-muted);">${o.customer_phone || '—'}</div>
+          <div class="fw-700" style="font-size:.84rem;">${safeCustName}</div>
+          <div style="font-size:.73rem;color:var(--adm-muted);">${safePhone}</div>
         </td>
-        <td>${o.city ? `${o.city}/${o.state || 'CE'}` : 'Madalena/CE'}</td>
+        <td>${safeCity}/${safeState}</td>
         <td style="font-size:.78rem;">
           <strong>${items.reduce((s, x) => s + (parseInt(x.qty) || 1), 0)}</strong> un
           <span style="color:var(--adm-muted);font-size:.72rem;">(${items.length} item${items.length !== 1 ? 's' : ''})</span>
         </td>
         <td class="fw-700 text-green">${fmtCurrency(o.total)}</td>
         <td>
-          <span class="badge-pay"><i class="${payIcon}"></i> ${payMethod}</span>
+          <span class="badge-pay"><i class="${payIcon}"></i> ${safePayMethod}</span>
         </td>
         <td>
-          <select class="status-select" data-id="${o.id}" style="padding:.32rem .55rem;border:1.5px solid var(--adm-border);border-radius:6px;font-size:.74rem;font-weight:700;background:#fff;cursor:pointer;" onchange="changeOrderStatus(this)">
+          <select class="status-select" data-id="${safeId}" style="padding:.32rem .55rem;border:1.5px solid var(--adm-border);border-radius:6px;font-size:.74rem;font-weight:700;background:#fff;cursor:pointer;" onchange="changeOrderStatus(this)">
             ${['pendente', 'confirmado', 'enviado', 'entregue', 'cancelado'].map(s => `
               <option value="${s}" ${o.status === s ? 'selected' : ''}>
                 ${s === 'pendente' ? '⏳ Pendente' : s === 'confirmado' ? '✅ Confirmado' : s === 'enviado' ? '📦 Enviado' : s === 'entregue' ? '🎉 Entregue' : '❌ Cancelado'}
@@ -849,19 +876,19 @@ function renderOrdersTable() {
           </select>
         </td>
         <td style="text-align:center;white-space:nowrap;">
-          <button class="adm-btn-sm adm-btn-edit" style="width:auto;padding:.4rem .65rem;" onclick="viewOrder('${o.id}')" title="Ver Detalhes">
+          <button class="adm-btn-sm adm-btn-edit" style="width:auto;padding:.4rem .65rem;" onclick="viewOrder('${safeId}')" title="Ver Detalhes">
             <i class="fas fa-eye"></i>
           </button>
-          <button class="adm-btn-sm" style="width:auto;padding:.4rem .65rem;background:#25D366;color:#fff;border:none;" onclick="quickNotifyWhatsApp('${o.id}')" title="Notificar WhatsApp">
+          <button class="adm-btn-sm" style="width:auto;padding:.4rem .65rem;background:#25D366;color:#fff;border:none;" onclick="quickNotifyWhatsApp('${safeId}')" title="Notificar WhatsApp">
             <i class="fab fa-whatsapp"></i>
           </button>
-          <button class="adm-btn-sm adm-btn-secondary" style="width:auto;padding:.4rem .65rem;" onclick="printOrderReceipt('${o.id}')" title="Imprimir Comprovante">
+          <button class="adm-btn-sm adm-btn-secondary" style="width:auto;padding:.4rem .65rem;" onclick="printOrderReceipt('${safeId}')" title="Imprimir Comprovante">
             <i class="fas fa-print"></i>
           </button>
         </td>
       </tr>
     `;
-  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:2.5rem;color:#9ca3af;">Nenhum pedido encontrado com os filtros selecionados.</td></tr>';
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:2rem;">Nenhum pedido encontrado com estes filtros.</td></tr>';
 }
 
 // Eventos de Filtro dos Pedidos
@@ -1033,15 +1060,25 @@ function viewOrder(id) {
 
   const isPdv = o.channel === 'pdv';
 
+  const safeCustName = escapeHtml(o.customer_name || 'Cliente Balcão');
+  const safePhone = escapeHtml(o.customer_phone || 'Não informado');
+  const safeEmail = escapeHtml(o.customer_email || 'Não informado');
+  const safeCity = escapeHtml(o.city || 'Madalena');
+  const safeState = escapeHtml(o.state || 'CE');
+  const safePayMethod = escapeHtml(o.payment_method || 'PIX');
+  const safeTracking = escapeHtml(o.tracking_code || '');
+  const safeOrderId = escapeHtml(o.id || '');
+  const safeNotes = escapeHtml(o.notes || '');
+
   document.getElementById('orderModalBody').innerHTML = `
     <div class="order-detail-grid" style="margin-bottom:1rem;">
       <div class="order-box-section">
         <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">
           <i class="fas fa-user" style="color:var(--adm-blue);"></i> Dados do Cliente
         </p>
-        <p class="fw-700" style="font-size:.95rem;">${o.customer_name || 'Cliente Balcão'}</p>
-        <p style="font-size:.82rem;color:var(--adm-muted);"><i class="fas fa-phone-alt" style="font-size:.75rem;"></i> ${o.customer_phone || 'Não informado'}</p>
-        <p style="font-size:.82rem;color:var(--adm-muted);"><i class="fas fa-envelope" style="font-size:.75rem;"></i> ${o.customer_email || 'Não informado'}</p>
+        <p class="fw-700" style="font-size:.95rem;">${safeCustName}</p>
+        <p style="font-size:.82rem;color:var(--adm-muted);"><i class="fas fa-phone-alt" style="font-size:.75rem;"></i> ${safePhone}</p>
+        <p style="font-size:.82rem;color:var(--adm-muted);"><i class="fas fa-envelope" style="font-size:.75rem;"></i> ${safeEmail}</p>
         <div style="margin-top:.4rem;">
           <span class="badge-channel ${isPdv ? 'pdv' : 'online'}">${isPdv ? '🏬 Balcão / Loja Física' : '🌐 Loja Online (Site)'}</span>
         </div>
@@ -1051,16 +1088,16 @@ function viewOrder(id) {
         <p style="font-size:.7rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">
           <i class="fas fa-truck" style="color:var(--adm-yellow);"></i> Entrega & Pagamento
         </p>
-        <p class="fw-700" style="font-size:.85rem;">${o.city || 'Madalena'}/${o.state || 'CE'}</p>
-        <p style="font-size:.82rem;color:var(--adm-muted);">Forma: <strong>${o.payment_method || 'PIX'}</strong></p>
+        <p class="fw-700" style="font-size:.85rem;">${safeCity}/${safeState}</p>
+        <p style="font-size:.82rem;color:var(--adm-muted);">Forma: <strong>${safePayMethod}</strong></p>
         <p style="font-size:.82rem;color:var(--adm-muted);">Data: ${fmtDateTime(o.created_at)}</p>
 
         <!-- Código de Rastreio -->
         <div style="margin-top:.5rem;">
           <label style="font-size:.72rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;">Código de Rastreio</label>
           <div class="order-tracking-input-group">
-            <input type="text" id="modalTrackingCode" placeholder="Ex: BR123456789CE" value="${o.tracking_code || ''}" />
-            <button class="adm-btn adm-btn-secondary" style="padding:.35rem .65rem;font-size:.75rem;" onclick="saveTrackingCode('${o.id}')" title="Salvar Rastreio">Salvar</button>
+            <input type="text" id="modalTrackingCode" placeholder="Ex: BR123456789CE" value="${safeTracking}" />
+            <button class="adm-btn adm-btn-secondary" style="padding:.35rem .65rem;font-size:.75rem;" onclick="saveTrackingCode('${safeOrderId}')" title="Salvar Rastreio">Salvar</button>
           </div>
         </div>
       </div>
@@ -1086,8 +1123,8 @@ function viewOrder(id) {
       ${items.map(item => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid #f3f4f6;">
           <div>
-            <span class="fw-700" style="font-size:.88rem;color:var(--adm-text);">${item.name}</span>
-            <div style="font-size:.76rem;color:var(--adm-muted);">Tamanho: <strong>${item.size || 'Único'}</strong> · Quantidade: <strong>${item.qty || 1}</strong></div>
+            <span class="fw-700" style="font-size:.88rem;color:var(--adm-text);">${escapeHtml(item.name || 'Item')}</span>
+            <div style="font-size:.76rem;color:var(--adm-muted);">Tamanho: <strong>${escapeHtml(item.size || 'Único')}</strong> · Quantidade: <strong>${parseInt(item.qty) || 1}</strong></div>
           </div>
           <span class="fw-700 text-green" style="font-size:.9rem;">${fmtCurrency((parseFloat(item.price) || 0) * (parseInt(item.qty) || 1))}</span>
         </div>
@@ -1100,9 +1137,9 @@ function viewOrder(id) {
       </div>
     </div>
 
-    ${o.notes ? `
+    ${safeNotes ? `
       <div style="margin-top:.75rem;padding:.75rem;background:#fef9ec;border:1px solid #fef08a;border-radius:6px;font-size:.82rem;color:#854d0e;">
-        <i class="fas fa-sticky-note" style="margin-right:.35rem;"></i><strong>Obs:</strong> ${o.notes}
+        <i class="fas fa-sticky-note" style="margin-right:.35rem;"></i><strong>Obs:</strong> ${safeNotes}
       </div>
     ` : ''}
   `;
@@ -1228,16 +1265,16 @@ function printOrderReceipt(orderId) {
         <div class="bold">COMPROVANTE DE PEDIDO</div>
       </div>
       <div class="divider"></div>
-      <div class="row"><span>PEDIDO:</span><span class="bold">#${(o.id || '').slice(-6).toUpperCase()}</span></div>
+      <div class="row"><span>PEDIDO:</span><span class="bold">#${escapeHtml((o.id || '').slice(-6).toUpperCase())}</span></div>
       <div class="row"><span>DATA:</span><span>${fmtDateTime(o.created_at)}</span></div>
       <div class="row"><span>ORIGEM:</span><span>${isPdv ? 'Balcão / Loja Física' : 'Loja Online (Site)'}</span></div>
-      <div class="row"><span>CLIENTE:</span><span>${o.customer_name || 'Cliente Balcão'}</span></div>
-      ${o.customer_phone ? `<div class="row"><span>FONE:</span><span>${o.customer_phone}</span></div>` : ''}
+      <div class="row"><span>CLIENTE:</span><span>${escapeHtml(o.customer_name || 'Cliente Balcão')}</span></div>
+      ${o.customer_phone ? `<div class="row"><span>FONE:</span><span>${escapeHtml(o.customer_phone)}</span></div>` : ''}
       <div class="divider"></div>
       <div class="bold" style="margin-bottom:6px;">ITENS:</div>
       ${items.map(it => `
         <div class="row">
-          <span>${it.qty || 1}x ${it.name} (${it.size || 'Único'})</span>
+          <span>${parseInt(it.qty) || 1}x ${escapeHtml(it.name || 'Item')} (${escapeHtml(it.size || 'Único')})</span>
           <span>${fmtCurrency((parseFloat(it.price) || 0) * (parseInt(it.qty) || 1))}</span>
         </div>
       `).join('')}
@@ -1245,8 +1282,8 @@ function printOrderReceipt(orderId) {
       <div class="row"><span>SUBTOTAL:</span><span>${fmtCurrency(o.subtotal || o.total)}</span></div>
       ${o.shipping > 0 ? `<div class="row"><span>FRETE:</span><span>${fmtCurrency(o.shipping)}</span></div>` : ''}
       <div class="row total-row"><span>TOTAL:</span><span>${fmtCurrency(o.total)}</span></div>
-      <div class="row"><span>PAGAMENTO:</span><span class="bold">${o.payment_method || 'PIX'}</span></div>
-      <div class="row"><span>STATUS:</span><span class="bold">${(o.status || 'pendente').toUpperCase()}</span></div>
+      <div class="row"><span>PAGAMENTO:</span><span class="bold">${escapeHtml(o.payment_method || 'PIX')}</span></div>
+      <div class="row"><span>STATUS:</span><span class="bold">${escapeHtml((o.status || 'pendente').toUpperCase())}</span></div>
       <div class="divider"></div>
       <div class="footer">
         <div>Obrigado pela preferência!</div>
@@ -1303,21 +1340,23 @@ async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder =
 
   const catLabels = { 'camisas': 'Camisas', 'shorts-calcas': 'Shorts/Calças', 'calcados-chinelos': 'Calçados', 'acessorios': 'Acessórios', 'perfumes': 'Perfumes' };
   grid.innerHTML = products.map(p => {
+    const safeName = escapeHtml(p.name || 'Produto');
+    const safeId = escapeHtml(p.id || '');
     const imgEl = p.image_base64
-      ? `<img src="${p.image_base64}" class="adm-product-img" alt="${p.name}"/>`
+      ? `<img src="${escapeHtml(p.image_base64)}" class="adm-product-img" alt="${safeName}"/>`
       : p.image_url
-        ? `<img src="${p.image_url}" class="adm-product-img" alt="${p.name}"/>`
+        ? `<img src="${escapeHtml(p.image_url)}" class="adm-product-img" alt="${safeName}"/>`
         : `<div class="adm-product-img-placeholder"><i class="fas fa-image"></i></div>`;
     return `
-      <div class="adm-product-card" id="pcard-${p.id}">
+      <div class="adm-product-card" id="pcard-${safeId}">
         ${imgEl}
         <div class="adm-product-body">
-          <div class="adm-product-name">${p.name}</div>
+          <div class="adm-product-name">${safeName}</div>
           <div class="adm-product-price">${fmtCurrency(p.price)}
             ${p.original_price > p.price ? `<span style="font-size:.75rem;text-decoration:line-through;color:#9ca3af;margin-left:.35rem;">${fmtCurrency(p.original_price)}</span>` : ''}
           </div>
           <div class="adm-product-meta">
-            <span class="adm-tag cat">${catLabels[p.category] || p.category}</span>
+            <span class="adm-tag cat">${escapeHtml(catLabels[p.category] || p.category)}</span>
             ${p.category_cover ? '<span class="adm-tag" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">🏷️ Capa</span>' : ''}
             ${p.weekly_promo ? '<span class="adm-tag promo">🔥 Promo</span>' : ''}
             ${p.hero_card ? '<span class="adm-tag hero">⭐ Card</span>' : ''}
@@ -1325,16 +1364,16 @@ async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder =
           </div>
         </div>
         <div class="adm-product-actions">
-          <button class="adm-btn-sm adm-btn-edit" onclick="editProduct('${p.id}')">
+          <button class="adm-btn-sm adm-btn-edit" onclick="editProduct('${safeId}')">
             <i class="fas fa-pencil-alt"></i> Editar
           </button>
-          <button class="adm-btn-sm adm-btn-duplicate" onclick="duplicateProduct('${p.id}')" title="Duplicar anúncio para criar variação">
+          <button class="adm-btn-sm adm-btn-duplicate" onclick="duplicateProduct('${safeId}')" title="Duplicar anúncio para criar variação">
             <i class="fas fa-copy"></i> Duplicar
           </button>
-          <button class="adm-btn-sm adm-btn-toggle ${p.active !== false ? 'on' : ''}" onclick="toggleProductActive('${p.id}',${p.active !== false})">
+          <button class="adm-btn-sm adm-btn-toggle ${p.active !== false ? 'on' : ''}" onclick="toggleProductActive('${safeId}',${p.active !== false})">
             <i class="fas ${p.active !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
           </button>
-          <button class="adm-btn-sm adm-btn-delete" onclick="confirmDelete('${p.id}','${(p.name || '').replace(/'/g, "\\'")}')">
+          <button class="adm-btn-sm adm-btn-delete" onclick="confirmDelete('${safeId}','${safeName.replace(/'/g, "\\'")}')">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -1380,12 +1419,21 @@ function confirmDelete(id, name) {
 async function editProduct(id) {
   const p = allAdminProducts.find(x => x.id === id);
   if (!p) return;
+
+  resetForm();
   editingProductId = id;
-  navigateTo('novo-produto');
+  navigateTo('novo-produto', false);
+
   document.getElementById('formProductTitle').textContent = 'Editar Produto';
   document.getElementById('editProductId').value = id;
   document.getElementById('prodName').value = p.name || '';
-  
+
+  const saveBtn = document.querySelector('#productForm [type="submit"]');
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+  }
+
   const catSel = document.getElementById('prodCategory');
   if (catSel) {
     if (![...catSel.options].some(o => o.value === p.category)) {
@@ -1450,12 +1498,19 @@ async function duplicateProduct(id) {
   const p = allAdminProducts.find(x => x.id === id);
   if (!p) return;
 
+  resetForm();
   editingProductId = null; // Forces creation of a NEW product on save!
-  navigateTo('novo-produto');
+  navigateTo('novo-produto', false);
 
   document.getElementById('formProductTitle').textContent = `Duplicar Anúncio: ${p.name}`;
   document.getElementById('editProductId').value = '';
   document.getElementById('prodName').value = `${p.name} (Cópia)`;
+
+  const saveBtn = document.querySelector('#productForm [type="submit"]');
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto';
+  }
 
   const catSel = document.getElementById('prodCategory');
   if (catSel) {
@@ -1502,7 +1557,7 @@ async function duplicateProduct(id) {
   const prev = document.getElementById('photoPreviews');
   if (p.image_base64) {
     photosData.push(p.image_base64);
-    prev.innerHTML = `<div class="photo-preview-item"><img src="${p.image_base64}"/><button type="button" onclick="removePhoto(0)"><i class="fas fa-times"></i></button></div>`;
+    prev.innerHTML = `<div class="photo-preview-item"><img src="${p.image_base64}"/><button onclick="removePhoto(0)"><i class="fas fa-times"></i></button></div>`;
   } else if (p.image_url) {
     prev.innerHTML = `<p style="font-size:.78rem;color:#9ca3af;">Foto URL: ${p.image_url}</p>`;
   }
@@ -1534,7 +1589,11 @@ const SUBCATEGORIES = {
 const SIZE_GROUPS = {
   'camisas': ['P', 'M', 'G', 'GG'],
   'shorts-calcas': ['P', 'M', 'G', 'GG', '38', '40', '42', '44', '46', '48'],
-  'calcados-chinelos': ['37', '38', '39', '40', '41', '42', '43', '44', '38-39', '40-41', '42-43'],
+  'calcados-chinelos': [
+    '37', '38', '39', '40', '41', '42', '43', '44', '45',
+    '35/36', '37/38', '39/40', '41/42', '43/44', '45/46',
+    '36/37', '38/39', '40/41', '42/43', '44/45', '46/47'
+  ],
   'acessorios': ['P', 'M', 'G', 'GG', 'Único'],
   'perfumes': ['30ml', '50ml', '100ml', 'Único']
 };
@@ -1592,14 +1651,58 @@ function updateSubcategory() {
     defaultSubs.map(s => `<option value="${s}">${s}</option>`).join('') +
     `<option value="__new_subcategory__">+ Criar Nova Subcategoria...</option>`;
 
-  const sizes = SIZE_GROUPS[cat] || ['P', 'M', 'G', 'GG'];
   const sizesSelector = document.getElementById('sizesSelector');
   if (sizesSelector) {
-    sizesSelector.innerHTML = sizes.map(s => `
-      <button type="button" class="size-option-btn" data-size="${s}"
-        style="min-width:44px;height:40px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
-        onclick="toggleSizeBtn(this)">${s}</button>
-    `).join('');
+    if (cat === 'calcados-chinelos') {
+      const simples = ['37', '38', '39', '40', '41', '42', '43', '44', '45'];
+      const duplasA = ['35/36', '37/38', '39/40', '41/42', '43/44', '45/46'];
+      const duplasB = ['36/37', '38/39', '40/41', '42/43', '44/45', '46/47'];
+      sizesSelector.innerHTML = `
+        <div style="width:100%;margin-bottom:.45rem;">
+          <span style="font-size:.73rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">
+            🔢 Numeração Simples (37 a 45):
+          </span>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+            ${simples.map(s => `
+              <button type="button" class="size-option-btn" data-size="${s}"
+                style="min-width:44px;height:38px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
+                onclick="toggleSizeBtn(this)">${s}</button>
+            `).join('')}
+          </div>
+        </div>
+        <div style="width:100%;margin-top:.45rem;margin-bottom:.45rem;">
+          <span style="font-size:.73rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">
+            👥 Numeração Dupla A (37/38, 39/40, 41/42, 43/44...):
+          </span>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+            ${duplasA.map(s => `
+              <button type="button" class="size-option-btn" data-size="${s}"
+                style="min-width:54px;height:38px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
+                onclick="toggleSizeBtn(this)">${s}</button>
+            `).join('')}
+          </div>
+        </div>
+        <div style="width:100%;margin-top:.45rem;">
+          <span style="font-size:.73rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">
+            👥 Numeração Dupla B (38/39, 40/41, 42/43, 44/45...):
+          </span>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+            ${duplasB.map(s => `
+              <button type="button" class="size-option-btn" data-size="${s}"
+                style="min-width:54px;height:38px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
+                onclick="toggleSizeBtn(this)">${s}</button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      const sizes = SIZE_GROUPS[cat] || ['P', 'M', 'G', 'GG'];
+      sizesSelector.innerHTML = sizes.map(s => `
+        <button type="button" class="size-option-btn" data-size="${s}"
+          style="min-width:44px;height:40px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
+          onclick="toggleSizeBtn(this)">${s}</button>
+      `).join('');
+    }
   }
 }
 
@@ -1798,6 +1901,8 @@ async function saveProduct(event) {
   }
 
   const saveBtn = document.querySelector('#productForm [type="submit"]');
+  const currentEditingId = editingProductId || document.getElementById('editProductId')?.value || null;
+
   try {
     if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...'; }
 
@@ -1805,11 +1910,10 @@ async function saveProduct(event) {
     const allProducts = await fetchAll('admin_products');
 
     if (heroChecked) {
-      const heroCount = allProducts.filter(p => p.hero_card && p.id !== editingProductId).length;
+      const heroCount = allProducts.filter(p => p.hero_card && p.id !== currentEditingId).length;
       if (heroCount >= 5) {
         admToast('Limite de 5 produtos no card principal atingido!', 'error');
         document.getElementById('prodHeroCard').checked = false;
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto'; }
         return;
       }
     }
@@ -1818,7 +1922,7 @@ async function saveProduct(event) {
     const baseSlug = slugify(name);
     let finalSlug = baseSlug;
     let counter = 1;
-    while (allProducts.some(p => p.slug === finalSlug && p.id !== editingProductId)) {
+    while (allProducts.some(p => p.slug === finalSlug && p.id !== currentEditingId)) {
       finalSlug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -1833,7 +1937,7 @@ async function saveProduct(event) {
       subcategory,
       price,
       original_price: parseFloat(document.getElementById('prodOriginalPrice').value) || 0,
-      installments: parseInt(document.getElementById('prodInstallments').value),
+      installments: parseInt(document.getElementById('prodInstallments').value) || 3,
       stock: computedStock,
       variant_stock: vStockData || {},
       description,
@@ -1854,15 +1958,24 @@ async function saveProduct(event) {
       sales_count: 0
     };
 
-    if (editingProductId) { await updateRecord('admin_products', editingProductId, data); admToast('Produto atualizado!'); }
-    else { await createRecord('admin_products', data); admToast('Produto cadastrado!'); }
+    if (currentEditingId) {
+      await updateRecord('admin_products', currentEditingId, data);
+      admToast('Produto atualizado com sucesso!');
+    } else {
+      await createRecord('admin_products', data);
+      admToast('Produto cadastrado com sucesso!');
+    }
     resetForm();
     navigateTo('produtos');
   } catch (e) {
     console.error('saveProduct error:', e);
     const msg = e?.message || e?.error_description || 'verifique a conexão';
     admToast('Erro ao salvar: ' + msg, 'error');
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto'; }
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-save"></i> ' + (editingProductId ? 'Salvar Alterações' : 'Salvar Produto');
+    }
   }
 }
 
@@ -1880,6 +1993,13 @@ function resetForm() {
   if (document.getElementById('prodHeight')) document.getElementById('prodHeight').value = '5';
   if (document.getElementById('prodWidth')) document.getElementById('prodWidth').value = '15';
   if (document.getElementById('prodLength')) document.getElementById('prodLength').value = '20';
+
+  const saveBtn = document.querySelector('#productForm [type="submit"]');
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Produto';
+  }
+
   updateHeroCounter();
 }
 
@@ -1897,40 +2017,51 @@ async function renderHeroConfig() {
   if (listEl) {
     listEl.innerHTML = heroProducts.length === 0
       ? `<div class="empty-state"><i class="fas fa-star"></i><p>Nenhum produto no card principal ainda.</p></div>`
-      : heroProducts.map(p => `
+      : heroProducts.map(p => {
+        const safeName = escapeHtml(p.name || 'Produto');
+        const safeId = escapeHtml(p.id || '');
+        const img = escapeHtml(p.image_base64 || p.image_url || '');
+        return `
         <div style="display:flex;align-items:center;gap:1rem;padding:.75rem;border-bottom:1px solid var(--adm-border);">
-          ${p.image_base64 ? `<img src="${p.image_base64}" style="width:56px;height:64px;object-fit:cover;border-radius:6px;"/>` : `<div style="width:56px;height:64px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#ccc;"><i class="fas fa-image"></i></div>`}
+          ${img ? `<img src="${img}" style="width:56px;height:64px;object-fit:cover;border-radius:6px;"/>` : `<div style="width:56px;height:64px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#ccc;"><i class="fas fa-image"></i></div>`}
           <div style="flex:1;">
-            <div class="fw-700" style="font-size:.88rem;">${p.name}</div>
+            <div class="fw-700" style="font-size:.88rem;">${safeName}</div>
             <div style="font-size:.8rem;color:var(--adm-green);font-weight:700;">${fmtCurrency(p.price)}</div>
           </div>
-          <button class="adm-btn-sm adm-btn-delete" style="width:auto;" onclick="removeFromHero('${p.id}')">
+          <button class="adm-btn-sm adm-btn-delete" style="width:auto;" onclick="removeFromHero('${safeId}')">
             <i class="fas fa-times"></i> Remover
           </button>
         </div>
-      `).join('');
+      `;
+      }).join('');
   }
 
   const heroTable = document.getElementById('heroTableBody');
   if (heroTable) {
-    heroTable.innerHTML = allAdminProducts.map(p => `
+    heroTable.innerHTML = allAdminProducts.map(p => {
+      const safeName = escapeHtml(p.name || 'Produto');
+      const safeId = escapeHtml(p.id || '');
+      const safeCat = escapeHtml(p.category || '');
+      const img = escapeHtml(p.image_base64 || p.image_url || '');
+      return `
       <tr>
         <td>
           <div style="display:flex;align-items:center;gap:.65rem;">
-            ${p.image_base64 ? `<img src="${p.image_base64}" style="width:40px;height:46px;object-fit:cover;border-radius:4px;"/>` : `<div style="width:40px;height:46px;background:#f3f4f6;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:.8rem;"><i class="fas fa-image"></i></div>`}
-            <span class="fw-700" style="font-size:.85rem;">${p.name}</span>
+            ${img ? `<img src="${img}" style="width:40px;height:46px;object-fit:cover;border-radius:4px;"/>` : `<div style="width:40px;height:46px;background:#f3f4f6;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:.8rem;"><i class="fas fa-image"></i></div>`}
+            <span class="fw-700" style="font-size:.85rem;">${safeName}</span>
           </div>
         </td>
-        <td style="font-size:.8rem;">${p.category}</td>
+        <td style="font-size:.8rem;">${safeCat}</td>
         <td class="fw-700 text-green">${fmtCurrency(p.price)}</td>
         <td>
           <label class="adm-toggle-item">
-            <input type="checkbox" ${p.hero_card ? 'checked' : ''} onchange="toggleHeroCard('${p.id}',this.checked)"/>
+            <input type="checkbox" ${p.hero_card ? 'checked' : ''} onchange="toggleHeroCard('${safeId}',this.checked)"/>
             <span class="adm-toggle-switch"></span>
           </label>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
 }
 
@@ -2065,23 +2196,27 @@ async function renderPdvCatalog() {
     const vStock = p.variant_stock || {};
     const sizes = p.sizes && p.sizes.length > 0 ? (Array.isArray(p.sizes) ? p.sizes : p.sizes.split(',').map(s => s.trim())) : ['Único'];
 
+    const safeProdId = escapeHtml(p.id || '');
+    const safeProdName = escapeHtml(p.name || 'Produto');
+
     const sizesHtml = sizes.map(size => {
       let qty = vStock[size] !== undefined ? parseInt(vStock[size]) : (p.stock || 0);
       const isOutOfStock = qty <= 0;
+      const safeSize = escapeHtml(size);
       return `
-        <button type="button" class="pdv-size-btn" ${isOutOfStock ? 'disabled' : ''} onclick="addPdvCartItem('${p.id}', '${size}')" title="${isOutOfStock ? 'Sem estoque' : 'Adicionar ao caixa'}">
-          ${size} <span class="pdv-size-qty">(${qty})</span>
+        <button type="button" class="pdv-size-btn" ${isOutOfStock ? 'disabled' : ''} onclick="addPdvCartItem('${safeProdId}', '${safeSize}')" title="${isOutOfStock ? 'Sem estoque' : 'Adicionar ao caixa'}">
+          ${safeSize} <span class="pdv-size-qty">(${qty})</span>
         </button>
       `;
     }).join('');
 
-    const img = p.image_base64 || p.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80';
+    const img = escapeHtml(p.image_base64 || p.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80');
 
     return `
       <div class="pdv-prod-card">
-        <img src="${img}" class="pdv-prod-img" alt="${p.name}" loading="lazy"/>
+        <img src="${img}" class="pdv-prod-img" alt="${safeProdName}" loading="lazy"/>
         <div class="pdv-prod-info">
-          <div class="pdv-prod-name">${p.name}</div>
+          <div class="pdv-prod-name">${safeProdName}</div>
           <div class="pdv-prod-price">${fmtCurrency(p.price)}</div>
         </div>
         <div class="pdv-sizes-wrap">
@@ -2174,21 +2309,25 @@ function renderPdvCart() {
   const subtotal = pdvCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const total = Math.max(0, subtotal - pdvDiscount);
 
-  container.innerHTML = pdvCart.map((item, idx) => `
+  container.innerHTML = pdvCart.map((item, idx) => {
+    const safeItemName = escapeHtml(item.name || 'Produto');
+    const safeItemSize = escapeHtml(item.size || 'Único');
+    return `
     <div class="pdv-cart-item">
       <div class="pdv-item-details">
-        <div class="pdv-item-title">${item.name}</div>
-        <div class="pdv-item-sub">Tamanho: <strong>${item.size}</strong> · ${fmtCurrency(item.price)} un</div>
+        <div class="pdv-item-title">${safeItemName}</div>
+        <div class="pdv-item-sub">Tamanho: <strong>${safeItemSize}</strong> · ${fmtCurrency(item.price)} un</div>
       </div>
       <div class="pdv-item-qty-controls">
         <button type="button" class="pdv-qty-btn" onclick="updatePdvItemQty(${idx}, -1)">-</button>
-        <span class="pdv-qty-val">${item.qty}</span>
+        <span class="pdv-qty-val">${parseInt(item.qty) || 1}</span>
         <button type="button" class="pdv-qty-btn" onclick="updatePdvItemQty(${idx}, 1)">+</button>
       </div>
       <div class="pdv-item-price">${fmtCurrency(item.price * item.qty)}</div>
       <button type="button" class="pdv-item-remove" onclick="removePdvItem(${idx})" title="Remover"><i class="fas fa-times"></i></button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   if (subtotalEl) subtotalEl.textContent = fmtCurrency(subtotal);
   if (totalEl) totalEl.textContent = fmtCurrency(total);
@@ -2292,6 +2431,11 @@ Valor Recebido: ${fmtCurrency(cashRec)}
 Troco:          ${fmtCurrency(troco)}`;
   }
 
+  const safeOrderId = escapeHtml(order.id || '');
+  const safeCustName = escapeHtml(order.customer_name || 'Cliente Balcão');
+  const safePhone = escapeHtml(order.customer_phone || '');
+  const safePayMethod = escapeHtml(order.payment_method || 'Dinheiro');
+
   content.innerHTML = `
     <div style="text-align:center;margin-bottom:1rem;">
       <h3 style="font-size:1.1rem;font-weight:900;margin-bottom:2px;letter-spacing:.05em;">OUTLET 365</h3>
@@ -2299,11 +2443,11 @@ Troco:          ${fmtCurrency(troco)}`;
       <p style="font-size:0.7rem;color:#777;margin-top:2px;text-transform:uppercase;">Comprovante de Venda Presencial</p>
     </div>
     <div style="border-top:1px dashed #aaa;border-bottom:1px dashed #aaa;padding:0.5rem 0;margin-bottom:0.75rem;font-size:0.78rem;line-height:1.4;">
-      <div><strong>PEDIDO:</strong> #${order.id.slice(-6).toUpperCase()}</div>
+      <div><strong>PEDIDO:</strong> #${safeOrderId.slice(-6).toUpperCase()}</div>
       <div><strong>DATA:</strong> ${dateStr}</div>
-      <div><strong>CLIENTE:</strong> ${order.customer_name}</div>
-      ${order.customer_phone ? `<div><strong>FONE:</strong> ${order.customer_phone}</div>` : ''}
-      <div><strong>PAGAMENTO:</strong> ${order.payment_method}</div>
+      <div><strong>CLIENTE:</strong> ${safeCustName}</div>
+      ${safePhone ? `<div><strong>FONE:</strong> ${safePhone}</div>` : ''}
+      <div><strong>PAGAMENTO:</strong> ${safePayMethod}</div>
     </div>
     <table style="width:100%;font-size:0.78rem;border-collapse:collapse;margin-bottom:0.75rem;">
       <thead>
@@ -2315,7 +2459,7 @@ Troco:          ${fmtCurrency(troco)}`;
       <tbody>
         ${items.map(i => `
           <tr>
-            <td style="padding:3px 0;">${i.qty}x ${i.name} (${i.size})</td>
+            <td style="padding:3px 0;">${parseInt(i.qty) || 1}x ${escapeHtml(i.name || 'Item')} (${escapeHtml(i.size || 'Único')})</td>
             <td style="padding:3px 0;text-align:right;">${fmtCurrency(i.price * i.qty)}</td>
           </tr>
         `).join('')}
@@ -2325,7 +2469,7 @@ Troco:          ${fmtCurrency(troco)}`;
       <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${fmtCurrency(subtotal)}</span></div>
       ${discount > 0 ? `<div style="display:flex;justify-content:space-between;color:#dc2626;"><span>Desconto:</span><span>-${fmtCurrency(discount)}</span></div>` : ''}
       <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:0.95rem;margin-top:4px;"><span>TOTAL:</span><span>${fmtCurrency(total)}</span></div>
-      ${cashRecInfo ? `<pre style="font-family:inherit;font-size:0.75rem;margin-top:4px;color:#555;">${cashRecInfo}</pre>` : ''}
+      ${cashRecInfo ? `<pre style="font-family:inherit;font-size:0.75rem;margin-top:4px;color:#555;">${escapeHtml(cashRecInfo)}</pre>` : ''}
     </div>
     <div style="text-align:center;margin-top:1rem;font-size:0.7rem;color:#777;">
       *** Obrigado pela preferência! ***<br/>@outlet365__
