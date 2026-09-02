@@ -410,6 +410,11 @@ body.adm-sidebar-collapsed .adm-btn-logout {
   background: var(--adm-card); border-radius: var(--adm-radius);
   box-shadow: var(--adm-shadow); overflow: hidden;
   display: flex; flex-direction: column;
+  transition: transform .2s, box-shadow .2s;
+}
+.adm-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
 }
 .adm-product-img { height: 160px; object-fit: cover; width: 100%; background: #f3f4f6; }
 .adm-product-img-placeholder {
@@ -417,7 +422,7 @@ body.adm-sidebar-collapsed .adm-btn-logout {
   display: flex; align-items: center; justify-content: center;
   color: #ccc; font-size: 2.5rem;
 }
-.adm-product-body { padding: .85rem; flex: 1; }
+.adm-product-body { padding: .85rem; flex: 1; display: flex; flex-direction: column; }
 .adm-product-name { font-size: .9rem; font-weight: 700; margin-bottom: .25rem; }
 .adm-product-price { font-size: 1rem; font-weight: 800; color: var(--adm-green); }
 .adm-product-meta { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .5rem; }
@@ -430,6 +435,135 @@ body.adm-sidebar-collapsed .adm-btn-logout {
 .adm-tag.hero { background: #eff6ff; color: #1d4ed8; }
 .adm-tag.active { background: var(--adm-green-light); color: var(--adm-green); }
 .adm-tag.inactive { background: #f3f4f6; color: #9ca3af; }
+
+/* Badges de tamanho e estoque no card de produtos */
+.adm-product-specs {
+  margin-top: .65rem;
+  padding-top: .65rem;
+  border-top: 1px dashed var(--adm-border);
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  font-size: .76rem;
+}
+.adm-spec-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--adm-muted);
+}
+.adm-spec-row strong {
+  color: var(--adm-text);
+  font-weight: 600;
+}
+.adm-size-pills {
+  display: flex;
+  gap: .25rem;
+  flex-wrap: wrap;
+}
+.adm-size-pill {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .15rem .4rem;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+.adm-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .15rem .5rem;
+  border-radius: 4px;
+}
+.adm-stock-badge.in-stock { background: #ecfdf5; color: #059669; }
+.adm-stock-badge.low-stock { background: #fffbeb; color: #d97706; }
+.adm-stock-badge.out-stock { background: #fef2f2; color: #dc2626; }
+
+/* Botões de Tamanho no Formulário */
+.size-option-btn {
+  min-width: 44px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1.5px solid var(--adm-border);
+  font-size: .82rem;
+  font-weight: 700;
+  background: #fff;
+  color: var(--adm-text);
+  cursor: pointer;
+  padding: 0 .6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+  user-select: none;
+}
+.size-option-btn:hover {
+  border-color: var(--adm-blue);
+  color: var(--adm-blue);
+  transform: translateY(-1px);
+}
+.size-option-btn.selected {
+  background: #080ce6 !important;
+  color: #fff !important;
+  border-color: #080ce6 !important;
+  box-shadow: 0 2px 8px rgba(8,12,230,.25);
+}
+.size-group-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .75rem;
+  margin-bottom: .6rem;
+}
+.size-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .45rem;
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--adm-text);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.size-quick-actions {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+.size-quick-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: .3rem .6rem;
+  border-radius: 6px;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+.size-quick-btn:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.size-quick-btn.danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+.size-quick-btn.danger:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .adm-product-actions { display: flex; gap: .5rem; padding: .75rem .85rem; border-top: 1px solid var(--adm-border); }
 .adm-btn-sm {
   flex: 1; padding: .5rem; border-radius: 6px;

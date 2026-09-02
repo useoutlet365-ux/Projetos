@@ -501,10 +501,16 @@
       <section class="adm-section" id="sec-produtos">
         <div class="section-head">
           <h2>Produtos Cadastrados</h2>
-          <button class="adm-btn adm-btn-primary" onclick="navigateTo('novo-produto')">
-            <i class="fas fa-plus"></i> Novo Produto
-          </button>
+          <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+            <button class="adm-btn adm-btn-secondary" id="btnMigratePhotos" onclick="migrateOldPhotosToStorage()" title="Otimiza o banco de dados enviando fotos antigas em Base64 para o Supabase Storage">
+              <i class="fas fa-cloud-upload-alt"></i> Otimizar Fotos no Storage
+            </button>
+            <button class="adm-btn adm-btn-primary" onclick="navigateTo('novo-produto')">
+              <i class="fas fa-plus"></i> Novo Produto
+            </button>
+          </div>
         </div>
+        <div id="migratePhotosStatus" style="display:none;padding:.75rem 1rem;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;margin-bottom:1rem;font-size:.85rem;font-weight:600;"></div>
         <div class="adm-filter-row">
           <button class="adm-filter-btn active" data-pcat="todos">Todos</button>
           <button class="adm-filter-btn" data-pcat="camisas">Camisas</button>
@@ -661,17 +667,31 @@
 
               <!-- TAMANHOS E ESTOQUE POR VARIAÇÃO -->
               <div class="adm-form-group" style="margin-top:1.25rem;">
-                <label>Tamanhos / Numeração disponíveis *</label>
-                <div id="sizesSelector" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.4rem;">
+                  <label style="margin-bottom:0;"><i class="fas fa-ruler-combined" style="color:var(--adm-blue);margin-right:0.35rem;"></i>Tamanhos / Numeração Disponíveis *</label>
+                  <small style="font-size:.73rem;color:var(--adm-muted);">Clique para marcar os tamanhos disponíveis</small>
+                </div>
+                <div id="sizesSelector" style="display:flex;flex-direction:column;gap:.6rem;margin-top:.35rem;">
                   <!-- Gerado dinamicamente -->
                 </div>
-                <div id="customSizeWrap" style="margin-top:.5rem;display:none;">
-                  <input type="text" id="customSizes" placeholder="Ou digite manualmente: P, M, G, GG" />
+
+                <!-- Adicionar tamanho personalizado -->
+                <div id="customSizeAddWrap" style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                  <div style="position:relative;flex:1;max-width:280px;">
+                    <input type="text" id="customSizeInput" placeholder="Ex: 33, 47/48, XGG, 120ml..." style="width:100%;padding:.45rem .75rem;font-size:.82rem;border:1.5px dashed var(--adm-border);border-radius:6px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomSizeFromInput();}" />
+                  </div>
+                  <button type="button" class="adm-btn adm-btn-secondary" style="padding:.45rem .85rem;font-size:.78rem;" onclick="addCustomSizeFromInput()">
+                    <i class="fas fa-plus"></i> Adicionar Tamanho
+                  </button>
                 </div>
+
                 <div id="variantStockWrap" style="margin-top:1rem;display:none;background:var(--adm-bg);padding:1rem;border-radius:8px;border:1px solid var(--adm-border);">
-                  <label style="font-weight:600;font-size:0.85rem;color:var(--adm-text);display:block;margin-bottom:0.5rem;">
-                    <i class="fas fa-boxes" style="color:var(--adm-accent);margin-right:0.35rem;"></i>Estoque por Tamanho/Variação
-                  </label>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.65rem;flex-wrap:wrap;gap:.5rem;">
+                    <label style="font-weight:700;font-size:0.85rem;color:var(--adm-text);margin-bottom:0;">
+                      <i class="fas fa-boxes" style="color:var(--adm-accent);margin-right:0.35rem;"></i>Estoque por Tamanho / Variação
+                    </label>
+                    <span style="font-size:.75rem;color:var(--adm-muted);">Total: <strong id="variantStockTotalBadge" style="color:var(--adm-blue);">0 un</strong></span>
+                  </div>
                   <div id="variantStockInputs" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));gap:0.75rem;"></div>
                 </div>
               </div>

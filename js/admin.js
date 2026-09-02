@@ -1347,6 +1347,20 @@ async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder =
       : p.image_url
         ? `<img src="${escapeHtml(p.image_url)}" class="adm-product-img" alt="${safeName}"/>`
         : `<div class="adm-product-img-placeholder"><i class="fas fa-image"></i></div>`;
+    
+    // Grades de tamanhos
+    const rawSizes = p.sizes ? (Array.isArray(p.sizes) ? p.sizes : String(p.sizes).split(',')) : [];
+    const cleanSizes = rawSizes.map(s => String(s).trim()).filter(Boolean);
+    const sizesPills = cleanSizes.length > 0
+      ? cleanSizes.slice(0, 6).map(s => `<span class="adm-size-pill">${escapeHtml(s)}</span>`).join('') + (cleanSizes.length > 6 ? `<span class="adm-size-pill" style="background:#e2e8f0;">+${cleanSizes.length - 6}</span>` : '')
+      : '<span style="color:#9ca3af;font-size:.72rem;">Único</span>';
+
+    // Estoque total e badge
+    const totalStock = parseInt(p.stock) || 0;
+    const stockClass = totalStock <= 0 ? 'out-stock' : (totalStock <= 3 ? 'low-stock' : 'in-stock');
+    const stockIcon = totalStock <= 0 ? 'fa-times-circle' : (totalStock <= 3 ? 'fa-exclamation-triangle' : 'fa-check-circle');
+    const stockText = totalStock <= 0 ? 'Esgotado' : `${totalStock} un em estoque`;
+
     return `
       <div class="adm-product-card" id="pcard-${safeId}">
         ${imgEl}
@@ -1361,6 +1375,18 @@ async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder =
             ${p.weekly_promo ? '<span class="adm-tag promo">🔥 Promo</span>' : ''}
             ${p.hero_card ? '<span class="adm-tag hero">⭐ Card</span>' : ''}
             <span class="adm-tag ${p.active !== false ? 'active' : 'inactive'}">${p.active !== false ? 'Ativo' : 'Inativo'}</span>
+          </div>
+
+          <div class="adm-product-specs">
+            <div class="adm-spec-row">
+              <span style="font-size:.72rem;color:var(--adm-muted);white-space:nowrap;"><i class="fas fa-ruler" style="margin-right:.25rem;"></i>Tamanhos:</span>
+              <div class="adm-size-pills">${sizesPills}</div>
+            </div>
+            <div class="adm-spec-row" style="margin-top:.25rem;">
+              <span class="adm-stock-badge ${stockClass}">
+                <i class="fas ${stockIcon}"></i> ${stockText}
+              </span>
+            </div>
           </div>
         </div>
         <div class="adm-product-actions">
@@ -1475,22 +1501,16 @@ async function editProduct(id) {
   document.getElementById('prodHeroCard').checked = !!p.hero_card;
   if (document.getElementById('prodCategoryCover')) document.getElementById('prodCategoryCover').checked = !!p.category_cover;
   photosData = [];
-  const prev = document.getElementById('photoPreviews');
-  if (p.image_base64) {
-    photosData.push(p.image_base64);
-    prev.innerHTML = `<div class="photo-preview-item"><img src="${p.image_base64}"/><button onclick="removePhoto(0)"><i class="fas fa-times"></i></button></div>`;
-  } else if (p.image_url) {
-    prev.innerHTML = `<p style="font-size:.78rem;color:#9ca3af;">Foto URL: ${p.image_url}</p>`;
+  if (p.image_url) {
+    photosData.push({ isNew: false, url: p.image_url, preview: p.image_url });
+  } else if (p.image_base64) {
+    photosData.push({ isNew: false, base64: p.image_base64, preview: p.image_base64 });
   }
-  const sizesStr = p.sizes ? (Array.isArray(p.sizes) ? p.sizes.join(', ') : p.sizes) : '';
+  renderPhotoPreviews();
+
   setTimeout(() => {
-    const buttons = document.querySelectorAll('.size-option-btn');
-    sizesStr.split(',').map(s => s.trim()).forEach(s => {
-      const btn = [...buttons].find(b => b.dataset.size === s);
-      if (btn) { btn.classList.add('selected'); btn.style.background = '#080ce6'; btn.style.color = '#fff'; btn.style.borderColor = '#080ce6'; }
-    });
-    renderVariantStockFields();
-  }, 200);
+    populateProductSizes(p.sizes, p.variant_stock);
+  }, 120);
   updateHeroCounter();
 }
 
@@ -1554,23 +1574,16 @@ async function duplicateProduct(id) {
   if (document.getElementById('prodCategoryCover')) document.getElementById('prodCategoryCover').checked = false;
 
   photosData = [];
-  const prev = document.getElementById('photoPreviews');
-  if (p.image_base64) {
-    photosData.push(p.image_base64);
-    prev.innerHTML = `<div class="photo-preview-item"><img src="${p.image_base64}"/><button onclick="removePhoto(0)"><i class="fas fa-times"></i></button></div>`;
-  } else if (p.image_url) {
-    prev.innerHTML = `<p style="font-size:.78rem;color:#9ca3af;">Foto URL: ${p.image_url}</p>`;
+  if (p.image_url) {
+    photosData.push({ isNew: false, url: p.image_url, preview: p.image_url });
+  } else if (p.image_base64) {
+    photosData.push({ isNew: false, base64: p.image_base64, preview: p.image_base64 });
   }
+  renderPhotoPreviews();
 
-  const sizesStr = p.sizes ? (Array.isArray(p.sizes) ? p.sizes.join(', ') : p.sizes) : '';
   setTimeout(() => {
-    const buttons = document.querySelectorAll('.size-option-btn');
-    sizesStr.split(',').map(s => s.trim()).forEach(s => {
-      const btn = [...buttons].find(b => b.dataset.size === s);
-      if (btn) { btn.classList.add('selected'); btn.style.background = '#080ce6'; btn.style.color = '#fff'; btn.style.borderColor = '#080ce6'; }
-    });
-    renderVariantStockFields();
-  }, 200);
+    populateProductSizes(p.sizes, p.variant_stock);
+  }, 120);
 
   updateHeroCounter();
   admToast('Anúncio clonado! Edite os campos e clique em Salvar.', 'info');
@@ -1586,13 +1599,14 @@ const SUBCATEGORIES = {
   'acessorios': ['Bonés', 'Roupas Íntimas', 'Outros'],
   'perfumes': ['Perfumes Árabes', 'Perfumes Nacionais', 'Outros']
 };
+
 const SIZE_GROUPS = {
-  'camisas': ['P', 'M', 'G', 'GG'],
-  'shorts-calcas': ['P', 'M', 'G', 'GG', '38', '40', '42', '44', '46', '48'],
+  'camisas': ['P', 'M', 'G', 'GG', 'XG', 'XGG'],
+  'shorts-calcas': ['P', 'M', 'G', 'GG', '36', '38', '40', '42', '44', '46', '48', '50'],
   'calcados-chinelos': [
-    '37', '38', '39', '40', '41', '42', '43', '44', '45',
-    '35/36', '37/38', '39/40', '41/42', '43/44', '45/46',
-    '36/37', '38/39', '40/41', '42/43', '44/45', '46/47'
+    '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48',
+    '33/34', '35/36', '37/38', '39/40', '41/42', '43/44', '45/46', '47/48',
+    '34/35', '36/37', '38/39', '40/41', '42/43', '44/45', '46/47'
   ],
   'acessorios': ['P', 'M', 'G', 'GG', 'Único'],
   'perfumes': ['30ml', '50ml', '100ml', 'Único']
@@ -1654,54 +1668,92 @@ function updateSubcategory() {
   const sizesSelector = document.getElementById('sizesSelector');
   if (sizesSelector) {
     if (cat === 'calcados-chinelos') {
-      const simples = ['37', '38', '39', '40', '41', '42', '43', '44', '45'];
-      const duplasA = ['35/36', '37/38', '39/40', '41/42', '43/44', '45/46'];
-      const duplasB = ['36/37', '38/39', '40/41', '42/43', '44/45', '46/47'];
+      const simples = ['33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48'];
+      const duplasA = ['33/34', '35/36', '37/38', '39/40', '41/42', '43/44', '45/46', '47/48'];
+      const duplasB = ['34/35', '36/37', '38/39', '40/41', '42/43', '44/45', '46/47'];
+
       sizesSelector.innerHTML = `
-        <div style="width:100%;margin-bottom:.45rem;">
-          <span style="font-size:.73rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">
-            🔢 Numeração Simples (37 a 45):
-          </span>
+        <div class="size-quick-actions">
+          <button type="button" class="size-quick-btn" onclick="quickSelectSizes('simples-comuns')">
+            <i class="fas fa-bolt"></i> 37 ao 44 (Simples)
+          </button>
+          <button type="button" class="size-quick-btn" onclick="quickSelectSizes('dupla-a-comuns')">
+            <i class="fas fa-bolt"></i> 37/38 ao 43/44 (Dupla A)
+          </button>
+          <button type="button" class="size-quick-btn" onclick="quickSelectSizes('dupla-b-comuns')">
+            <i class="fas fa-bolt"></i> 38/39 ao 44/45 (Dupla B)
+          </button>
+          <button type="button" class="size-quick-btn danger" onclick="quickSelectSizes('limpar')">
+            <i class="fas fa-trash-alt"></i> Limpar Seleção
+          </button>
+        </div>
+
+        <div class="size-group-box">
+          <div class="size-group-header">
+            <span>🔢 Numeração Simples (33 a 48)</span>
+            <small style="font-size:.68rem;color:var(--adm-muted);font-weight:600;">Sapatos, Tênis, Chinelos</small>
+          </div>
           <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
             ${simples.map(s => `
-              <button type="button" class="size-option-btn" data-size="${s}"
-                style="min-width:44px;height:38px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
-                onclick="toggleSizeBtn(this)">${s}</button>
+              <button type="button" class="size-option-btn" data-size="${s}" onclick="toggleSizeBtn(this)">${s}</button>
             `).join('')}
           </div>
         </div>
-        <div style="width:100%;margin-top:.45rem;margin-bottom:.45rem;">
-          <span style="font-size:.73rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">
-            👥 Numeração Dupla A (37/38, 39/40, 41/42, 43/44...):
-          </span>
+
+        <div class="size-group-box">
+          <div class="size-group-header">
+            <span>👥 Numeração Dupla A — Ímpar/Par (Havaianas, Ipanema, Cartago...)</span>
+            <small style="font-size:.68rem;color:var(--adm-muted);font-weight:600;">35/36, 37/38, 39/40...</small>
+          </div>
           <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
             ${duplasA.map(s => `
-              <button type="button" class="size-option-btn" data-size="${s}"
-                style="min-width:54px;height:38px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
-                onclick="toggleSizeBtn(this)">${s}</button>
+              <button type="button" class="size-option-btn" data-size="${s}" onclick="toggleSizeBtn(this)">${s}</button>
             `).join('')}
           </div>
         </div>
-        <div style="width:100%;margin-top:.45rem;">
-          <span style="font-size:.73rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">
-            👥 Numeração Dupla B (38/39, 40/41, 42/43, 44/45...):
-          </span>
+
+        <div class="size-group-box">
+          <div class="size-group-header">
+            <span>👥 Numeração Dupla B — Par/Ímpar (Kenner, Rider, Crocs, Slides...)</span>
+            <small style="font-size:.68rem;color:var(--adm-muted);font-weight:600;">36/37, 38/39, 40/41...</small>
+          </div>
           <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
             ${duplasB.map(s => `
-              <button type="button" class="size-option-btn" data-size="${s}"
-                style="min-width:54px;height:38px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
-                onclick="toggleSizeBtn(this)">${s}</button>
+              <button type="button" class="size-option-btn" data-size="${s}" onclick="toggleSizeBtn(this)">${s}</button>
             `).join('')}
           </div>
+        </div>
+
+        <div id="customSizesBox" class="size-group-box" style="display:none;">
+          <div class="size-group-header">
+            <span>🏷️ Tamanhos Personalizados Adicionados</span>
+          </div>
+          <div id="customSizesContainer" style="display:flex;gap:.4rem;flex-wrap:wrap;"></div>
         </div>
       `;
     } else {
       const sizes = SIZE_GROUPS[cat] || ['P', 'M', 'G', 'GG'];
-      sizesSelector.innerHTML = sizes.map(s => `
-        <button type="button" class="size-option-btn" data-size="${s}"
-          style="min-width:44px;height:40px;border-radius:8px;border:1.5px solid var(--adm-border);font-size:.82rem;font-weight:600;transition:all .2s;padding:0 .5rem;background:#fff;"
-          onclick="toggleSizeBtn(this)">${s}</button>
-      `).join('');
+      sizesSelector.innerHTML = `
+        <div class="size-quick-actions">
+          <button type="button" class="size-quick-btn" onclick="quickSelectSizes('todos')">
+            <i class="fas fa-check-double"></i> Selecionar Todos
+          </button>
+          <button type="button" class="size-quick-btn danger" onclick="quickSelectSizes('limpar')">
+            <i class="fas fa-trash-alt"></i> Limpar Seleção
+          </button>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          ${sizes.map(s => `
+            <button type="button" class="size-option-btn" data-size="${s}" onclick="toggleSizeBtn(this)">${s}</button>
+          `).join('')}
+        </div>
+        <div id="customSizesBox" class="size-group-box" style="display:none;margin-top:.6rem;">
+          <div class="size-group-header">
+            <span>🏷️ Tamanhos Personalizados Adicionados</span>
+          </div>
+          <div id="customSizesContainer" style="display:flex;gap:.4rem;flex-wrap:wrap;"></div>
+        </div>
+      `;
     }
   }
 }
@@ -1716,22 +1768,200 @@ function toggleSizeBtn(btn) {
   renderVariantStockFields();
 }
 
-function renderVariantStockFields() {
-  const wrap = document.getElementById('variantStockWrap');
-  const container = document.getElementById('variantStockInputs');
-  if (!wrap || !container) return;
+function quickSelectSizes(type) {
+  const allBtns = [...document.querySelectorAll('#sizesSelector .size-option-btn')];
+  
+  if (type === 'limpar') {
+    allBtns.forEach(b => {
+      b.classList.remove('selected');
+      b.style.background = '#fff';
+      b.style.color = '';
+      b.style.borderColor = 'var(--adm-border)';
+    });
+    const customContainer = document.getElementById('customSizesContainer');
+    if (customContainer) customContainer.innerHTML = '';
+    const customBox = document.getElementById('customSizesBox');
+    if (customBox) customBox.style.display = 'none';
+  } else if (type === 'todos') {
+    allBtns.forEach(b => {
+      b.classList.add('selected');
+      b.style.background = '#080ce6';
+      b.style.color = '#fff';
+      b.style.borderColor = '#080ce6';
+    });
+  } else {
+    // Desmarca todos antes do preset específico
+    allBtns.forEach(b => {
+      b.classList.remove('selected');
+      b.style.background = '#fff';
+      b.style.color = '';
+      b.style.borderColor = 'var(--adm-border)';
+    });
 
-  const sizesStr = getSelectedSizes();
-  if (!sizesStr) {
-    wrap.style.display = 'none';
-    container.innerHTML = '';
+    let targetSizes = [];
+    if (type === 'simples-comuns') {
+      targetSizes = ['37', '38', '39', '40', '41', '42', '43', '44'];
+    } else if (type === 'dupla-a-comuns') {
+      targetSizes = ['37/38', '39/40', '41/42', '43/44'];
+    } else if (type === 'dupla-b-comuns') {
+      targetSizes = ['38/39', '40/41', '42/43', '44/45'];
+    }
+
+    allBtns.forEach(b => {
+      if (targetSizes.includes(b.dataset.size)) {
+        b.classList.add('selected');
+        b.style.background = '#080ce6';
+        b.style.color = '#fff';
+        b.style.borderColor = '#080ce6';
+      }
+    });
+  }
+
+  renderVariantStockFields();
+}
+
+function addCustomSizeButton(sizeStr, triggerStockUpdate = true) {
+  const norm = String(sizeStr).trim().replace(/\s*-\s*/g, '/');
+  if (!norm) return null;
+
+  let customContainer = document.getElementById('customSizesContainer');
+  let customBox = document.getElementById('customSizesBox');
+
+  if (!customContainer) {
+    const selector = document.getElementById('sizesSelector');
+    if (!selector) return null;
+    customBox = document.createElement('div');
+    customBox.id = 'customSizesBox';
+    customBox.className = 'size-group-box';
+    customBox.innerHTML = `
+      <div class="size-group-header"><span>🏷️ Tamanhos Personalizados</span></div>
+      <div id="customSizesContainer" style="display:flex;gap:.4rem;flex-wrap:wrap;"></div>
+    `;
+    selector.appendChild(customBox);
+    customContainer = document.getElementById('customSizesContainer');
+  }
+
+  if (customBox) customBox.style.display = 'block';
+
+  // Verifica se já existe esse botão no container personalizado
+  const existing = customContainer.querySelector(`[data-size="${norm}"]`);
+  if (existing) {
+    existing.classList.add('selected');
+    existing.style.background = '#080ce6';
+    existing.style.color = '#fff';
+    existing.style.borderColor = '#080ce6';
+    if (triggerStockUpdate) renderVariantStockFields();
+    return existing;
+  }
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'size-option-btn selected';
+  btn.dataset.size = norm;
+  btn.style.background = '#080ce6';
+  btn.style.color = '#fff';
+  btn.style.borderColor = '#080ce6';
+  btn.innerHTML = `${escapeHtml(norm)} <i class="fas fa-times" style="margin-left:.4rem;font-size:.65rem;opacity:.7;" title="Remover" onclick="event.stopPropagation();removeCustomSizeBtn(this.parentElement)"></i>`;
+  btn.onclick = () => toggleSizeBtn(btn);
+
+  customContainer.appendChild(btn);
+  if (triggerStockUpdate) renderVariantStockFields();
+  return btn;
+}
+
+function addCustomSizeFromInput() {
+  const inp = document.getElementById('customSizeInput');
+  if (!inp) return;
+  const raw = inp.value.trim();
+  if (!raw) {
+    admToast('Digite um tamanho para adicionar (ex: 34, 47/48, XGG)', 'error');
     return;
   }
 
-  const sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean);
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  let addedCount = 0;
+
+  parts.forEach(s => {
+    const norm = s.replace(/\s*-\s*/g, '/');
+    // Verifica se já existe na grade padrão
+    const allStandard = [...document.querySelectorAll('#sizesSelector .size-option-btn:not(#customSizesContainer .size-option-btn)')];
+    const standardBtn = allStandard.find(b => b.dataset.size.toLowerCase() === norm.toLowerCase() || b.dataset.size.toLowerCase() === s.toLowerCase());
+
+    if (standardBtn) {
+      standardBtn.classList.add('selected');
+      standardBtn.style.background = '#080ce6';
+      standardBtn.style.color = '#fff';
+      standardBtn.style.borderColor = '#080ce6';
+      addedCount++;
+    } else {
+      addCustomSizeButton(norm, false);
+      addedCount++;
+    }
+  });
+
+  inp.value = '';
+  renderVariantStockFields();
+  admToast(`${addedCount} tamanho(s) ativado(s)!`, 'info');
+}
+
+function removeCustomSizeBtn(btn) {
+  if (btn && btn.parentElement) {
+    const parent = btn.parentElement;
+    btn.remove();
+    if (parent.children.length === 0) {
+      const box = document.getElementById('customSizesBox');
+      if (box) box.style.display = 'none';
+    }
+    renderVariantStockFields();
+  }
+}
+
+function populateProductSizes(sizes, variantStock = null) {
+  // Desmarca tudo primeiro
+  document.querySelectorAll('.size-option-btn').forEach(btn => {
+    btn.classList.remove('selected');
+    btn.style.background = '#fff';
+    btn.style.color = '';
+    btn.style.borderColor = 'var(--adm-border)';
+  });
+
+  const raw = Array.isArray(sizes) ? sizes : (typeof sizes === 'string' ? sizes.split(',') : []);
+  const cleanList = raw.map(s => String(s).trim()).filter(Boolean);
+
+  cleanList.forEach(s => {
+    const norm = s.replace(/\s*-\s*/g, '/');
+    const allBtns = [...document.querySelectorAll('.size-option-btn')];
+    let btn = allBtns.find(b => {
+      const bSize = (b.dataset.size || '').trim();
+      return bSize.toLowerCase() === norm.toLowerCase() || bSize.toLowerCase() === s.toLowerCase();
+    });
+
+    if (!btn) {
+      btn = addCustomSizeButton(norm || s, false);
+    }
+
+    if (btn) {
+      btn.classList.add('selected');
+      btn.style.background = '#080ce6';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#080ce6';
+    }
+  });
+
+  renderVariantStockFields(variantStock);
+}
+
+function renderVariantStockFields(customVariantStock = null) {
+  const wrap = document.getElementById('variantStockWrap');
+  const container = document.getElementById('variantStockInputs');
+  const totalBadge = document.getElementById('variantStockTotalBadge');
+  if (!wrap || !container) return;
+
+  const sizes = getSelectedSizesList();
   if (sizes.length === 0) {
     wrap.style.display = 'none';
     container.innerHTML = '';
+    if (totalBadge) totalBadge.textContent = '0 un';
     return;
   }
 
@@ -1742,20 +1972,30 @@ function renderVariantStockFields() {
     currentInputs[input.dataset.vsize] = input.value;
   });
 
-  let pVariantStock = {};
-  if (editingProductId) {
+  let pVariantStock = customVariantStock || {};
+  if (!customVariantStock && editingProductId) {
     const p = allAdminProducts.find(x => x.id === editingProductId);
-    if (p && p.variant_stock) pVariantStock = p.variant_stock;
+    if (p && p.variant_stock) {
+      pVariantStock = typeof p.variant_stock === 'string' ? JSON.parse(p.variant_stock) : p.variant_stock;
+    }
   }
 
   container.innerHTML = sizes.map(size => {
+    const norm = size.replace(/\s*-\s*/g, '/');
+    const alt = size.replace(/\//g, '-');
+    let savedVal = undefined;
+    if (pVariantStock[size] !== undefined) savedVal = pVariantStock[size];
+    else if (pVariantStock[norm] !== undefined) savedVal = pVariantStock[norm];
+    else if (pVariantStock[alt] !== undefined) savedVal = pVariantStock[alt];
+
     const val = currentInputs[size] !== undefined
       ? currentInputs[size]
-      : (pVariantStock[size] !== undefined ? pVariantStock[size] : 5);
+      : (savedVal !== undefined ? savedVal : 5);
+
     return `
-      <div>
-        <label style="font-size:0.75rem;font-weight:700;color:var(--adm-muted);display:block;margin-bottom:0.2rem;">${size}</label>
-        <input type="number" data-vsize="${size}" value="${val}" min="0" placeholder="0" oninput="updateTotalStockFromVariants()" style="width:100%;padding:0.4rem;border:1px solid var(--adm-border);border-radius:6px;font-size:0.85rem;font-weight:700;" />
+      <div style="background:#fff;padding:.45rem .6rem;border-radius:6px;border:1.5px solid var(--adm-border);">
+        <label style="font-size:0.75rem;font-weight:800;color:var(--adm-text);display:block;margin-bottom:0.25rem;">${escapeHtml(size)}</label>
+        <input type="number" data-vsize="${escapeHtml(size)}" value="${val}" min="0" placeholder="0" oninput="updateTotalStockFromVariants()" style="width:100%;padding:0.4rem;border:1.5px solid var(--adm-border);border-radius:6px;font-size:0.85rem;font-weight:800;text-align:center;" />
       </div>
     `;
   }).join('');
@@ -1765,13 +2005,14 @@ function renderVariantStockFields() {
 
 function updateTotalStockFromVariants() {
   const inputs = document.querySelectorAll('input[data-vsize]');
-  if (inputs.length === 0) return;
   let total = 0;
   inputs.forEach(inp => {
     total += parseInt(inp.value) || 0;
   });
   const stockInput = document.getElementById('prodStock');
   if (stockInput) stockInput.value = total;
+  const totalBadge = document.getElementById('variantStockTotalBadge');
+  if (totalBadge) totalBadge.textContent = `${total} un`;
 }
 
 function getVariantStockData() {
@@ -1784,13 +2025,16 @@ function getVariantStockData() {
   return data;
 }
 
-function getSelectedSizes() {
-  const selected = [...document.querySelectorAll('.size-option-btn.selected')].map(b => b.dataset.size);
-  const custom = document.getElementById('customSizes')?.value.trim();
-  return selected.length > 0 ? selected.join(', ') : (custom || '');
+function getSelectedSizesList() {
+  const selected = [...document.querySelectorAll('.size-option-btn.selected')].map(b => (b.dataset.size || '').trim()).filter(Boolean);
+  return selected;
 }
 
-function compressImage(file, maxWidth = 600, quality = 0.70) {
+function getSelectedSizes() {
+  const list = getSelectedSizesList();
+  return list.length > 0 ? list.join(', ') : '';
+}
+function compressImage(file, maxWidth = 900, quality = 0.80) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -1812,14 +2056,30 @@ function compressImage(file, maxWidth = 600, quality = 0.70) {
           canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          const base64 = canvas.toDataURL('image/jpeg', quality);
 
-          // Limpa o canvas e referências para liberar memória imediatamente no iOS Safari
-          canvas.width = 1;
-          canvas.height = 1;
-          img.src = '';
-
-          resolve(base64);
+          // Tenta exportar como WebP, senão JPEG
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              const base64 = canvas.toDataURL('image/jpeg', quality);
+              const fallbackBlob = DB.base64ToBlob(base64);
+              canvas.width = 1; canvas.height = 1; img.src = '';
+              resolve({
+                isNew: true,
+                blob: fallbackBlob,
+                preview: base64,
+                name: file.name
+              });
+              return;
+            }
+            const previewUrl = URL.createObjectURL(blob);
+            canvas.width = 1; canvas.height = 1; img.src = '';
+            resolve({
+              isNew: true,
+              blob: blob,
+              preview: previewUrl,
+              name: file.name
+            });
+          }, 'image/webp', quality);
         } catch (err) {
           reject(err);
         }
@@ -1840,8 +2100,8 @@ async function handlePhotoInput(event) {
   if (photosData.length + files.length > 4) { admToast('Máximo de 4 fotos por produto', 'error'); return; }
   for (const file of files) {
     try {
-      const compressed = await compressImage(file);
-      photosData.push(compressed);
+      const photoObj = await compressImage(file);
+      photosData.push(photoObj);
       renderPhotoPreviews();
     } catch (err) {
       console.error("Erro ao processar imagem:", err);
@@ -1851,12 +2111,17 @@ async function handlePhotoInput(event) {
 }
 
 function renderPhotoPreviews() {
-  document.getElementById('photoPreviews').innerHTML = photosData.map((src, i) => `
-    <div class="photo-preview-item">
-      <img src="${src}"/>
-      <button type="button" onclick="removePhoto(${i})"><i class="fas fa-times"></i></button>
-    </div>
-  `).join('');
+  const container = document.getElementById('photoPreviews');
+  if (!container) return;
+  container.innerHTML = photosData.map((item, i) => {
+    const src = typeof item === 'string' ? item : (item.preview || item.url || item.base64 || '');
+    return `
+      <div class="photo-preview-item">
+        <img src="${escapeHtml(src)}"/>
+        <button type="button" onclick="removePhoto(${i})"><i class="fas fa-times"></i></button>
+      </div>
+    `;
+  }).join('');
 }
 
 window.removePhoto = function (index) { photosData.splice(index, 1); renderPhotoPreviews(); };
@@ -1932,6 +2197,30 @@ async function saveProduct(event) {
       ? Object.values(vStockData).reduce((a, b) => a + (parseInt(b) || 0), 0)
       : (parseInt(document.getElementById('prodStock').value) || 0);
 
+    // Processamento da Foto (Upload para Supabase Storage)
+    let finalImageUrl = '';
+    let finalImageBase64 = '';
+
+    if (photosData.length > 0) {
+      const mainPhoto = photosData[0];
+      if (typeof mainPhoto === 'string') {
+        if (mainPhoto.startsWith('data:image')) {
+          finalImageBase64 = mainPhoto;
+        } else {
+          finalImageUrl = mainPhoto;
+        }
+      } else if (mainPhoto.isNew && mainPhoto.blob) {
+        if (saveBtn) { saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando foto para o Storage...'; }
+        finalImageUrl = await DB.uploadProductImage(mainPhoto.blob, finalSlug || slugify(name));
+        finalImageBase64 = '';
+      } else if (mainPhoto.url) {
+        finalImageUrl = mainPhoto.url;
+        finalImageBase64 = '';
+      } else if (mainPhoto.base64) {
+        finalImageBase64 = mainPhoto.base64;
+      }
+    }
+
     const data = {
       name, category,
       subcategory,
@@ -1942,8 +2231,8 @@ async function saveProduct(event) {
       variant_stock: vStockData || {},
       description,
       sizes: sizes || 'Único',
-      image_base64: photosData[0] || '',
-      image_url: '',
+      image_base64: finalImageBase64,
+      image_url: finalImageUrl,
       featured: document.getElementById('prodFeatured').checked,
       new_arrival: document.getElementById('prodNew').checked,
       weekly_promo: document.getElementById('prodPromo').checked,
@@ -1987,6 +2276,10 @@ function resetForm() {
   photosData = [];
   document.getElementById('photoPreviews').innerHTML = '';
   document.getElementById('sizesSelector').innerHTML = '';
+  if (document.getElementById('customSizeInput')) document.getElementById('customSizeInput').value = '';
+  if (document.getElementById('variantStockWrap')) document.getElementById('variantStockWrap').style.display = 'none';
+  if (document.getElementById('variantStockInputs')) document.getElementById('variantStockInputs').innerHTML = '';
+  if (document.getElementById('variantStockTotalBadge')) document.getElementById('variantStockTotalBadge').textContent = '0 un';
   document.getElementById('prodSubcategory').innerHTML = '<option value="">Selecione a categoria primeiro</option>';
   if (document.getElementById('prodCategoryCover')) document.getElementById('prodCategoryCover').checked = false;
   if (document.getElementById('prodWeight')) document.getElementById('prodWeight').value = '0.300';
@@ -2002,6 +2295,73 @@ function resetForm() {
 
   updateHeroCounter();
 }
+
+// ─── FERRAMENTA DE MIGRAÇÃO: BASE64 -> SUPABASE STORAGE ─────────────────────
+async function migrateOldPhotosToStorage() {
+  const btn = document.getElementById('btnMigratePhotos');
+  const statusEl = document.getElementById('migratePhotosStatus');
+
+  if (!confirm('Deseja iniciar a otimização de todas as fotos antigas salvas em Base64 para o Supabase Storage? Isso deixará o banco de dados e o site muito mais rápidos.')) {
+    return;
+  }
+
+  try {
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando produtos...'; }
+    if (statusEl) { statusEl.textContent = 'Buscando produtos no banco de dados...'; statusEl.style.display = 'block'; }
+
+    const products = await DB.getAllProducts();
+    const toMigrate = products.filter(p => p.image_base64 && p.image_base64.startsWith('data:image'));
+
+    if (toMigrate.length === 0) {
+      admToast('Todos os produtos já estão otimizados no Storage!', 'success');
+      if (statusEl) statusEl.textContent = '✅ Todos os produtos já estão no Supabase Storage ou sem Base64.';
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Otimizar Fotos no Storage'; }
+      return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < toMigrate.length; i++) {
+      const p = toMigrate[i];
+      if (statusEl) {
+        statusEl.textContent = `Otimizando foto ${i + 1} de ${toMigrate.length}: "${p.name}"...`;
+      }
+      try {
+        const blob = DB.base64ToBlob(p.image_base64);
+        if (!blob) throw new Error('Não foi possível converter o Base64 em arquivo.');
+
+        const publicUrl = await DB.uploadProductImage(blob, p.slug || p.id);
+
+        await DB.updateProduct(p.id, {
+          image_url: publicUrl,
+          image_base64: ''
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Erro ao migrar foto do produto "${p.name}" (${p.id}):`, err);
+        failCount++;
+      }
+    }
+
+    admToast(`Otimização concluída! ${successCount} fotos migradas para o Storage com sucesso.${failCount > 0 ? ` (${failCount} erros)` : ''}`, successCount > 0 ? 'success' : 'error');
+    if (statusEl) {
+      statusEl.textContent = `✅ Concluído com sucesso: ${successCount} produtos migrados para o Supabase Storage.${failCount > 0 ? ` ⚠️ ${failCount} falharam.` : ''}`;
+    }
+
+    await loadAdminProducts();
+  } catch (err) {
+    console.error('migrateOldPhotosToStorage error:', err);
+    admToast('Erro na otimização: ' + (err.message || err), 'error');
+    if (statusEl) statusEl.textContent = '❌ Erro na otimização: ' + (err.message || err);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Otimizar Fotos no Storage';
+    }
+  }
+}
+window.migrateOldPhotosToStorage = migrateOldPhotosToStorage;
 
 // ══════════════════════════════════════════
 // HERO CARD CONFIG

@@ -261,5 +261,47 @@ const DB = (() => {
         console.error('incrementStat exception:', err);
       }
     },
+    // ── Storage (Imagens) ───────────────────────────
+    base64ToBlob(base64Data) {
+      if (!base64Data || typeof base64Data !== 'string') return null;
+      try {
+        const parts = base64Data.split(';base64,');
+        const contentType = parts[0].split(':')[1] || 'image/jpeg';
+        const raw = window.atob(parts[1] || parts[0]);
+        const rawLength = raw.length;
+        const uInt8Array = new Uint8Array(rawLength);
+        for (let i = 0; i < rawLength; ++i) {
+          uInt8Array[i] = raw.charCodeAt(i);
+        }
+        return new Blob([uInt8Array], { type: contentType });
+      } catch (err) {
+        console.error('base64ToBlob error:', err);
+        return null;
+      }
+    },
+
+    async uploadProductImage(fileOrBlob, fileName) {
+      if (!fileOrBlob) throw new Error('Nenhum arquivo ou imagem fornecido para upload.');
+      const ext = (fileOrBlob.type && fileOrBlob.type.includes('png')) ? 'png' 
+                : (fileOrBlob.type && fileOrBlob.type.includes('webp')) ? 'webp' : 'jpg';
+      const cleanName = fileName ? fileName.replace(/[^a-zA-Z0-9_-]/g, '_') : 'prod';
+      const path = `photos/${cleanName}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${ext}`;
+      
+      const { data, error } = await supabaseClient.storage
+        .from('products')
+        .upload(path, fileOrBlob, {
+          cacheControl: '31536000',
+          upsert: true,
+          contentType: fileOrBlob.type || 'image/jpeg'
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabaseClient.storage
+        .from('products')
+        .getPublicUrl(path);
+
+      return publicUrlData.publicUrl;
+    },
   };
 })();

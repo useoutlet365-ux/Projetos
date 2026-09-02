@@ -67,7 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Encontra primeiro tamanho disponível em estoque
   const vStockInit = product.variant_stock || {};
   let selectedSize = product.sizes.find(s => {
-    const qty = vStockInit[s] !== undefined ? parseInt(vStockInit[s]) : (product.stock || 0);
+    const norm = s.replace(/\s*-\s*/g, '/');
+    const alt = s.replace(/\//g, '-');
+    const qty = vStockInit[s] !== undefined ? parseInt(vStockInit[s]) : (vStockInit[norm] !== undefined ? parseInt(vStockInit[norm]) : (vStockInit[alt] !== undefined ? parseInt(vStockInit[alt]) : (product.stock !== undefined ? product.stock : 999)));
     return qty > 0;
   }) || (product.sizes.length > 0 ? product.sizes[0] : 'Único');
 
@@ -111,7 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="size-grid" id="sizeGrid">
         ${product.sizes.map(s => {
           const vStock = product.variant_stock || {};
-          const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (product.stock !== undefined ? product.stock : 999);
+          const norm = s.replace(/\s*-\s*/g, '/');
+          const alt = s.replace(/\//g, '-');
+          const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (vStock[norm] !== undefined ? parseInt(vStock[norm]) : (vStock[alt] !== undefined ? parseInt(vStock[alt]) : (product.stock !== undefined ? product.stock : 999)));
           const isOut = qty <= 0;
           const safeS = _escape(s);
           return `

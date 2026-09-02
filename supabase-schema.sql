@@ -189,3 +189,32 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) TO authenticated, service_role, anon;
+
+-- ─── SUPABASE STORAGE: BUCKET products ───────────────────────────────────────
+-- Cria o bucket 'products' como público se ainda não existir
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('products', 'products', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+ON CONFLICT (id) DO UPDATE 
+SET public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+-- Permite leitura pública de todas as fotos do bucket products
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+CREATE POLICY "Public Access" ON storage.objects
+FOR SELECT USING (bucket_id = 'products');
+
+-- Permite inserção/upload para usuários autenticados (ou anon via painel)
+DROP POLICY IF EXISTS "Authenticated Upload" ON storage.objects;
+CREATE POLICY "Authenticated Upload" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'products');
+
+-- Permite atualização de fotos
+DROP POLICY IF EXISTS "Authenticated Update" ON storage.objects;
+CREATE POLICY "Authenticated Update" ON storage.objects
+FOR UPDATE USING (bucket_id = 'products');
+
+-- Permite exclusão de fotos
+DROP POLICY IF EXISTS "Authenticated Delete" ON storage.objects;
+CREATE POLICY "Authenticated Delete" ON storage.objects
+FOR DELETE USING (bucket_id = 'products');
