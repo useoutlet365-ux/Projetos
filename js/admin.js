@@ -2349,7 +2349,7 @@ async function migrateOldPhotosToStorage() {
       statusEl.textContent = `✅ Concluído com sucesso: ${successCount} produtos migrados para o Supabase Storage.${failCount > 0 ? ` ⚠️ ${failCount} falharam.` : ''}`;
     }
 
-    await loadAdminProducts();
+    await renderAdminProducts();
   } catch (err) {
     console.error('migrateOldPhotosToStorage error:', err);
     admToast('Erro na otimização: ' + (err.message || err), 'error');
