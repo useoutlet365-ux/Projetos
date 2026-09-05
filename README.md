@@ -135,6 +135,10 @@ Crie um arquivo `.env` na raiz do projeto (ou configure no Netlify):
 # Mercado Pago (Produção ou Sandbox)
 MP_ACCESS_TOKEN=TEST-seu_access_token_mercado_pago
 
+# Supabase — somente backend/Netlify Functions; NUNCA publique esta chave no frontend
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=seu_service_role_key
+
 # SuperFrete (Token da API)
 SUPERFRETE_TOKEN=seu_token_superfrete
 
@@ -157,9 +161,13 @@ PORT=3000
    ```
 3. Acesse a loja em: `http://localhost:3000`
 
+### Papel administrativo no Supabase
+
+As policies administrativas exigem `app_metadata.role = admin` no JWT. Configure esse valor somente pelo painel seguro do Supabase ou por uma função server-side; não use `user_metadata`, pois esse campo pode ser alterado pelo próprio usuário. Depois de alterar o `app_metadata`, encerre e inicie a sessão novamente para receber um JWT atualizado.
+
 ### 3. Deploy em Produção (Netlify)
 
 O projeto está configurado para deploy imediato no Netlify com suporte a Serverless Functions:
 1. Conecte o repositório ao Netlify.
-2. Defina as variáveis de ambiente (`MP_ACCESS_TOKEN`, `SUPERFRETE_TOKEN`, `STORE_ORIGIN_CEP`) em **Site settings > Environment variables**.
+2. Defina as variáveis privadas (`MP_ACCESS_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPERFRETE_TOKEN`, `STORE_ORIGIN_CEP`) em **Site settings > Environment variables**. Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` em HTML, JavaScript público ou repositório.
 3. O arquivo `netlify.toml` gerenciará os redirecionamentos para `/api/*` automaticamente.

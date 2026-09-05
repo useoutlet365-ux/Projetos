@@ -1,214 +1,220 @@
-exports.handler = async (event, context) => {
-  // Apenas permitir chamadas via POST
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Método não permitido" }),
-    };
-  }
+const crypto = require('crypto');
 
-  const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
-  if (!MP_ACCESS_TOKEN) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "MP_ACCESS_TOKEN não está configurada no painel da Netlify." }),
-    };
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+function response(statusCode, body) {
+  return { statusCode, headers: JSON_HEADERS, body: JSON.stringify(body) };
+}
+
+function text(value, max = 180) {
+  return String(value ?? '').trim().slice(0, max);
+}
+
+function money(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+
+function validEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim()) && String(value).length <= 254;
+}
+
+async function supabaseFetch(url, serviceKey, options = {}) {
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+    ...(options.headers || {})
+  };
+  return fetch(url, { ...options, headers });
+}
+
+exports.handler = async (event) => {
+  if (event.httpMethod !== 'POST') return response(405, { error: 'Método não permitido' });
+
+  const mpToken = process.env.MP_ACCESS_TOKEN;
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://umbqcfefdctakdkxlixy.supabase.co';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!mpToken || !serviceKey) {
+    console.error('Variáveis server-side ausentes: MP_ACCESS_TOKEN ou SUPABASE_SERVICE_ROLE_KEY.');
+    return response(500, { error: 'Serviço de pagamento não configurado no backend (SUPABASE_SERVICE_ROLE_KEY ausente).' });
   }
 
   try {
-    const body = JSON.parse(event.body);
-    const { order, cartItems, paymentFormData } = body || {};
+    const body = JSON.parse(event.body || '{}');
+    const inputOrder = body.order || {};
+    const cartItems = body.cartItems;
+    const paymentFormData = body.paymentFormData || {};
 
-    if (!order || !cartItems || !paymentFormData || !Array.isArray(cartItems) || cartItems.length === 0) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Payload inválido ou incompleto." }),
-      };
+    if (!Array.isArray(cartItems) || cartItems.length === 0 || cartItems.length > 50) {
+      return response(400, { error: 'Carrinho inválido.' });
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL || "https://umbqcfefdctakdkxlixy.supabase.co";
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYnFjZmVmZGN0YWtka3hsaXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjE5MDYsImV4cCI6MjA5NTEzNzkwNn0.r9fRNxtd2h64AEvE4O9RbLIa0EKh0et7lLiApJmOcu4";
+    const customerName = text(inputOrder.customer_name, 120);
+    const customerEmail = text(inputOrder.customer_email, 254).toLowerCase();
+    const customerPhone = text(inputOrder.customer_phone, 30);
+    const city = text(inputOrder.city, 100);
+    const state = text(inputOrder.state || 'CE', 2).toUpperCase();
+    const address = text(inputOrder.address, 240);
+    const cep = text(inputOrder.cep, 12).replace(/\D/g, '');
+    if (customerName.length < 2 || !validEmail(customerEmail) || !city || !address || cep.length !== 8) {
+      return response(400, { error: 'Dados do cliente ou endereço inválidos.' });
+    }
 
-    // 1. Obter todos os produtos do Supabase para validação rígida de preços e estoque ativo
-    const productsRes = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,price,active`, {
-      headers: {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-      }
-    });
+    const clientOrderId = text(inputOrder.id, 80);
+    const orderId = /^[A-Za-z0-9_-]{6,80}$/.test(clientOrderId) ? clientOrderId : crypto.randomUUID();
 
+    const productsRes = await supabaseFetch(
+      `${supabaseUrl}/rest/v1/products?select=id,name,price,active,stock,variant_stock`,
+      serviceKey
+    );
     if (!productsRes.ok) {
-      console.error("Falha ao consultar banco de dados Supabase:", await productsRes.text());
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Erro interno ao conectar com a base de dados para validação." }),
-      };
+      console.error('Falha ao consultar produtos:', productsRes.status);
+      return response(500, { error: 'Não foi possível validar os produtos.' });
     }
 
-    const dbProducts = await productsRes.json();
-    const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+    const products = new Map((await productsRes.json()).map(product => [product.id, product]));
+    const normalizedItems = [];
+    let subtotalCents = 0;
 
-    // 2. Validar cada item do carrinho e calcular subtotal baseado nos dados do servidor
-    let calculatedSubtotal = 0;
-    for (const item of cartItems) {
-      const dbProd = productsMap.get(item.id);
-      if (!dbProd) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: `Produto inválido ou inexistente: ${item.name || item.id}` }),
-        };
+    for (const rawItem of cartItems) {
+      const id = text(rawItem.id, 120);
+      const size = text(rawItem.size, 40);
+      const qty = Number(rawItem.qty);
+      const product = products.get(id);
+      if (!product || product.active !== true || !Number.isInteger(qty) || qty < 1 || qty > 100) {
+        return response(400, { error: 'Produto ou quantidade inválida.' });
       }
-      if (!dbProd.active) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: `Produto indisponível no momento: ${item.name || item.id}` }),
-        };
+
+      const stock = Number(product.stock || 0);
+      if (stock < qty) return response(409, { error: `Estoque insuficiente para ${text(product.name, 100)}.` });
+
+      let variantStock = product.variant_stock || {};
+      if (typeof variantStock === 'string') {
+        try { variantStock = JSON.parse(variantStock); } catch { variantStock = {}; }
       }
-      const qty = parseInt(item.qty) || 0;
-      if (qty <= 0 || qty > 100) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: "Quantidade de produto inválida." }),
-        };
+      if (size && Object.prototype.hasOwnProperty.call(variantStock, size) && Number(variantStock[size]) < qty) {
+        return response(409, { error: `Estoque insuficiente para o tamanho selecionado.` });
       }
-      const dbPrice = parseFloat(dbProd.price);
-      calculatedSubtotal += dbPrice * qty;
+
+      const unitPrice = money(product.price);
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) return response(500, { error: 'Preço de produto inválido.' });
+      subtotalCents += Math.round(unitPrice * 100) * qty;
+      normalizedItems.push({ id, name: text(product.name, 160), size, qty, price: unitPrice });
     }
 
-    // 3. Validar valor do frete
-    const clientShippingCost = parseFloat(order.shipping ?? 0);
-    if (isNaN(clientShippingCost) || clientShippingCost < 0 || clientShippingCost > 600) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Opção de frete inválida." }),
-      };
+    const shipping = money(inputOrder.shipping ?? 0);
+    if (!Number.isFinite(shipping) || shipping < 0 || shipping > 600) {
+      return response(400, { error: 'Opção de frete inválida.' });
     }
 
-    // 4. Validar o valor total calculado
-    const expectedTotal = calculatedSubtotal + clientShippingCost;
-    const clientTotal = parseFloat(order.total ?? 0);
-    const mpTotal = parseFloat(paymentFormData.transaction_amount ?? 0);
-
-    if (Math.abs(expectedTotal - clientTotal) > 0.05 || Math.abs(expectedTotal - mpTotal) > 0.05) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Valor total divergente do calculado pelo servidor. Recarregue seu carrinho." }),
-      };
+    const expectedTotal = Math.round((subtotalCents + Math.round(shipping * 100)) / 100 * 100) / 100;
+    const clientTotal = money(inputOrder.total);
+    if (!Number.isFinite(clientTotal) || Math.abs(expectedTotal - clientTotal) > 0.05) {
+      return response(400, { error: 'Valor total divergente do calculado pelo servidor.' });
     }
 
-    // 5. Preparar chamada para o Mercado Pago
-    const cleanPhone = (order.customer_phone || '').replace(/\D/g, '');
-    const payerPhone = {
-      area_code: cleanPhone.slice(0, 2) || '88',
-      number: cleanPhone.slice(2) || '999999999'
-    };
-    const addressParts = (order.address || '').split(',');
-    const street = (addressParts[0] || '').trim();
-    const number = (addressParts[1] || '').trim();
+    const paymentMethod = text(paymentFormData.payment_method_id, 60);
+    if (!paymentMethod) return response(400, { error: 'Forma de pagamento inválida.' });
+    const installments = Math.min(12, Math.max(1, Number(paymentFormData.installments) || 1));
+    const cleanPhone = customerPhone.replace(/\D/g, '');
+    const [street = '', streetNumber = ''] = address.split(',').map(part => part.trim());
+    const payerEmail = validEmail(paymentFormData.payer?.email) ? text(paymentFormData.payer.email, 254).toLowerCase() : customerEmail;
 
     const paymentPayload = {
-      transaction_amount: mpTotal,
-      token: paymentFormData.token,
-      description: `Pedido Outlet 365 #${order.id}`,
-      installments: paymentFormData.installments || 1,
-      payment_method_id: paymentFormData.payment_method_id,
+      transaction_amount: expectedTotal,
+      token: text(paymentFormData.token, 500),
+      description: `Pedido Outlet 365 #${orderId}`,
+      installments,
+      payment_method_id: paymentMethod,
       issuer_id: paymentFormData.issuer_id,
       payer: {
-        email: paymentFormData.payer?.email || order.customer_email,
+        email: payerEmail,
         identification: paymentFormData.payer?.identification,
-        first_name: (order.customer_name || 'Cliente').split(' ')[0],
-        last_name: (order.customer_name || '').split(' ').slice(1).join(' ') || 'Silva',
-        phone: payerPhone,
+        first_name: customerName.split(' ')[0],
+        last_name: customerName.split(' ').slice(1).join(' ') || 'Cliente',
+        phone: { area_code: cleanPhone.slice(0, 2) || '88', number: cleanPhone.slice(2) || '999999999' },
         address: {
-          zip_code: (order.cep || '').replace(/\D/g, ''),
-          street_name: street || 'Endereço',
-          street_number: (number && !isNaN(Number(number))) ? Number(number) : 0,
-          city: order.city || 'Madalena',
-          state: order.state || 'CE'
+          zip_code: cep,
+          street_name: street.slice(0, 120),
+          street_number: /^\d+$/.test(streetNumber) ? Number(streetNumber) : 0,
+          city,
+          state
         }
       },
-      metadata: {
-        order_id: order.id
-      }
+      metadata: { order_id: orderId }
     };
 
     const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${mpToken}`,
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': String(order.id)
+        'X-Idempotency-Key': orderId
       },
       body: JSON.stringify(paymentPayload)
     });
-
     const paymentData = await mpResponse.json();
     if (!mpResponse.ok) {
-      console.error("Erro na API de Pagamento do Mercado Pago:", paymentData);
-      return {
-        statusCode: mpResponse.status,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(paymentData),
-      };
+      console.error('Mercado Pago rejeitou a solicitação:', mpResponse.status, paymentData.status_detail || paymentData.message || 'sem detalhe');
+      return response(mpResponse.status, paymentData);
     }
 
-    // 6. Atualizar status do pedido e efetuar baixa de estoque no Supabase somente se aprovado
-    let newStatus = 'pendente';
-    if (paymentData.status === 'approved') {
-      newStatus = 'confirmado';
-    } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
-      newStatus = 'cancelado';
-    }
+    const orderStatus = paymentData.status === 'approved'
+      ? 'confirmado'
+      : (paymentData.status === 'rejected' || paymentData.status === 'cancelled' ? 'cancelado' : 'pendente');
 
-    // Atualiza status do pedido
-    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order.id}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ status: newStatus })
+    const orderRow = {
+      id: orderId,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_email: customerEmail,
+      city,
+      state,
+      address,
+      cep,
+      subtotal: Math.round(subtotalCents) / 100,
+      shipping,
+      total: expectedTotal,
+      status: orderStatus,
+      payment_method: paymentMethod,
+      items_json: JSON.stringify(normalizedItems),
+      notes: '',
+      channel: 'online',
+      created_at: new Date().toISOString()
+    };
+
+    const orderRes = await supabaseFetch(`${supabaseUrl}/rest/v1/orders`, serviceKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(orderRow)
     });
-
-    if (!updateRes.ok) {
-      console.error("Erro ao atualizar status do pedido no Supabase:", await updateRes.text());
+    if (!orderRes.ok) {
+      console.error('Pagamento criado, mas pedido não foi gravado:', orderRes.status, await orderRes.text());
+      return response(500, { error: 'Pagamento processado, mas houve erro ao registrar o pedido. Contate a loja.', status: paymentData.status });
     }
 
-    // Baixa de estoque atômica no servidor se pagamento foi aprovado
     if (paymentData.status === 'approved') {
-      for (const item of cartItems) {
-        if (!item.id) continue;
-        try {
-          await fetch(`${SUPABASE_URL}/rest/v1/rpc/decrement_product_stock`, {
-            method: 'POST',
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              item_id: item.id,
-              qty_to_sub: parseInt(item.qty) || 1,
-              item_size: item.size || null
-            })
+      for (const item of normalizedItems) {
+        const stockRes = await supabaseFetch(`${supabaseUrl}/rest/v1/rpc/decrement_product_stock`, serviceKey, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: item.id, qty_to_sub: item.qty, item_size: item.size || null })
+        });
+        if (!stockRes.ok) {
+          console.error('Pagamento aprovado, mas baixa de estoque falhou para:', item.id, stockRes.status);
+          await supabaseFetch(`${supabaseUrl}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`, serviceKey, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'estoque_erro' })
           });
-        } catch (e) {
-          console.error(`Erro ao baixar estoque do item ${item.id}:`, e);
+          return response(500, { error: 'Pagamento aprovado; a loja precisa conferir o estoque manualmente.', status: paymentData.status, order_id: orderId });
         }
       }
     }
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(paymentData),
-    };
+    return response(200, { ...paymentData, order_id: orderId });
   } catch (error) {
-    console.error("Erro na Netlify Function:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Erro interno ao processar pagamento." }),
-    };
+    console.error('Erro interno ao processar pagamento:', error.message);
+    return response(500, { error: 'Erro interno ao processar pagamento.' });
   }
 };

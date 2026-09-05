@@ -2,18 +2,24 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 require('dotenv').config();
+const processPaymentHandler = require('./netlify/functions/process-payment').handler;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 const SUPERFRETE_TOKEN = process.env.SUPERFRETE_TOKEN;
 const ORIGIN_CEP = process.env.STORE_ORIGIN_CEP || "63860000";
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://umbqcfefdctakdkxlixy.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!MP_ACCESS_TOKEN) {
   console.warn('⚠️ MP_ACCESS_TOKEN não definido. A API Mercado Pago não funcionará.');
 }
 if (!SUPERFRETE_TOKEN) {
   console.warn('⚠️ SUPERFRETE_TOKEN não definido. O cálculo de frete utilizará fallback regional.');
+}
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY não definido. Rotas server-side de validação de pedido não acessarão o Supabase com privilégio de serviço.');
 }
 
 app.use(cors());
@@ -36,6 +42,14 @@ app.get('/favicon.ico', (req, res) => {
   res.setHeader('Content-Type', 'image/x-icon');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.sendFile(path.join(__dirname, 'favicon.ico'));
+});
+
+// Bloqueio de arquivos internos / sensíveis contra exposição indevida no ambiente local
+app.use((req, res, next) => {
+  if (/(\.env|package.*\.json|\.sql$|\.md$)/i.test(req.path)) {
+    return res.status(404).send('Not Found');
+  }
+  next();
 });
 
 app.use(express.static(path.join(__dirname)));
@@ -277,13 +291,14 @@ app.post('/api/mp-preference', async (req, res) => {
 
   try {
     const SUPABASE_URL = process.env.SUPABASE_URL || "https://umbqcfefdctakdkxlixy.supabase.co";
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYnFjZmVmZGN0YWtka3hsaXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjE5MDYsImV4cCI6MjA5NTEzNzkwNn0.r9fRNxtd2h64AEvE4O9RbLIa0EKh0et7lLiApJmOcu4";
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada no servidor.');
 
     // 1. Obter todos os produtos do Supabase para validação
     const productsRes = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,price,active`, {
       headers: {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
       }
     });
 
@@ -339,168 +354,19 @@ app.post('/api/mp-preference', async (req, res) => {
 });
 
 // ── PROCESSAMENTO DE PAGAMENTO DIRETO ──
+// Mantém o modo local alinhado à função serverless endurecida.
 app.post('/api/process-payment', async (req, res) => {
-  if (!MP_ACCESS_TOKEN) {
-    return res.status(500).json({ error: 'MP_ACCESS_TOKEN não configurado.' });
-  }
-
-  const { order, cartItems, paymentFormData } = req.body;
-  if (!order || !cartItems || !paymentFormData || !Array.isArray(cartItems) || cartItems.length === 0) {
-    return res.status(400).json({ error: 'Payload inválido ou incompleto.' });
-  }
-
   try {
-    const SUPABASE_URL = process.env.SUPABASE_URL || "https://umbqcfefdctakdkxlixy.supabase.co";
-    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtYnFjZmVmZGN0YWtka3hsaXh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjE5MDYsImV4cCI6MjA5NTEzNzkwNn0.r9fRNxtd2h64AEvE4O9RbLIa0EKh0et7lLiApJmOcu4";
-
-    // 1. Obter todos os produtos do Supabase para validação
-    const productsRes = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,price,active`, {
-      headers: {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-      }
+    const result = await processPaymentHandler({
+      httpMethod: 'POST',
+      headers: req.headers,
+      body: JSON.stringify(req.body || {})
     });
-
-    if (!productsRes.ok) {
-      console.error("Falha ao consultar banco de dados Supabase:", await productsRes.text());
-      return res.status(500).json({ error: "Erro interno ao conectar com a base de dados para validação." });
-    }
-
-    const dbProducts = await productsRes.json();
-    const productsMap = new Map(dbProducts.map(p => [p.id, p]));
-
-    // 2. Validar cada item do carrinho e calcular subtotal
-    let calculatedSubtotal = 0;
-    for (const item of cartItems) {
-      const dbProd = productsMap.get(item.id);
-      if (!dbProd) {
-        return res.status(400).json({ error: `Produto inválido ou inexistente: ${item.name || item.id}` });
-      }
-      if (!dbProd.active) {
-        return res.status(400).json({ error: `Produto indisponível: ${item.name || item.id}` });
-      }
-      const qty = parseInt(item.qty) || 0;
-      if (qty <= 0 || qty > 100) {
-        return res.status(400).json({ error: "Quantidade de produto inválida." });
-      }
-      const dbPrice = parseFloat(dbProd.price);
-      calculatedSubtotal += dbPrice * qty;
-    }
-
-    // 3. Validar valor do frete
-    const clientShippingCost = parseFloat(order.shipping ?? 0);
-    if (isNaN(clientShippingCost) || clientShippingCost < 0 || clientShippingCost > 600) {
-      return res.status(400).json({ error: "Opção de frete inválida." });
-    }
-
-    // 4. Validar o valor total
-    const expectedTotal = calculatedSubtotal + clientShippingCost;
-    const clientTotal = parseFloat(order.total ?? 0);
-    const mpTotal = parseFloat(paymentFormData.transaction_amount ?? 0);
-
-    if (Math.abs(expectedTotal - clientTotal) > 0.05 || Math.abs(expectedTotal - mpTotal) > 0.05) {
-      return res.status(400).json({ error: "Valor total divergente do calculado pelo servidor." });
-    }
-
-    // 5. Preparar chamada para o Mercado Pago
-    const cleanPhone = (order.customer_phone || '').replace(/\D/g, '');
-    const payerPhone = {
-      area_code: cleanPhone.slice(0, 2) || '88',
-      number: cleanPhone.slice(2) || '999999999'
-    };
-    const [street, number] = (order.address || '').split(',').map(part => part.trim());
-
-    const paymentPayload = {
-      transaction_amount: mpTotal,
-      token: paymentFormData.token,
-      description: `Pedido Outlet 365 #${order.id}`,
-      installments: paymentFormData.installments || 1,
-      payment_method_id: paymentFormData.payment_method_id,
-      issuer_id: paymentFormData.issuer_id,
-      payer: {
-        email: paymentFormData.payer?.email || order.customer_email,
-        identification: paymentFormData.payer?.identification,
-        first_name: (order.customer_name || 'Cliente').split(' ')[0],
-        last_name: (order.customer_name || '').split(' ').slice(1).join(' ') || 'Silva',
-        phone: payerPhone,
-        address: {
-          zip_code: (order.cep || '').replace(/\D/g, ''),
-          street_name: street || '',
-          street_number: (number && !isNaN(Number(number))) ? Number(number) : 0,
-          city: order.city || 'Madalena',
-          state: order.state || 'CE'
-        }
-      },
-      metadata: {
-        order_id: order.id
-      }
-    };
-
-    const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-        'X-Idempotency-Key': String(order.id)
-      },
-      body: JSON.stringify(paymentPayload)
-    });
-
-    const paymentData = await mpResponse.json();
-    if (!mpResponse.ok) {
-      console.error("Erro na API de Pagamento do Mercado Pago:", paymentData);
-      return res.status(mpResponse.status).json(paymentData);
-    }
-
-    // 6. Atualizar status do pedido no Supabase baseado na resposta
-    let newStatus = 'pendente';
-    if (paymentData.status === 'approved') {
-      newStatus = 'confirmado';
-    } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
-      newStatus = 'cancelado';
-    }
-
-    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order.id}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ status: newStatus })
-    });
-
-    if (!updateRes.ok) {
-      console.error("Erro ao atualizar status do pedido no Supabase:", await updateRes.text());
-    }
-
-    // Baixa de estoque atômica no servidor se pagamento foi aprovado
-    if (paymentData.status === 'approved') {
-      for (const item of cartItems) {
-        if (!item.id) continue;
-        try {
-          await fetch(`${SUPABASE_URL}/rest/v1/rpc/decrement_product_stock`, {
-            method: 'POST',
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              item_id: item.id,
-              qty_to_sub: parseInt(item.qty) || 1,
-              item_size: item.size || null
-            })
-          });
-        } catch (e) {
-          console.error(`Erro ao baixar estoque do item ${item.id}:`, e);
-        }
-      }
-    }
-
-    return res.json(paymentData);
+    res.status(result.statusCode || 500);
+    for (const [key, value] of Object.entries(result.headers || {})) res.setHeader(key, value);
+    return res.send(result.body);
   } catch (error) {
-    console.error('Erro ao processar pagamento:', error);
+    console.error('Erro no processamento local:', error.message);
     return res.status(500).json({ error: 'Erro interno ao processar pagamento.' });
   }
 });

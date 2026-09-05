@@ -77,45 +77,44 @@ ALTER TABLE products   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_stats ENABLE ROW LEVEL SECURITY;
 
--- 1. Permissões de Products
--- Visitantes públicos (anon) podem APENAS consultar produtos ativos
+-- ─── RLS E GRANTS RESTRITOS ──────────────────────────
+-- O papel administrativo é definido fora de user_metadata, por exemplo:
+-- { "app_metadata": { "role": "admin" } }
+-- Nunca use user_metadata editável pelo próprio usuário para autorizar admin.
+REVOKE ALL ON products, orders, site_stats FROM anon, authenticated;
+GRANT SELECT ON products TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON products, orders, site_stats TO authenticated;
+
 DROP POLICY IF EXISTS "anon_select_products" ON products;
 CREATE POLICY "anon_select_products" ON products
   FOR SELECT TO anon USING (active = true);
 
--- Usuários autenticados (Admin) têm acesso completo a produtos
 DROP POLICY IF EXISTS "auth_all_products" ON products;
 CREATE POLICY "auth_all_products" ON products
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- 2. Permissões de Orders
--- Visitantes públicos (anon) podem APENAS INSERIR novos pedidos
+-- O pedido é criado pelo backend após validar o pagamento; anon não escreve diretamente.
 DROP POLICY IF EXISTS "anon_insert_orders" ON orders;
-CREATE POLICY "anon_insert_orders" ON orders
-  FOR INSERT TO anon WITH CHECK (true);
-
--- Visitantes NÃO podem consultar, atualizar ou apagar pedidos
 DROP POLICY IF EXISTS "anon_select_orders" ON orders;
 DROP POLICY IF EXISTS "anon_update_orders" ON orders;
 DROP POLICY IF EXISTS "anon_delete_orders" ON orders;
-
--- Usuários autenticados (Admin) têm acesso a gerenciar pedidos
 DROP POLICY IF EXISTS "auth_all_orders" ON orders;
 CREATE POLICY "auth_all_orders" ON orders
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- 3. Permissões de Site Stats
--- Visitantes NÃO podem ler nem alterar site_stats diretamente via REST
 DROP POLICY IF EXISTS "anon_select_site_stats" ON site_stats;
 DROP POLICY IF EXISTS "anon_all_site_stats" ON site_stats;
-
--- Apenas usuários autenticados (Admin) podem ler estatísticas
 DROP POLICY IF EXISTS "auth_all_site_stats" ON site_stats;
 CREATE POLICY "auth_all_site_stats" ON site_stats
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- Revoga permissões diretas de tabela do anon em site_stats para garantir
-REVOKE SELECT, UPDATE, DELETE, INSERT ON site_stats FROM anon;
+REVOKE ALL ON site_stats FROM anon;
 
 -- ─── RPC FUNCTION: increment_stat (Validada e Segura) ───────────────────
 CREATE OR REPLACE FUNCTION increment_stat(stat_col TEXT, is_new_visitor BOOLEAN DEFAULT false)
@@ -152,43 +151,47 @@ END;
 $$;
 
 -- Concede execução da RPC aos papéis anon e authenticated
+REVOKE ALL ON FUNCTION increment_stat(TEXT, BOOLEAN) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION increment_stat(TEXT, BOOLEAN) TO anon, authenticated;
 
 -- ─── RPC FUNCTION: decrement_product_stock (Baixa de Estoque Segura) ───────
 CREATE OR REPLACE FUNCTION decrement_product_stock(item_id TEXT, qty_to_sub INT, item_size TEXT DEFAULT NULL)
-RETURNS VOID
+RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  current_total INT;
-  v_stock JSONB;
-  current_size_qty INT;
+  updated_rows INT;
 BEGIN
-  SELECT stock, variant_stock INTO current_total, v_stock
-  FROM products
-  WHERE id = item_id;
-
-  IF FOUND THEN
-    current_total := COALESCE(current_total, 0);
-    v_stock := COALESCE(v_stock, '{}'::jsonb);
-
-    IF item_size IS NOT NULL AND item_size <> '' AND (v_stock ? item_size) THEN
-      current_size_qty := COALESCE((v_stock->>item_size)::INT, 0);
-      v_stock := jsonb_set(v_stock, ARRAY[item_size], to_jsonb(GREATEST(0, current_size_qty - qty_to_sub)));
-    END IF;
-
-    UPDATE products
-    SET stock = GREATEST(0, current_total - qty_to_sub),
-        variant_stock = v_stock,
-        sales_count = COALESCE(sales_count, 0) + qty_to_sub
-    WHERE id = item_id;
+  IF qty_to_sub IS NULL OR qty_to_sub <= 0 OR qty_to_sub > 100 THEN
+    RAISE EXCEPTION 'Quantidade inválida';
   END IF;
+
+  UPDATE products
+  SET stock = stock - qty_to_sub,
+      variant_stock = CASE
+        WHEN item_size IS NOT NULL AND item_size <> '' AND (variant_stock ? item_size)
+        THEN jsonb_set(variant_stock, ARRAY[item_size], to_jsonb(((variant_stock->>item_size)::INT) - qty_to_sub))
+        ELSE COALESCE(variant_stock, '{}'::jsonb)
+      END,
+      sales_count = COALESCE(sales_count, 0) + qty_to_sub
+  WHERE id = item_id
+    AND COALESCE(stock, 0) >= qty_to_sub
+    AND (
+      item_size IS NULL OR item_size = '' OR NOT (variant_stock ? item_size)
+      OR COALESCE((variant_stock->>item_size)::INT, 0) >= qty_to_sub
+    );
+
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  IF updated_rows = 0 THEN
+    RAISE EXCEPTION 'Produto inexistente ou estoque insuficiente';
+  END IF;
+  RETURN TRUE;
 END;
 $$;
-
-GRANT EXECUTE ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) TO authenticated, service_role, anon;
+REVOKE ALL ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) TO service_role;
 
 -- ─── SUPABASE STORAGE: BUCKET products ───────────────────────────────────────
 -- Cria o bucket 'products' como público se ainda não existir
@@ -207,14 +210,14 @@ FOR SELECT USING (bucket_id = 'products');
 -- Permite inserção/upload para usuários autenticados (ou anon via painel)
 DROP POLICY IF EXISTS "Authenticated Upload" ON storage.objects;
 CREATE POLICY "Authenticated Upload" ON storage.objects
-FOR INSERT WITH CHECK (bucket_id = 'products');
+FOR INSERT TO authenticated WITH CHECK (bucket_id = 'products' AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- Permite atualização de fotos
 DROP POLICY IF EXISTS "Authenticated Update" ON storage.objects;
 CREATE POLICY "Authenticated Update" ON storage.objects
-FOR UPDATE USING (bucket_id = 'products');
+FOR UPDATE TO authenticated USING (bucket_id = 'products' AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin') WITH CHECK (bucket_id = 'products' AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- Permite exclusão de fotos
 DROP POLICY IF EXISTS "Authenticated Delete" ON storage.objects;
 CREATE POLICY "Authenticated Delete" ON storage.objects
-FOR DELETE USING (bucket_id = 'products');
+FOR DELETE TO authenticated USING (bucket_id = 'products' AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');

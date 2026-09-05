@@ -427,14 +427,6 @@
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     }
 
-    async function saveOrderToSupabase(order) {
-      try {
-        await DB.createOrder(order);
-      } catch (err) {
-        console.error('Erro ao salvar pedido no Supabase:', err);
-      }
-    }
-
     async function avancarParaPagamento() {
       const required = ['firstName', 'lastName', 'email', 'phone', 'cep', 'cidade', 'endereco', 'numero'];
       const labels = {
@@ -552,8 +544,6 @@
                   created_at: new Date().toISOString()
                 };
 
-                await saveOrderToSupabase(order);
-
                 const response = await fetch('/api/process-payment', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -562,7 +552,7 @@
 
                 if (!response.ok) {
                   const errorData = await response.json();
-                  throw new Error(errorData.message || 'Erro ao processar o pagamento.');
+                  throw new Error(errorData.error || errorData.message || 'Erro ao processar o pagamento.');
                 }
 
                 const paymentData = await response.json();
