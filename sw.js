@@ -2,7 +2,7 @@
 // OUTLET 365 — Service Worker (PWA)
 // =====================================================
 
-const CACHE_NAME = 'outlet365-v1.0.1';
+const CACHE_NAME = 'outlet365-v1.0.2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -34,14 +34,17 @@ const STATIC_ASSETS = [
   './image/icon-192.png',
   './image/icon-512.png',
   './image/icon.svg',
-  './image/apple-touch-icon.png'
+  './image/apple-touch-icon.png',
+  './image/capa-banner-1.webp',
+  './image/capa-banner-2.webp',
+  './image/capa-banner-3.webp'
 ];
 
 // ── INSTALL ──
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Pré-carregando shell estático');
+      console.log('[ServiceWorker] Pré-carregando shell estático v1.0.2');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('[ServiceWorker] Aviso ao pré-carregar alguns arquivos:', err);
       });
@@ -90,29 +93,37 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para navegações de página (HTML): Network-first com fallback para cache
-  if (req.mode === 'navigate') {
+  // Para navegação HTML e scripts JS / CSS / JSON: Network-first (sempre atualizado)
+  const isCodeOrDoc = req.mode === 'navigate' ||
+                      url.pathname.endsWith('.js') ||
+                      url.pathname.endsWith('.css') ||
+                      url.pathname.endsWith('.json') ||
+                      url.pathname.endsWith('.html');
+
+  if (isCodeOrDoc) {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          if (res && res.status === 200) {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
           return res;
         })
         .catch(async () => {
           const cached = await caches.match(req);
           if (cached) return cached;
-          return caches.match('./index.html');
+          if (req.mode === 'navigate') return caches.match('./index.html');
+          return new Response('', { status: 408 });
         })
     );
     return;
   }
 
-  // Para recursos estáticos (CSS, JS, Imagens, Fontes): Cache-first com revalidação
+  // Para recursos estáticos pesados (Imagens, Fontes): Cache-first com revalidação
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) {
-        // Busca atualização em background para a próxima visita
         fetch(req).then((networkRes) => {
           if (networkRes && networkRes.status === 200) {
             caches.open(CACHE_NAME).then((cache) => cache.put(req, networkRes));

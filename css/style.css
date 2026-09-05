@@ -1038,7 +1038,7 @@ input { font-family: var(--font); }
 
 .nav-promo { color: #b45309 !important; font-weight: 700; }
 
-.hero-slide-1 { background-image: url('../image/capa site - OUTLET365 bem vindo.png'); }
-.hero-slide-2 { background-image: url('../image/capa site - OUTLET365 02.png'); }
-.hero-slide-3 { background-image: url('../image/capa site - OUTLET365 03.png'); }
+.hero-slide-1 { background-image: url('../image/capa-banner-1.webp'); }
+.hero-slide-2 { /* Carregado sob demanda após o load do site */ }
+.hero-slide-3 { /* Carregado sob demanda após o load do site */ }
 

@@ -69,6 +69,59 @@ const DB = (() => {
       return _promise;
     },
 
+    async getProductBySlugOrId(identifier) {
+      if (!identifier) return null;
+      const target = decodeURIComponent(String(identifier)).trim();
+
+      // 1. Busca rápida na memória caso o catálogo já tenha sido carregado
+      if (window.PRODUCTS && window.PRODUCTS.length > 0) {
+        const found = window.PRODUCTS.find(p =>
+          (p.slug && p.slug.toLowerCase() === target.toLowerCase()) ||
+          (p.id && String(p.id).toLowerCase() === target.toLowerCase())
+        );
+        if (found) return found;
+      }
+
+      // 2. Consulta direta ultra-rápida no Supabase (por slug ou por id)
+      try {
+        let { data, error } = await supabaseClient
+          .from('products')
+          .select('*')
+          .eq('slug', target)
+          .limit(1)
+          .maybeSingle();
+
+        if (!data) {
+          const res = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('id', target)
+            .limit(1)
+            .maybeSingle();
+          data = res.data;
+          error = res.error;
+        }
+
+        if (!error && data) {
+          const prod = normalizeProduct(data);
+          if (!window.PRODUCTS) window.PRODUCTS = [];
+          if (!window.PRODUCTS.some(p => p.id === prod.id)) {
+            window.PRODUCTS.push(prod);
+          }
+          return prod;
+        }
+      } catch (e) {
+        console.warn('DB.getProductBySlugOrId:', e);
+      }
+
+      // 3. Fallback: carrega catálogo completo
+      await this.loadProducts();
+      return (window.PRODUCTS || []).find(p =>
+        (p.slug && p.slug.toLowerCase() === target.toLowerCase()) ||
+        (p.id && String(p.id).toLowerCase() === target.toLowerCase())
+      ) || null;
+    },
+
     // ── Products (admin) ────────────────────────────
     async getAllProducts() {
       const { data, error } = await supabaseClient

@@ -14,188 +14,226 @@ function _escape(str) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const pdpContent = document.getElementById('pdpContent');
   const params = new URLSearchParams(window.location.search);
-  const slug = params.get('slug');
+  const slugOrId = params.get('slug') || params.get('id');
 
-  if (!slug) {
+  if (!slugOrId) {
     window.location.href = 'categoria.html';
     return;
   }
 
-  await DB.loadProducts();
-  const product = getProductBySlug(slug);
-  if (!product) {
-    document.getElementById('pdpContent').innerHTML = `
-      <div style="text-align:center;padding:4rem;color:#888;grid-column:1/-1;">
-        <i class="fas fa-exclamation-circle" style="font-size:2rem;"></i>
-        <p style="margin-top:1rem;font-size:1rem;">Produto não encontrado.</p>
-        <a href="categoria.html" class="btn-primary" style="margin-top:1rem;display:inline-flex;">Ver Catálogo</a>
-      </div>
-    `;
-    return;
-  }
+  try {
+    // 1. Busca rápida do produto específico (sub-segundo)
+    let product = null;
+    if (typeof DB !== 'undefined' && typeof DB.getProductBySlugOrId === 'function') {
+      product = await DB.getProductBySlugOrId(slugOrId);
+    } else {
+      if (typeof DB !== 'undefined') await DB.loadProducts();
+      product = typeof getProductBySlug === 'function' ? getProductBySlug(slugOrId) : null;
+    }
 
-  // Page meta
-  document.getElementById('pageTitle').textContent = `${product.name} — Outlet 365`;
-  document.getElementById('pageDesc').setAttribute('content', product.description || '');
-
-  // Breadcrumb & Botão Voltar
-  const catInfo = CATEGORIES[product.category] || { label: 'Produtos' };
-  const catUrl = `categoria.html?cat=${encodeURIComponent(product.category)}`;
-
-  const backBtn = document.getElementById('pdpBackBtn');
-  const backText = document.getElementById('pdpBackText');
-  if (backBtn) {
-    backBtn.href = catUrl;
-    backBtn.onclick = (e) => {
-      if (document.referrer && document.referrer.includes('categoria.html')) {
-        e.preventDefault();
-        window.history.back();
-      }
-    };
-  }
-  if (backText) backText.textContent = `Voltar para ${catInfo.label}`;
-
-  const breadCat = document.getElementById('pdpBreadCat');
-  if (breadCat) {
-    breadCat.textContent = catInfo.label;
-    breadCat.href = catUrl;
-  }
-  const breadName = document.getElementById('pdpBreadName');
-  if (breadName) breadName.textContent = product.name;
-
-  // Encontra primeiro tamanho disponível em estoque
-  const vStockInit = product.variant_stock || {};
-  let selectedSize = product.sizes.find(s => {
-    const norm = s.replace(/\s*-\s*/g, '/');
-    const alt = s.replace(/\//g, '-');
-    const qty = vStockInit[s] !== undefined ? parseInt(vStockInit[s]) : (vStockInit[norm] !== undefined ? parseInt(vStockInit[norm]) : (vStockInit[alt] !== undefined ? parseInt(vStockInit[alt]) : (product.stock !== undefined ? product.stock : 999)));
-    return qty > 0;
-  }) || (product.sizes.length > 0 ? product.sizes[0] : 'Único');
-
-  let currentImgIndex = 0;
-
-  const safeName = _escape(product.name);
-  const safeCatLabel = _escape(catInfo.label);
-  const safeSubcat = _escape(product.subcategory || '');
-  const safeDesc = _escape(product.description || '');
-  const mainImage = _escape(product.images[0] || product.image || '');
-  const isEntirelyOutOfStock = (product.stock !== undefined && product.stock <= 0);
-
-  // Build PDP
-  document.getElementById('pdpContent').innerHTML = `
-    <!-- Gallery -->
-    <div class="pdp-gallery">
-      <div class="pdp-main-img">
-        <img src="${mainImage}" alt="${safeName}" id="mainImg" />
-      </div>
-      ${product.images.length > 1 ? `
-      <div class="pdp-thumbs" id="pdpThumbs">
-        ${product.images.map((img, i) => `
-          <div class="pdp-thumb ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="switchImage(${i})">
-            <img src="${_escape(img)}" alt="${safeName} ${i + 1}" loading="lazy"/>
+    if (!product) {
+      if (pdpContent) {
+        pdpContent.innerHTML = `
+          <div style="text-align:center;padding:4rem;color:#888;grid-column:1/-1;">
+            <i class="fas fa-exclamation-circle" style="font-size:2.5rem;color:#ef4444;"></i>
+            <p style="margin-top:1rem;font-size:1.15rem;font-weight:700;color:#1e293b;">Produto não encontrado.</p>
+            <p style="margin-top:.5rem;color:#64748b;font-size:.9rem;">O produto pode estar indisponível ou o link foi alterado.</p>
+            <a href="categoria.html" class="btn-primary" style="margin-top:1.5rem;display:inline-flex;">Ver Catálogo</a>
           </div>
-        `).join('')}
-      </div>` : ''}
-    </div>
+        `;
+      }
+      return;
+    }
 
-    <!-- Info -->
-    <div class="pdp-info">
-      <p class="pdp-category">${safeCatLabel} · ${safeSubcat}</p>
-      <h1 class="pdp-name">${safeName}</h1>
-      <p class="pdp-price">${formatPrice(product.price)}</p>
-      <p class="pdp-installments">${formatInstallments(product.price, product.installments)}</p>
+    // Page meta
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) titleEl.textContent = `${product.name} — Outlet 365`;
+    const descEl = document.getElementById('pageDesc');
+    if (descEl) descEl.setAttribute('content', product.description || '');
 
-      <hr class="pdp-divider" />
+    // Breadcrumb & Botão Voltar
+    const catInfo = (typeof CATEGORIES !== 'undefined' && CATEGORIES[product.category]) || { label: 'Produtos' };
+    const catUrl = `categoria.html?cat=${encodeURIComponent(product.category)}`;
 
-      <!-- Tamanhos -->
-      <p class="pdp-label">Tamanho</p>
-      <div class="size-grid" id="sizeGrid">
-        ${product.sizes.map(s => {
-          const vStock = product.variant_stock || {};
-          const norm = s.replace(/\s*-\s*/g, '/');
-          const alt = s.replace(/\//g, '-');
-          const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (vStock[norm] !== undefined ? parseInt(vStock[norm]) : (vStock[alt] !== undefined ? parseInt(vStock[alt]) : (product.stock !== undefined ? product.stock : 999)));
-          const isOut = qty <= 0;
-          const safeS = _escape(s);
-          return `
-            <button class="size-btn ${s === selectedSize ? 'selected' : ''} ${isOut ? 'disabled' : ''}"
-              data-size="${safeS}" ${isOut ? 'disabled title="Tamanho esgotado"' : `onclick="selectSize('${safeS}')"`}
-              style="${isOut ? 'opacity:0.4;cursor:not-allowed;text-decoration:line-through;' : ''}">
-              ${safeS} ${isOut ? '(Esgotado)' : ''}
+    const backBtn = document.getElementById('pdpBackBtn');
+    const backText = document.getElementById('pdpBackText');
+    if (backBtn) {
+      backBtn.href = catUrl;
+      backBtn.onclick = (e) => {
+        if (document.referrer && document.referrer.includes('categoria.html')) {
+          e.preventDefault();
+          window.history.back();
+        }
+      };
+    }
+    if (backText) backText.textContent = `Voltar para ${catInfo.label}`;
+
+    const breadCat = document.getElementById('pdpBreadCat');
+    if (breadCat) {
+      breadCat.textContent = catInfo.label;
+      breadCat.href = catUrl;
+    }
+    const breadName = document.getElementById('pdpBreadName');
+    if (breadName) breadName.textContent = product.name;
+
+    // Encontra primeiro tamanho disponível em estoque (garantindo cast para String)
+    const sizesList = (Array.isArray(product.sizes) && product.sizes.length > 0) ? product.sizes : ['Único'];
+    const vStockInit = product.variant_stock || {};
+    let selectedSize = sizesList.find(rawS => {
+      const s = String(rawS);
+      const norm = s.replace(/\s*-\s*/g, '/');
+      const alt = s.replace(/\//g, '-');
+      const qty = vStockInit[s] !== undefined ? parseInt(vStockInit[s]) : (vStockInit[norm] !== undefined ? parseInt(vStockInit[norm]) : (vStockInit[alt] !== undefined ? parseInt(vStockInit[alt]) : (product.stock !== undefined ? product.stock : 999)));
+      return qty > 0;
+    }) || String(sizesList[0] || 'Único');
+
+    let currentImgIndex = 0;
+
+    const safeName = _escape(product.name);
+    const safeCatLabel = _escape(catInfo.label);
+    const safeSubcat = _escape(product.subcategory || '');
+    const safeDesc = _escape(product.description || '');
+    const mainImage = _escape((product.images && product.images[0]) || product.image || '');
+    const isEntirelyOutOfStock = (product.stock !== undefined && product.stock <= 0);
+
+    // Build PDP
+    if (pdpContent) {
+      pdpContent.innerHTML = `
+        <!-- Gallery -->
+        <div class="pdp-gallery">
+          <div class="pdp-main-img">
+            <img src="${mainImage}" alt="${safeName}" id="mainImg" />
+          </div>
+          ${product.images && product.images.length > 1 ? `
+          <div class="pdp-thumbs" id="pdpThumbs">
+            ${product.images.map((img, i) => `
+              <div class="pdp-thumb ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="switchImage(${i})">
+                <img src="${_escape(img)}" alt="${safeName} ${i + 1}" loading="lazy"/>
+              </div>
+            `).join('')}
+          </div>` : ''}
+        </div>
+
+        <!-- Info -->
+        <div class="pdp-info">
+          <p class="pdp-category">${safeCatLabel} · ${safeSubcat}</p>
+          <h1 class="pdp-name">${safeName}</h1>
+          <p class="pdp-price">${formatPrice(product.price)}</p>
+          <p class="pdp-installments">${formatInstallments(product.price, product.installments)}</p>
+
+          <hr class="pdp-divider" />
+
+          <!-- Tamanhos -->
+          <p class="pdp-label">Tamanho</p>
+          <div class="size-grid" id="sizeGrid">
+            ${sizesList.map(rawS => {
+        const s = String(rawS);
+        const vStock = product.variant_stock || {};
+        const norm = s.replace(/\s*-\s*/g, '/');
+        const alt = s.replace(/\//g, '-');
+        const qty = vStock[s] !== undefined ? parseInt(vStock[s]) : (vStock[norm] !== undefined ? parseInt(vStock[norm]) : (vStock[alt] !== undefined ? parseInt(vStock[alt]) : (product.stock !== undefined ? product.stock : 999)));
+        const isOut = qty <= 0;
+        const safeS = _escape(s);
+        return `
+                <button class="size-btn ${s === selectedSize ? 'selected' : ''} ${isOut ? 'disabled' : ''}"
+                  data-size="${safeS}" ${isOut ? 'disabled title="Tamanho esgotado"' : `onclick="selectSize('${safeS}')"`}
+                  style="${isOut ? 'opacity:0.4;cursor:not-allowed;text-decoration:line-through;' : ''}">
+                  ${safeS} ${isOut ? '(Esgotado)' : ''}
+                </button>
+              `;
+      }).join('')}
+          </div>
+
+          <!-- Ações -->
+          <div class="pdp-actions">
+            <button class="btn-pdp-buy" id="btnBuy" ${isEntirelyOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="handleBuy()">
+              <i class="fas fa-bolt"></i> ${isEntirelyOutOfStock ? 'ESGOTADO' : 'COMPRAR AGORA'}
             </button>
-          `;
-        }).join('')}
-      </div>
+            <button class="btn-pdp-cart" id="btnCart" ${isEntirelyOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="handleAddToCart()">
+              <i class="fas fa-shopping-bag"></i> ${isEntirelyOutOfStock ? 'PRODUTO ESGOTADO' : 'ADICIONAR AO CARRINHO'}
+            </button>
+          </div>
 
-      <!-- Ações -->
-      <div class="pdp-actions">
-        <button class="btn-pdp-buy" id="btnBuy" ${isEntirelyOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="handleBuy()">
-          <i class="fas fa-bolt"></i> ${isEntirelyOutOfStock ? 'ESGOTADO' : 'COMPRAR AGORA'}
-        </button>
-        <button class="btn-pdp-cart" id="btnCart" ${isEntirelyOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''} onclick="handleAddToCart()">
-          <i class="fas fa-shopping-bag"></i> ${isEntirelyOutOfStock ? 'PRODUTO ESGOTADO' : 'ADICIONAR AO CARRINHO'}
-        </button>
-      </div>
+          <!-- Frete -->
+          <div class="frete-box">
+            <p class="frete-box-title"><i class="fas fa-truck" style="color:var(--green);margin-right:.4rem"></i> Calcular Frete</p>
+            <div class="frete-input-row">
+              <input type="text" class="frete-input" id="freteInput"
+                placeholder="Digite seu CEP" maxlength="9" />
+              <button class="btn-frete" onclick="calcularFrete()">Calcular</button>
+            </div>
+            <div class="frete-options" id="freteOptions" style="display:none;"></div>
+            <p class="frete-note" id="freteNote"></p>
+          </div>
 
-      <!-- Frete -->
-      <div class="frete-box">
-        <p class="frete-box-title"><i class="fas fa-truck" style="color:var(--green);margin-right:.4rem"></i> Calcular Frete</p>
-        <div class="frete-input-row">
-          <input type="text" class="frete-input" id="freteInput"
-            placeholder="Digite seu CEP" maxlength="9" />
-          <button class="btn-frete" onclick="calcularFrete()">Calcular</button>
+          <hr class="pdp-divider" />
+
+          <!-- Descrição -->
+          <div class="pdp-description">
+            <h3>Descrição</h3>
+            <p>${safeDesc}</p>
+          </div>
+
+          <!-- Compartilhar -->
+          <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Compartilhar:</span>
+            <a href="https://wa.me/?text=${encodeURIComponent(`Confira ${product.name} na Outlet 365!`)}" target="_blank"
+              style="color:#25D366;font-size:1.2rem;"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://www.instagram.com/outlet365__" target="_blank"
+              style="color:#e1306c;font-size:1.2rem;"><i class="fab fa-instagram"></i></a>
+          </div>
         </div>
-        <div class="frete-options" id="freteOptions" style="display:none;"></div>
-        <p class="frete-note" id="freteNote"></p>
-      </div>
+      `;
+    }
 
-      <hr class="pdp-divider" />
-
-      <!-- Descrição -->
-      <div class="pdp-description">
-        <h3>Descrição</h3>
-        <p>${safeDesc}</p>
-      </div>
-
-      <!-- Compartilhar -->
-      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Compartilhar:</span>
-        <a href="https://wa.me/?text=${encodeURIComponent(`Confira ${product.name} na Outlet 365!`)}" target="_blank"
-          style="color:#25D366;font-size:1.2rem;"><i class="fab fa-whatsapp"></i></a>
-        <a href="https://www.instagram.com/outlet365__" target="_blank"
-          style="color:#e1306c;font-size:1.2rem;"><i class="fab fa-instagram"></i></a>
-      </div>
-    </div>
-  `;
-
-  // Similares
-  const similares = getSimilarProducts(product, 6);
-  if (similares.length > 0) {
-    const sec = document.getElementById('similaresSection');
-    const grid = document.getElementById('similaresGrid');
-    sec.style.display = 'block';
-    grid.innerHTML = similares.map(p => `
-      <article class="product-card" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
-        <div class="product-card-img-wrap">
-          <img src="${_escape(p.image)}" alt="${_escape(p.name)}" class="product-card-img" loading="lazy"/>
-          ${p.new_arrival ? '<span class="product-badge new">Novo</span>' : ''}
+    // Carrega produtos similares e catálogo em background sem travar a exibição da página
+    if (typeof DB !== 'undefined' && typeof DB.loadProducts === 'function') {
+      DB.loadProducts().then(() => {
+        if (typeof getSimilarProducts === 'function') {
+          const similares = getSimilarProducts(product, 6);
+          const sec = document.getElementById('similaresSection');
+          const grid = document.getElementById('similaresGrid');
+          if (sec && grid && similares.length > 0) {
+            sec.style.display = 'block';
+            grid.innerHTML = similares.map(p => `
+              <article class="product-card" onclick="window.location.href='produto.html?slug=${encodeURIComponent(p.slug)}'">
+                <div class="product-card-img-wrap">
+                  <img src="${_escape(p.image)}" alt="${_escape(p.name)}" class="product-card-img" loading="lazy"/>
+                  ${p.new_arrival ? '<span class="product-badge new">Novo</span>' : ''}
+                </div>
+                <div class="product-card-info">
+                  <h3 class="product-card-name">${_escape(p.name)}</h3>
+                  <p class="product-card-price">${formatPrice(p.price)}</p>
+                  <p class="product-card-installments">${formatInstallments(p.price, p.installments)}</p>
+                  <button class="btn-add-card" onclick="event.stopPropagation(); quickAddToCart('${_escape(p.id)}')">
+                    <i class="fas fa-shopping-bag"></i> Adicionar
+                  </button>
+                </div>
+              </article>
+            `).join('');
+          }
+        }
+      }).catch(err => console.warn('Erro ao carregar similares em background:', err));
+    }
+  } catch (err) {
+    console.error('Erro ao renderizar produto:', err);
+    if (pdpContent) {
+      pdpContent.innerHTML = `
+        <div style="text-align:center;padding:4rem;color:#888;grid-column:1/-1;">
+          <i class="fas fa-exclamation-triangle" style="font-size:2.5rem;color:#f59e0b;"></i>
+          <p style="margin-top:1rem;font-size:1.15rem;font-weight:700;color:#1e293b;">Erro ao carregar o produto.</p>
+          <p style="margin-top:.5rem;color:#64748b;font-size:.9rem;">Ocorreu uma instabilidade na conexão. Por favor, tente recarregar.</p>
+          <button onclick="window.location.reload()" class="btn-primary" style="margin-top:1.5rem;display:inline-flex;">Recarregar</button>
         </div>
-        <div class="product-card-info">
-          <h3 class="product-card-name">${_escape(p.name)}</h3>
-          <p class="product-card-price">${formatPrice(p.price)}</p>
-          <p class="product-card-installments">${formatInstallments(p.price, p.installments)}</p>
-          <button class="btn-add-card" onclick="event.stopPropagation(); quickAddToCart('${_escape(p.id)}')">
-            <i class="fas fa-shopping-bag"></i> Adicionar
-          </button>
-        </div>
-      </article>
-    `).join('');
+      `;
+    }
   }
 
   // ─ FUNCTIONS ─
 
-  window.switchImage = function(index) {
+  window.switchImage = function (index) {
     currentImgIndex = index;
     const mainImg = document.getElementById('mainImg');
     if (mainImg && product.images[index]) mainImg.src = product.images[index];
@@ -204,14 +242,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   };
 
-  window.selectSize = function(size) {
+  window.selectSize = function (size) {
     selectedSize = size;
     document.querySelectorAll('.size-btn').forEach(btn => {
       btn.classList.toggle('selected', btn.dataset.size === size);
     });
   };
 
-  window.handleAddToCart = function() {
+  window.handleAddToCart = function () {
     if (!selectedSize) { showToast('Selecione um tamanho disponível'); return; }
     const success = Cart.addItem(product, selectedSize);
     if (success) {
@@ -221,7 +259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  window.handleBuy = function() {
+  window.handleBuy = function () {
     if (!selectedSize) { showToast('Selecione um tamanho disponível'); return; }
     const success = Cart.addItem(product, selectedSize);
     if (success) {
@@ -229,7 +267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  window.calcularFrete = async function() {
+  window.calcularFrete = async function () {
     const cepInput = document.getElementById('freteInput');
     const cep = cepInput?.value.replace(/\D/g, '');
     const freteOptions = document.getElementById('freteOptions');
@@ -296,7 +334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const freteInput = document.getElementById('freteInput');
   freteInput?.addEventListener('input', (e) => {
     let v = e.target.value.replace(/\D/g, '');
-    if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5,8);
+    if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5, 8);
     e.target.value = v;
   });
 

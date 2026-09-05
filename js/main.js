@@ -130,16 +130,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // ── HERO SLIDER ──
+  // ── HERO SLIDER (Carregamento Otimizado e Sob Demanda) ──
   const slides = document.querySelectorAll('.hero-slide');
   const dots = document.querySelectorAll('.dot');
   let currentSlide = 0;
   let sliderInterval;
 
+  function loadSlideBg(slide) {
+    if (slide && slide.dataset.bg && !slide.style.backgroundImage) {
+      slide.style.backgroundImage = `url('${slide.dataset.bg}')`;
+    }
+  }
+
   function goToSlide(n) {
     slides[currentSlide]?.classList.remove('active');
     dots[currentSlide]?.classList.remove('active');
     currentSlide = (n + slides.length) % slides.length;
+    loadSlideBg(slides[currentSlide]);
     slides[currentSlide]?.classList.add('active');
     dots[currentSlide]?.classList.add('active');
   }
@@ -159,6 +166,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   if (slides.length > 0) startAutoSlide();
+
+  // Carrega as fotos restantes do banner apenas após o site carregar completamente
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      slides.forEach((slide, idx) => {
+        if (idx > 0) loadSlideBg(slide);
+      });
+    }, 1500);
+  });
 
   // ── FEATURED PRODUCTS ──
   const featuredGrid = document.getElementById('featuredGrid');
