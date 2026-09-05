@@ -304,12 +304,12 @@ var _STATIC_PRODUCTS_REMOVED = [
 ]; // fim _STATIC_PRODUCTS_REMOVED
 
 const CATEGORIES = {
-  "camisas":           { label: "Camisas",            description: "Básicas, polo, premium e street" },
-  "shorts-calcas":     { label: "Shorts e Calças",    description: "Sarja, linho, jeans e elastano" },
+  "camisas": { label: "Camisas", description: "Básicas, polo, premium e street" },
+  "shorts-calcas": { label: "Shorts e Calças", description: "Sarja, linho, jeans e elastano" },
   "calcados-chinelos": { label: "Calçados e Chinelos", description: "Chinelos, slides e calçados masculinos" },
-  "acessorios":        { label: "Acessórios",         description: "Cuecas, bonés e mais" },
-  "perfumes":          { label: "Perfumes",           description: "Perfumes árabes e fragrâncias orientais" },
-  "promocoes":         { label: "🔥 Promoções",       description: "Ofertas especiais com tempo limitado" }
+  "acessorios": { label: "Acessórios", description: "Cuecas, bonés e mais" },
+  "perfumes": { label: "Perfumes", description: "Perfumes árabes e fragrâncias orientais" },
+  "promocoes": { label: "🔥 Promoções", description: "Ofertas especiais com tempo limitado" }
 };
 
 function getPromoProducts() {
@@ -323,11 +323,13 @@ function getProductsByCategory(cat) {
 }
 
 function getFeaturedProducts() {
-  return PRODUCTS.filter(p => p.featured);
+  const feat = PRODUCTS.filter(p => p.featured);
+  return feat.length > 0 ? feat : PRODUCTS.slice(0, 8);
 }
 
 function getNewArrivals() {
-  return PRODUCTS.filter(p => p.new_arrival);
+  const news = PRODUCTS.filter(p => p.new_arrival);
+  return news.length > 0 ? news : PRODUCTS.slice(0, 8);
 }
 
 function getProductBySlug(slug) {
