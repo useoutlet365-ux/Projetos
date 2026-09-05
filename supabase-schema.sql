@@ -117,6 +117,8 @@ CREATE POLICY "auth_all_site_stats" ON site_stats
 REVOKE ALL ON site_stats FROM anon;
 
 -- ─── RPC FUNCTION: increment_stat (Validada e Segura) ───────────────────
+DROP FUNCTION IF EXISTS increment_stat(TEXT, BOOLEAN);
+DROP FUNCTION IF EXISTS increment_stat(TEXT);
 CREATE OR REPLACE FUNCTION increment_stat(stat_col TEXT, is_new_visitor BOOLEAN DEFAULT false)
 RETURNS VOID 
 LANGUAGE plpgsql
@@ -155,6 +157,8 @@ REVOKE ALL ON FUNCTION increment_stat(TEXT, BOOLEAN) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION increment_stat(TEXT, BOOLEAN) TO anon, authenticated;
 
 -- ─── RPC FUNCTION: decrement_product_stock (Baixa de Estoque Segura) ───────
+DROP FUNCTION IF EXISTS decrement_product_stock(TEXT, INT, TEXT);
+DROP FUNCTION IF EXISTS decrement_product_stock(TEXT, INT);
 CREATE OR REPLACE FUNCTION decrement_product_stock(item_id TEXT, qty_to_sub INT, item_size TEXT DEFAULT NULL)
 RETURNS BOOLEAN
 LANGUAGE plpgsql

@@ -32,11 +32,11 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return response(405, { error: 'Método não permitido' });
 
   const mpToken = process.env.MP_ACCESS_TOKEN;
-  const supabaseUrl = process.env.SUPABASE_URL || 'https://umbqcfefdctakdkxlixy.supabase.co';
+  const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!mpToken || !serviceKey) {
-    console.error('Variáveis server-side ausentes: MP_ACCESS_TOKEN ou SUPABASE_SERVICE_ROLE_KEY.');
-    return response(500, { error: 'Serviço de pagamento não configurado no backend (SUPABASE_SERVICE_ROLE_KEY ausente).' });
+  if (!mpToken || !serviceKey || !supabaseUrl) {
+    console.error('Variáveis server-side ausentes: MP_ACCESS_TOKEN, SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_URL.');
+    return response(500, { error: 'Serviço de pagamento não configurado no backend (variáveis de ambiente ausentes).' });
   }
 
   try {

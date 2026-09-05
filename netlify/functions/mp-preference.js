@@ -26,9 +26,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const SUPABASE_URL = process.env.SUPABASE_URL || "https://umbqcfefdctakdkxlixy.supabase.co";
+    const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada.');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurada no backend.');
 
     // 1. Obter todos os produtos do Supabase para validação
     const productsRes = await fetch(`${SUPABASE_URL}/rest/v1/products?select=id,price,active`, {
