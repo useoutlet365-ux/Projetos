@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const slugOrId = params.get('slug') || params.get('id');
 
+  let product = null;
+  let selectedSize = null;
+  let currentImgIndex = 0;
+
   if (!slugOrId) {
     window.location.href = 'categoria.html';
     return;
@@ -25,7 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     // 1. Busca rápida do produto específico (sub-segundo)
-    let product = null;
     if (typeof DB !== 'undefined' && typeof DB.getProductBySlugOrId === 'function') {
       product = await DB.getProductBySlugOrId(slugOrId);
     } else {
@@ -81,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Encontra primeiro tamanho disponível em estoque (garantindo cast para String)
     const sizesList = (Array.isArray(product.sizes) && product.sizes.length > 0) ? product.sizes : ['Único'];
     const vStockInit = product.variant_stock || {};
-    let selectedSize = sizesList.find(rawS => {
+    selectedSize = sizesList.find(rawS => {
       const s = String(rawS);
       const norm = s.replace(/\s*-\s*/g, '/');
       const alt = s.replace(/\//g, '-');
@@ -89,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return qty > 0;
     }) || String(sizesList[0] || 'Único');
 
-    let currentImgIndex = 0;
+    currentImgIndex = 0;
 
     const safeName = _escape(product.name);
     const safeCatLabel = _escape(catInfo.label);
@@ -250,6 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   window.handleAddToCart = function () {
+    if (!product) { showToast('Carregando informações do produto...'); return; }
     if (!selectedSize) { showToast('Selecione um tamanho disponível'); return; }
     const success = Cart.addItem(product, selectedSize);
     if (success) {
@@ -260,6 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   window.handleBuy = function () {
+    if (!product) { showToast('Carregando informações do produto...'); return; }
     if (!selectedSize) { showToast('Selecione um tamanho disponível'); return; }
     const success = Cart.addItem(product, selectedSize);
     if (success) {

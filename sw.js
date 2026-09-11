@@ -2,7 +2,7 @@
 // OUTLET 365 — Service Worker (PWA)
 // =====================================================
 
-const CACHE_NAME = 'outlet365-v1.0.3';
+const CACHE_NAME = 'outlet365-v1.0.4';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -44,7 +44,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Pré-carregando shell estático v1.0.3');
+      console.log('[ServiceWorker] Pré-carregando shell estático v1.0.4');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
         console.warn('[ServiceWorker] Aviso ao pré-carregar alguns arquivos:', err);
       });
@@ -76,9 +76,10 @@ self.addEventListener('fetch', (event) => {
   // Ignora chamadas não HTTP(S) ou extensões de navegador
   if (!url.protocol.startsWith('http')) return;
 
-  // Ignora chamadas de API do Mercado Pago / Supabase / SuperFrete para garantir dados em tempo real
+  // Ignora chamadas de API do Mercado Pago / Supabase (exceto imagens de Storage) / SuperFrete para dados em tempo real
+  const isSupabaseApi = url.hostname.includes('supabase.co') && !url.pathname.includes('/storage/v1/');
   if (
-    url.hostname.includes('supabase.co') ||
+    isSupabaseApi ||
     url.hostname.includes('mercadopago.com') ||
     url.pathname.startsWith('/api/')
   ) {

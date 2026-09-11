@@ -37,7 +37,10 @@ function formatPriceFn(value) {
 function addHeroToCart(id, name, price, image, size) {
   const product = (window.PRODUCTS || []).find(p => String(p.id) === String(id)) || { id, slug: id, name: decodeURIComponent(name), price, image, sizes: [size] };
   if (typeof Cart !== 'undefined' && Cart.addItem) {
-    Cart.addItem(product, size);
+    const added = Cart.addItem(product, size);
+    if (added && typeof window.openCart === 'function') {
+      window.openCart();
+    }
   }
 }
 

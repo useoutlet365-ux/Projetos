@@ -194,11 +194,11 @@ BEGIN
   RETURN TRUE;
 END;
 $$;
-REVOKE ALL ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION decrement_product_stock(TEXT, INT, TEXT) TO service_role;
 
 -- ─── SUPABASE STORAGE: BUCKET products ───────────────────────────────────────
--- Cria o bucket 'products' como público se ainda não existir
+-- Cria o bucket 'products' como público se ainda não existir (URLs públicas de imagens funcionam direto)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('products', 'products', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 ON CONFLICT (id) DO UPDATE 
@@ -206,10 +206,13 @@ SET public = true,
     file_size_limit = 5242880,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
--- Permite leitura pública de todas as fotos do bucket products
+-- Em buckets públicos, a exibição de fotos não necessita de SELECT aberto em storage.objects.
+-- Restringimos o SELECT na tabela aos administradores para impedir que usuários anônimos listem todos os arquivos do bucket via API.
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
-CREATE POLICY "Public Access" ON storage.objects
-FOR SELECT USING (bucket_id = 'products');
+DROP POLICY IF EXISTS "Admin Select Objects" ON storage.objects;
+CREATE POLICY "Admin Select Objects" ON storage.objects
+FOR SELECT TO authenticated
+USING (bucket_id = 'products' AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- Permite inserção/upload para usuários autenticados (ou anon via painel)
 DROP POLICY IF EXISTS "Authenticated Upload" ON storage.objects;

@@ -52,16 +52,68 @@ const DB = (() => {
   return {
     // ── Products (public) ───────────────────────────
     async loadProducts() {
-      if (_loaded) return window.PRODUCTS;
+      // 1. Carrega imediatamente do cache local para que produtos e fotos apareçam em 0ms
+      if (!window.PRODUCTS || window.PRODUCTS.length === 0) {
+        try {
+          const cached = localStorage.getItem('outlet365_products_cache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              window.PRODUCTS = parsed;
+              _loaded = true;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (_loaded && window.PRODUCTS && window.PRODUCTS.length > 0) {
+        // Revalida em background sem travar o carregamento do site
+        if (!_promise) {
+          _promise = (async () => {
+            try {
+              const { data, error } = await supabaseClient
+                .from('products')
+                .select('*')
+                .eq('active', true)
+                .order('created_at', { ascending: false });
+              if (!error && data) {
+                window.PRODUCTS = data.map(normalizeProduct);
+                try {
+                  localStorage.setItem('outlet365_products_cache', JSON.stringify(window.PRODUCTS));
+                } catch (e) {}
+              }
+            } catch (err) {
+              console.warn('Revalidação de produtos em background:', err);
+            } finally {
+              _promise = null;
+            }
+            return window.PRODUCTS;
+          })();
+        }
+        return window.PRODUCTS;
+      }
+
       if (_promise) return _promise;
       _promise = (async () => {
-        const { data, error } = await supabaseClient
-          .from('products')
-          .select('*')
-          .eq('active', true)
-          .order('created_at', { ascending: false });
-        if (error) { console.error('DB.loadProducts:', error); window.PRODUCTS = []; }
-        else { window.PRODUCTS = (data || []).map(normalizeProduct); }
+        try {
+          const { data, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('active', true)
+            .order('created_at', { ascending: false });
+          if (error) {
+            console.error('DB.loadProducts:', error);
+            if (!window.PRODUCTS) window.PRODUCTS = [];
+          } else {
+            window.PRODUCTS = (data || []).map(normalizeProduct);
+            try {
+              localStorage.setItem('outlet365_products_cache', JSON.stringify(window.PRODUCTS));
+            } catch (e) {}
+          }
+        } catch (e) {
+          console.error('DB.loadProducts error:', e);
+          if (!window.PRODUCTS) window.PRODUCTS = [];
+        }
         _loaded = true;
         _promise = null;
         return window.PRODUCTS;
@@ -177,6 +229,7 @@ const DB = (() => {
       }
       if (error) throw error;
       _loaded = false; // invalidate cache
+      try { localStorage.removeItem('outlet365_products_cache'); } catch (e) {}
       return data;
     },
 
@@ -201,6 +254,7 @@ const DB = (() => {
       }
       if (error) throw error;
       _loaded = false;
+      try { localStorage.removeItem('outlet365_products_cache'); } catch (e) {}
       return data;
     },
 
@@ -240,12 +294,14 @@ const DB = (() => {
         }
       }
       _loaded = false;
+      try { localStorage.removeItem('outlet365_products_cache'); } catch (e) {}
     },
 
     async deleteProduct(id) {
       const { error } = await supabaseClient.from('products').delete().eq('id', id);
       if (error) throw error;
       _loaded = false;
+      try { localStorage.removeItem('outlet365_products_cache'); } catch (e) {}
     },
 
     // ── Orders ──────────────────────────────────────

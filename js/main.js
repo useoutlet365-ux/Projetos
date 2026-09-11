@@ -14,25 +14,6 @@ function escapeHtml(str) {
 window.escapeHtml = escapeHtml;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Carrega produtos do Supabase antes de renderizar seções dinâmicas
-  if (typeof DB !== 'undefined') await DB.loadProducts();
-
-  // ── RASTREAMENTO DE TRÁFEGO REAL (Supabase) ──
-  if (typeof DB !== 'undefined' && typeof DB.incrementStat === 'function') {
-    try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const lastVisit = localStorage.getItem('outlet365_vdate');
-      let isNewVisitor = false;
-      if (lastVisit !== todayStr) {
-        localStorage.setItem('outlet365_vdate', todayStr);
-        isNewVisitor = true;
-      }
-      DB.incrementStat('page_views', isNewVisitor);
-    } catch (e) {
-      console.error('Error tracking page view:', e);
-    }
-  }
-
   // ── MENU LATERAL ──
   const menuToggle = document.getElementById('menuToggle');
   const menuClose = document.getElementById('menuClose');
@@ -70,10 +51,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     cartOverlay?.classList.remove('active');
     document.body.style.overflow = '';
   }
+  window.openCart = openCart;
+  window.closeCart = closeCart;
+
   cartToggle?.addEventListener('click', openCart);
   cartClose?.addEventListener('click', closeCart);
   cartOverlay?.addEventListener('click', closeCart);
   continueShopping?.addEventListener('click', closeCart);
+
+  // Carrega produtos do Supabase para renderizar vitrines e catálogo
+  if (typeof DB !== 'undefined') await DB.loadProducts();
+
+  // ── RASTREAMENTO DE TRÁFEGO REAL (Supabase) ──
+  if (typeof DB !== 'undefined' && typeof DB.incrementStat === 'function') {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const lastVisit = localStorage.getItem('outlet365_vdate');
+      let isNewVisitor = false;
+      if (lastVisit !== todayStr) {
+        localStorage.setItem('outlet365_vdate', todayStr);
+        isNewVisitor = true;
+      }
+      DB.incrementStat('page_views', isNewVisitor);
+    } catch (e) {
+      console.error('Error tracking page view:', e);
+    }
+  }
 
   // ── SEARCH (Protegido contra DOM XSS) ──
   const searchToggle = document.getElementById('searchToggle');
@@ -246,5 +249,8 @@ function quickAddToCart(productId) {
   } else {
     size = 'Único';
   }
-  Cart.addItem(product, size);
+  const added = Cart.addItem(product, size);
+  if (added && typeof window.openCart === 'function') {
+    window.openCart();
+  }
 }
