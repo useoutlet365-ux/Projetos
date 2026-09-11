@@ -1347,7 +1347,7 @@ async function renderAdminProducts(catFilter = 'todos', search = '', sortOrder =
       : p.image_url
         ? `<img src="${escapeHtml(p.image_url)}" class="adm-product-img" alt="${safeName}"/>`
         : `<div class="adm-product-img-placeholder"><i class="fas fa-image"></i></div>`;
-    
+
     // Grades de tamanhos
     const rawSizes = p.sizes ? (Array.isArray(p.sizes) ? p.sizes : String(p.sizes).split(',')) : [];
     const cleanSizes = rawSizes.map(s => String(s).trim()).filter(Boolean);
@@ -1770,7 +1770,7 @@ function toggleSizeBtn(btn) {
 
 function quickSelectSizes(type) {
   const allBtns = [...document.querySelectorAll('#sizesSelector .size-option-btn')];
-  
+
   if (type === 'limpar') {
     allBtns.forEach(b => {
       b.classList.remove('selected');
